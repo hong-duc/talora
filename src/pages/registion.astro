@@ -1,4 +1,6 @@
 ---
+export const prerender = true;
+
 import "../styles/global.css";
 ---
 
@@ -235,8 +237,8 @@ import "../styles/global.css";
             </div>
         </div>
 
-	        <script>
-	            import { signUp } from "../lib/auth";
+        <script>
+            import { signUp } from "../lib/auth";
 
             const form = document.getElementById(
                 "registration-form",
@@ -328,11 +330,11 @@ import "../styles/global.css";
 
                 try {
                     // Step 1: Sign up the user
-	                const { error: signUpError } = await signUp(
-	                    email,
-	                    password,
-	                    alias,
-	                );
+                    const { error: signUpError } = await signUp(
+                        email,
+                        password,
+                        alias,
+                    );
 
                     if (signUpError) {
                         throw new Error(signUpError.message);
