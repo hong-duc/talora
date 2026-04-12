@@ -7,10 +7,12 @@ import svelte from '@astrojs/svelte';
 import tailwindcss from '@tailwindcss/vite';
 import elm from 'vite-plugin-elm';
 
+import vercel from '@astrojs/vercel';
+
 // https://astro.build/config
 export default defineConfig({
   output: "server",
-  adapter: node({ mode: 'standalone' }),
+  adapter: vercel(),
   integrations: [svelte()],
 
   vite: {
