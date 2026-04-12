@@ -39,8 +39,16 @@ const applyProfileToNode = (
 };
 
 const setAuthState = (signedIn: boolean, signedOutBlocks: Element[], signedInBlocks: Element[]) => {
-    signedOutBlocks.forEach((block) => block.classList.toggle('hidden', signedIn));
-    signedInBlocks.forEach((block) => block.classList.toggle('hidden', !signedIn));
+    signedOutBlocks.forEach((block) => {
+        block.classList.toggle('hidden', signedIn);
+        if (!signedIn) block.classList.add('flex');
+        else block.classList.remove('flex');
+    });
+    signedInBlocks.forEach((block) => {
+        block.classList.toggle('hidden', !signedIn);
+        if (signedIn) block.classList.add('flex');
+        else block.classList.remove('flex');
+    });
 };
 
 whenReady(() => {

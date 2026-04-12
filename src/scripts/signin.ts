@@ -62,8 +62,9 @@ const signInAndLoadProfile = async (
     }
 
     const payload = await response.json().catch(() => ({}));
-    const profile = payload?.profile ?? null;
-    const session = payload?.session ?? null;
+    // createApiResponse wraps data in a `data` key: { success: true, data: { profile, session } }
+    const profile = payload?.data?.profile ?? null;
+    const session = payload?.data?.session ?? null;
 
     // Persist the Supabase session in the browser so it survives page refreshes.
     // This stores the access_token & refresh_token in localStorage via the
