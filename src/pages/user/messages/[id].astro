@@ -1,0 +1,396 @@
+---
+import "../../../styles/global.css";
+import SiteHeader from "../../../components/SiteHeader.astro";
+import SiteFooter from "../../../components/SiteFooter.astro";
+import LibrarySectionNav from "../../../components/LibrarySectionNav.astro";
+import ArcaneModal from "../../../components/ArcaneModal.astro";
+import ArcaneToast from "../../../components/ArcaneToast.astro";
+import { messageThreads } from "../../../messages-content";
+
+export function getStaticPaths() {
+	return messageThreads.map((thread) => ({
+		params: { id: thread.id },
+		props: { thread },
+	}));
+}
+
+const { thread } = Astro.props;
+---
+
+<html class="dark" lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="generator" content={Astro.generator} />
+		<title>
+			{
+				thread.subject
+					? `${thread.subject} - The Whispering Library`
+					: `${thread.sender} - The Whispering Library`
+			}
+		</title>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,200..800&display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+			rel="stylesheet"
+		/>
+	</head>
+	<body class="min-h-screen bg-background-dark font-display text-slate-100">
+		<div
+			class="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-background-dark"
+		>
+			<SiteHeader />
+
+			<div class="mx-auto w-full max-w-6xl px-6 pt-6 lg:px-20">
+				<LibrarySectionNav active="my-messages" />
+			</div>
+
+			<main
+				class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-6 px-4 py-8 lg:px-20"
+			>
+				<ArcaneModal
+					id="delete-confirm-modal"
+					title="Banish this Whisper?"
+					message="Are you certain you wish to erase this echo from the archives? This action cannot be undone by any spell or scholar."
+					confirmLabel="Banish"
+					cancelLabel="Keep Whisper"
+				/>
+				<ArcaneToast
+					id="notification-toast"
+					variant="success"
+					title="Message Deleted"
+					description="The whisper has been banished from the archives."
+				/>
+				<div
+					class="grid grid-cols-1 gap-6 lg:grid-cols-[80px_1fr] xl:grid-cols-[260px_1fr]"
+				>
+					<aside
+						class="border-primary/10 bg-background-dark/30 flex flex-col gap-6 rounded-xl border px-4 py-6"
+					>
+						<div class="hidden px-2 xl:block">
+							<h3
+								class="mb-1 text-xs font-bold uppercase tracking-widest text-primary"
+							>
+								Scroll of Whispers
+							</h3>
+							<p class="text-xs text-slate-500">
+								Manage your mystical mail
+							</p>
+						</div>
+						<nav class="space-y-2">
+							<a
+								class="group flex items-center gap-4 rounded-xl border border-primary/30 bg-primary/20 px-3 py-3 text-primary"
+								href="/user/messages"
+							>
+								<span class="material-symbols-outlined"
+									>inbox</span
+								>
+								<span class="hidden font-medium xl:block"
+									>Inbox</span
+								>
+							</a>
+							<a
+								class="group flex items-center gap-4 rounded-xl px-3 py-3 text-slate-400 transition-all hover:bg-primary/10 hover:text-primary"
+								href="#"
+							>
+								<span
+									class="material-symbols-outlined text-[#d4af37]"
+									>star</span
+								>
+								<span class="hidden font-medium xl:block"
+									>Important</span
+								>
+							</a>
+							<a
+								class="group flex items-center gap-4 rounded-xl px-3 py-3 text-slate-400 transition-all hover:bg-primary/10 hover:text-primary"
+								href="#"
+							>
+								<span class="material-symbols-outlined"
+									>send</span
+								>
+								<span class="hidden font-medium xl:block"
+									>Sent Echoes</span
+								>
+							</a>
+							<a
+								class="group flex items-center gap-4 rounded-xl px-3 py-3 text-slate-400 transition-all hover:bg-primary/10 hover:text-primary"
+								href="#"
+							>
+								<span class="material-symbols-outlined"
+									>auto_stories</span
+								>
+								<span class="hidden font-medium xl:block"
+									>Archive</span
+								>
+							</a>
+						</nav>
+						<div class="mt-auto">
+							<a
+								class="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-white shadow-lg shadow-primary/20 transition-transform active:scale-95"
+								href="/user/messages/compose"
+							>
+								<span class="material-symbols-outlined text-xl"
+									>edit_note</span
+								>
+								<span class="hidden font-bold xl:block"
+									>Compose Whisper</span
+								>
+							</a>
+						</div>
+					</aside>
+
+					<section
+						class="parchment-bg min-w-0 overflow-hidden rounded-xl border border-primary/10 p-4 md:p-8 lg:p-12"
+					>
+						<div class="mx-auto max-w-4xl space-y-6">
+							<div class="mb-8 flex items-center justify-between">
+								<a
+									class="flex items-center gap-2 font-medium text-slate-400 transition-colors hover:text-primary"
+									href="/user/messages"
+								>
+									<span class="material-symbols-outlined"
+										>arrow_back</span
+									>
+									Back to Inbox
+								</a>
+								<div class="flex items-center gap-3">
+									<button
+										class="rounded-lg border border-primary/20 bg-background-dark/40 p-2 text-[#d4af37] transition-colors hover:bg-primary/10"
+										type="button"
+									>
+										<span
+											class="material-symbols-outlined fill-1"
+											>star</span
+										>
+									</button>
+									<button
+										id="delete-btn"
+										class="rounded-lg border border-primary/20 bg-background-dark/40 p-2 text-slate-400 transition-colors hover:text-primary"
+										type="button"
+									>
+										<span class="material-symbols-outlined"
+											>delete</span
+										>
+									</button>
+									<button
+										class="rounded-lg border border-primary/20 bg-background-dark/40 p-2 text-slate-400 transition-colors hover:text-primary"
+										type="button"
+									>
+										<span class="material-symbols-outlined"
+											>more_vert</span
+										>
+									</button>
+								</div>
+							</div>
+
+							<article
+								class="relative overflow-hidden rounded-xl border-t-4 border-primary bg-background-dark/40 shadow-2xl"
+							>
+								<div
+									class="flex flex-wrap items-center justify-between gap-4 border-b border-primary/10 bg-primary/5 p-6 md:p-8"
+								>
+									<div class="flex items-center gap-4">
+										<div
+											class="size-14 rounded-full border-2 border-primary/50 bg-background-dark p-1"
+										>
+											<img
+												class="h-full w-full rounded-full object-cover"
+												src={thread.avatar}
+												alt={thread.sender}
+											/>
+										</div>
+										<div>
+											<h1
+												class="font-display text-xl font-bold md:text-2xl"
+											>
+												{thread.sender}
+											</h1>
+											<p
+												class="text-sm font-medium text-primary"
+											>
+												{thread.via} • <span
+													class="font-normal text-slate-500"
+													>{thread.sentAt}</span
+												>
+											</p>
+										</div>
+									</div>
+									<div
+										class="rounded-full border border-primary/30 bg-primary/20 px-3 py-1"
+									>
+										<span
+											class="text-xs font-bold uppercase tracking-widest text-primary"
+											>{
+												thread.important
+													? "Urgent Whisper"
+													: "Arcane Whisper"
+											}</span
+										>
+									</div>
+								</div>
+
+								<div
+									class="space-y-6 p-8 text-lg leading-relaxed text-slate-300 md:p-12"
+								>
+									<p class="mb-8 italic text-primary/80">
+										{thread.contentIntro}
+									</p>
+									{
+										thread.content.map((paragraph) => (
+											<p>{paragraph}</p>
+										))
+									}
+									<div class="signature pt-12">
+										<p
+											class="font-display text-xl italic text-slate-400"
+										>
+											{thread.signoff}
+										</p>
+										<p
+											class="mt-2 text-2xl font-bold text-primary"
+										>
+											{thread.sender}
+										</p>
+										<p class="text-sm text-slate-600">
+											{thread.signatureTitle}
+										</p>
+									</div>
+								</div>
+
+								<div class="flex gap-4 px-8 pb-8">
+									<div
+										class="group flex cursor-pointer items-center gap-3 rounded-lg border border-primary/20 bg-background-dark/60 p-3 transition-all hover:border-primary/50"
+									>
+										<span
+											class="material-symbols-outlined text-primary"
+											>auto_fix_high</span
+										>
+										<div class="text-sm">
+											<p
+												class="font-medium text-slate-200"
+											>
+												{thread.attachmentName}
+											</p>
+											<p class="text-xs text-slate-500">
+												{thread.attachmentSize}
+											</p>
+										</div>
+									</div>
+								</div>
+							</article>
+
+							<div
+								class="space-y-4 rounded-xl border border-primary/20 bg-background-dark/60 p-6 md:p-8"
+							>
+								<div
+									class="mb-2 flex items-center gap-2 text-slate-400"
+								>
+									<span class="material-symbols-outlined"
+										>reply</span
+									>
+									<span class="text-sm font-medium"
+										>Reply to {thread.sender}</span
+									>
+								</div>
+								<div class="relative">
+									<textarea
+										class="min-h-[150px] w-full rounded-xl border border-primary/10 bg-background-dark/40 p-4 text-lg text-slate-100 placeholder:text-slate-600 focus:border-primary/50 focus:ring-0"
+										placeholder="Compose your echo here..."
+									></textarea>
+									<span
+										class="material-symbols-outlined absolute bottom-4 right-4 select-none text-3xl text-primary/30"
+										>edit</span
+									>
+								</div>
+								<div class="flex items-center justify-between">
+									<div class="flex gap-2">
+										<button
+											class="p-2 text-slate-500 transition-colors hover:text-primary"
+											type="button"
+											><span
+												class="material-symbols-outlined"
+												>attach_file_add</span
+											></button
+										>
+										<button
+											class="p-2 text-slate-500 transition-colors hover:text-primary"
+											type="button"
+											><span
+												class="material-symbols-outlined"
+												>sentiment_very_satisfied</span
+											></button
+										>
+										<button
+											class="p-2 text-slate-500 transition-colors hover:text-primary"
+											type="button"
+											><span
+												class="material-symbols-outlined"
+												>format_italic</span
+											></button
+										>
+									</div>
+									<button
+										class="flex items-center gap-2 rounded-xl bg-primary px-8 py-3 font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 active:scale-95"
+										type="button"
+									>
+										<span>Send Echo</span>
+										<span
+											class="material-symbols-outlined text-xl"
+											>air</span
+										>
+									</button>
+								</div>
+							</div>
+						</div>
+					</section>
+				</div>
+			</main>
+
+			<SiteFooter />
+		</div>
+		<script is:inline>
+			(() => {
+				const deleteBtn = document.getElementById("delete-btn");
+				const modal = window.arcaneUI?.modal;
+				const toast = window.arcaneUI?.toast;
+
+				if (deleteBtn && modal) {
+					deleteBtn.addEventListener("click", async () => {
+						const confirmed = await modal.show();
+						if (confirmed) {
+							// Logic to delete item would go here
+							console.log("Confirmed deletion");
+							if (toast) {
+								toast.show({ id: "notification-toast" });
+							}
+						}
+					});
+				}
+			})();
+		</script>
+	</body>
+</html>
+
+<style>
+	.parchment-bg {
+		background: linear-gradient(to bottom, #2a1b3d 0%, #191022 100%);
+		position: relative;
+	}
+
+	.parchment-bg::before {
+		content: "";
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDv1XBYhjOi3NXt1F9tBAWT4AC1srpMqzuwdtTNSLtBFkpR3APT2Ou6L2BqPee2OQm5JNHWiCBQrPLJBtUsxcdevQjIxDUNrtnFqPoDoHEpypm7TRpLQpYZQObWp5GBQdrQOp5xJFx6val9SNx8iY7SF5TCBIStGZpNaMbb8qppAuXQPchbBd2qINYmbLmpfbebGUdZe3LrOqmQ1ZmJDZsfQBKlmtp6ngjbBSn2qY6iJntT11k4rTeqD7FXrCKINy2NYOx46ReFtY4");
+		opacity: 0.05;
+		pointer-events: none;
+	}
+</style>

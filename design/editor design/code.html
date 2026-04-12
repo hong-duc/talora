@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "background": "#190e24",
+              "surface-container": "#261b31",
+              "secondary": "#d6baff",
+              "tertiary": "#e9c400",
+              "on-primary-fixed": "#241a00",
+              "outline-variant": "#4a454d",
+              "on-tertiary-fixed": "#221b00",
+              "inverse-surface": "#efdcfb",
+              "secondary-fixed": "#ecdcff",
+              "on-tertiary": "#3a3000",
+              "tertiary-container": "#c9a900",
+              "on-secondary-fixed": "#250c48",
+              "outline": "#958f98",
+              "tertiary-fixed-dim": "#e9c400",
+              "secondary-container": "#553d79",
+              "surface-dim": "#190e24",
+              "inverse-primary": "#735c00",
+              "primary-fixed-dim": "#e9c349",
+              "primary-container": "#1a1200",
+              "surface-tint": "#e9c349",
+              "on-surface": "#efdcfb",
+              "surface-container-lowest": "#14091f",
+              "primary-fixed": "#ffe088",
+              "surface-variant": "#3c3048",
+              "secondary-fixed-dim": "#d6baff",
+              "on-tertiary-fixed-variant": "#544600",
+              "primary": "#e9c349",
+              "surface-container-high": "#31253c",
+              "surface-bright": "#41344c",
+              "on-secondary-fixed-variant": "#523b76",
+              "on-error": "#690005",
+              "surface": "#190e24",
+              "on-tertiary-container": "#4c3e00",
+              "on-background": "#efdcfb",
+              "on-surface-variant": "#cbc4ce",
+              "inverse-on-surface": "#382b43",
+              "on-secondary-container": "#c8acf0",
+              "on-primary-container": "#997a00",
+              "on-primary": "#3c2f00",
+              "error": "#ffb4ab",
+              "on-primary-fixed-variant": "#574500",
+              "tertiary-fixed": "#ffe16d",
+              "on-secondary": "#3b245e",
+              "error-container": "#93000a",
+              "surface-container-highest": "#3c3048",
+              "on-error-container": "#ffdad6",
+              "surface-container-low": "#22172d"
+            },
+            fontFamily: {
+              "headline": ["Newsreader"],
+              "body": ["Newsreader"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .parchment-texture {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+        }
+        .double-outline-container {
+            position: relative;
+            padding: 4px; /* The 4px space */
+            border: 1px solid rgba(233, 195, 73, 0.4); /* Outer gold border */
+        }
+        .double-outline-inner {
+            border: 1px solid #e9c349; /* Inner gold border */
+        }
+        .inkwell-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .inkwell-scrollbar::-webkit-scrollbar-track {
+            background: rgba(233, 195, 73, 0.1);
+        }
+        .inkwell-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(233, 195, 73, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body selection:bg-primary selection:text-on-primary overflow-hidden">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-8 h-16 bg-[#190e24] border-b border-[#958f98]/40 shadow-[0_0_40px_-5px_rgba(233,195,73,0.05)]">
+<div class="flex items-center gap-8">
+<span class="text-2xl font-bold text-[#e9c349] tracking-tighter font-headline">The Whispering Library</span>
+<nav class="hidden md:flex gap-6 items-center">
+<a class="text-[#e9c349] border-b-2 border-[#e9c349] pb-1 font-headline tracking-tight leading-relaxed" href="#">Manuscripts</a>
+<a class="text-[#efdcfb]/60 hover:text-[#e9c349] transition-colors duration-300 font-headline tracking-tight leading-relaxed" href="#">Grimoires</a>
+<a class="text-[#efdcfb]/60 hover:text-[#e9c349] transition-colors duration-300 font-headline tracking-tight leading-relaxed" href="#">Archive</a>
+<a class="text-[#efdcfb]/60 hover:text-[#e9c349] transition-colors duration-300 font-headline tracking-tight leading-relaxed" href="#">Scribes</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-[#e9c349] p-2 hover:bg-[#31253c] rounded-full transition-colors">
+<span class="material-symbols-outlined">auto_stories</span>
+</button>
+<button class="text-[#e9c349] p-2 hover:bg-[#31253c] rounded-full transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="h-8 w-8 rounded-full border border-primary/40 overflow-hidden bg-surface-container">
+<img alt="Archivist Profile" data-alt="Close up of a dark violet profile avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwcVXVVVIU3_Dbj2QiJGr26OYnYjHltuGmTrcimLgxGNhn_1yliV8AokWG8xwCEIes-uNe3Nrj1ZZjPYNg3cPiCm8MppVXupAkfPTFGp2TOnf7J3eis6w96vrhEwb7jvGus80Ny72tFl8PJyH1e45rBBbcV1DJBklijoOPv0M-hicDg2UBJevAeeFgaANqZZLNaQbdCOOpSv97F04zHxIm18RidGe5yPoVWZDLR4hYTxM66dmiCA5Ind3bGQk-GOIV0dtaVVY7k-k"/>
+</div>
+</div>
+</header>
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 flex flex-col py-6 bg-[#22172d] border-r border-[#958f98]/40 z-40">
+<div class="px-6 mb-8">
+<div class="flex items-center gap-3 mb-4">
+<div class="w-10 h-10 flex items-center justify-center bg-surface-container-high border border-primary/20 rounded-lg">
+<span class="material-symbols-outlined text-primary">history_edu</span>
+</div>
+<div>
+<h3 class="text-primary font-black font-label text-xs uppercase tracking-[0.05em]">Author Tools</h3>
+<p class="text-[#efdcfb]/40 font-label text-[10px] uppercase tracking-wider">Arcane Ink Ritual</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 px-3 space-y-1">
+<a class="flex items-center gap-4 px-4 py-3 text-[#efdcfb]/40 hover:bg-[#3c3048]/50 hover:text-[#efdcfb] transition-all font-label uppercase tracking-[0.05em] text-xs" href="#">
+<span class="material-symbols-outlined">ink_highlighter</span>
+<span>Inkwell</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-[#e9c349] bg-[#31253c] border-r-2 border-[#e9c349] font-label uppercase tracking-[0.05em] text-xs" href="#">
+<span class="material-symbols-outlined">edit_note</span>
+<span>Quill Tools</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-[#efdcfb]/40 hover:bg-[#3c3048]/50 hover:text-[#efdcfb] transition-all font-label uppercase tracking-[0.05em] text-xs" href="#">
+<span class="material-symbols-outlined">book_4</span>
+<span>Binding</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-[#efdcfb]/40 hover:bg-[#3c3048]/50 hover:text-[#efdcfb] transition-all font-label uppercase tracking-[0.05em] text-xs" href="#">
+<span class="material-symbols-outlined">science</span>
+<span>Alchemical Notes</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-[#efdcfb]/40 hover:bg-[#3c3048]/50 hover:text-[#efdcfb] transition-all font-label uppercase tracking-[0.05em] text-xs" href="#">
+<span class="material-symbols-outlined">history_edu</span>
+<span>History</span>
+</a>
+</nav>
+<div class="px-6 mt-auto">
+<button class="w-full py-3 bg-gradient-to-r from-primary to-primary-container text-on-primary font-label uppercase tracking-widest text-xs font-bold rounded-lg hover:shadow-[0_0_20px_rgba(233,195,73,0.2)] transition-all active:scale-95">
+                Cast Spell
+            </button>
+<div class="mt-6 flex items-center gap-4 text-[#efdcfb]/40 hover:text-primary transition-colors cursor-pointer py-2">
+<span class="material-symbols-outlined text-sm">help_center</span>
+<span class="font-label uppercase tracking-[0.05em] text-xs">Library Help</span>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="pl-64 pt-16 h-screen w-full relative overflow-hidden flex flex-col">
+<!-- Textural Overlay -->
+<div class="absolute inset-0 parchment-texture pointer-events-none"></div>
+<!-- Background Glows -->
+<div class="absolute top-1/4 -right-20 w-96 h-96 bg-primary/5 rounded-full blur-[100px] pointer-events-none"></div>
+<div class="absolute bottom-1/4 -left-20 w-80 h-80 bg-secondary/5 rounded-full blur-[100px] pointer-events-none"></div>
+<!-- Editor Workspace -->
+<div class="flex-1 flex flex-col p-8 md:p-12 lg:px-24 xl:px-48 max-w-7xl mx-auto w-full relative z-10">
+<!-- Header Section -->
+<div class="mb-12 text-center md:text-left">
+<span class="text-primary font-label text-[10px] uppercase tracking-[0.2em] mb-2 block">Manuscript #402</span>
+<h1 class="text-4xl md:text-5xl font-headline font-bold text-on-surface tracking-tight mb-4 selection:bg-primary-container">The Alchemist's Silence</h1>
+<div class="flex items-center gap-3 text-on-surface-variant text-sm font-label italic opacity-60">
+<span>Draft Chapter One</span>
+<span class="w-1 h-1 bg-outline-variant rounded-full"></span>
+<span>Last edited by The Archivist</span>
+</div>
+</div>
+<!-- Editor Toolbar -->
+<div class="mb-6 flex flex-wrap items-center gap-2 p-2 bg-surface-container/60 backdrop-blur-xl rounded-xl border border-outline-variant/30">
+<div class="flex items-center gap-1.5 px-2 border-r border-outline-variant/30">
+<button class="w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-primary border border-primary/30 rounded transition-all active:scale-90">
+<span class="material-symbols-outlined text-lg">format_bold</span>
+</button>
+<button class="w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-primary border border-primary/30 rounded transition-all active:scale-90">
+<span class="material-symbols-outlined text-lg">format_italic</span>
+</button>
+<button class="w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-primary border border-primary/30 rounded transition-all active:scale-90">
+<span class="material-symbols-outlined text-lg">format_underlined</span>
+</button>
+</div>
+<div class="flex items-center gap-1.5 px-2 border-r border-outline-variant/30">
+<button class="w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-primary border border-primary/30 rounded transition-all active:scale-90">
+<span class="material-symbols-outlined text-lg">format_list_bulleted</span>
+</button>
+<button class="w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-primary border border-primary/30 rounded transition-all active:scale-90">
+<span class="material-symbols-outlined text-lg">format_list_numbered</span>
+</button>
+</div>
+<div class="flex items-center gap-1.5 px-2">
+<button class="w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-primary border border-primary/30 rounded transition-all active:scale-90">
+<span class="material-symbols-outlined text-lg">link</span>
+</button>
+<button class="w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-primary border border-primary/30 rounded transition-all active:scale-90">
+<span class="material-symbols-outlined text-lg">format_quote</span>
+</button>
+</div>
+<div class="ml-auto flex items-center gap-2 px-2">
+<button class="flex items-center gap-2 px-4 h-9 bg-surface-container-high border border-primary/20 text-primary rounded-lg text-xs font-label uppercase tracking-wider hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined text-sm">auto_fix</span>
+                        Enhance Ink
+                    </button>
+</div>
+</div>
+<!-- Main Editor Area (Double Outline) -->
+<div class="flex-1 min-h-0 flex flex-col">
+<div class="double-outline-container rounded-sm flex-1 flex flex-col bg-surface-container/20">
+<div class="double-outline-inner flex-1 flex flex-col bg-[#14091f] shadow-inner rounded-sm overflow-hidden">
+<div class="flex-1 overflow-y-auto inkwell-scrollbar p-10 md:p-16 lg:p-20 focus:outline-none" contenteditable="true">
+<p class="text-xl md:text-2xl leading-[1.8] text-on-surface/90 mb-10 first-letter:text-5xl first-letter:text-primary first-letter:float-left first-letter:mr-3 first-letter:mt-2 first-letter:font-bold">
+                                The ink in the well did not just sit; it pulsed. Elias watched it under the dim amber glow of the Library’s floating lanterns. Outside the leaded glass windows, the void churned with silent, purple storms—the kind of weather that unmade memories and rewrote the histories of smaller men.
+                            </p>
+<p class="text-xl md:text-2xl leading-[1.8] text-on-surface/90 mb-10">
+                                He dipped his quill. The nib, carved from the bone of a long-dead constellation, sang a high, vibrating note as it touched the vellum. This wasn't just storytelling. This was architecture. Each word was a stone laid in the foundation of a reality that didn't yet exist, but desperately needed to.
+                            </p>
+<p class="text-xl md:text-2xl leading-[1.8] text-on-surface/90 italic opacity-60">
+                                "In the beginning," he wrote, "there was only the whisper."
+                            </p>
+<p class="text-xl md:text-2xl leading-[1.8] text-on-surface/90">
+                                The whisper was older than the silence that followed it. It was the hum of the universe trying to remember its own name. Elias felt the cold crawl up his spine—the familiar touch of the Arcane. To write here, in the Whispering Library, was to invite the shadows to look over your shoulder.
+                            </p>
+</div>
+</div>
+</div>
+</div>
+<!-- Status Bar -->
+<footer class="mt-6 flex justify-between items-center px-4 py-2 border-t border-outline-variant/20">
+<div class="flex gap-6">
+<div class="flex items-center gap-2 text-[10px] font-label text-on-surface-variant uppercase tracking-[0.1em]">
+<span class="w-1.5 h-1.5 rounded-full bg-primary/40"></span>
+<span>Word Count: 1,248</span>
+</div>
+<div class="flex items-center gap-2 text-[10px] font-label text-on-surface-variant uppercase tracking-[0.1em]">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary/40"></span>
+<span>Pages: 4</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-[10px] font-label text-primary uppercase tracking-[0.2em] animate-pulse">Status: Saved to Void</span>
+<span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">cloud_done</span>
+</div>
+</footer>
+</div>
+<!-- Float Floating Scholars (Asymmetric Decorative Element) -->
+<div class="absolute bottom-24 right-12 w-48 p-4 bg-surface-container-high/80 backdrop-blur-md border-l-4 border-primary rounded-r-lg shadow-2xl hidden lg:block transform rotate-1">
+<h4 class="text-primary font-headline text-sm font-bold mb-2">Arcane Insight</h4>
+<p class="text-xs text-on-surface-variant leading-relaxed">Consider shifting the perspective in the next paragraph. The ink suggests a shift in the magical tide.</p>
+</div>
+</main>
+</body></html>

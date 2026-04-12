@@ -1,0 +1,121 @@
+---
+import ArcaneToast from './ArcaneToast.astro';
+import signoutScript from '../scripts/signout.ts?url';
+
+interface Props {
+	active?:
+		| 'archive'
+		| 'search'
+		| 'current-seeker'
+		| 'reading-list'
+		| 'my-messages'
+		| 'reliquary'
+		| 'past-echoes'
+		| 'create-story';
+	className?: string;
+}
+
+const { active, className = '' } = Astro.props;
+
+const items: Array<{
+	key: NonNullable<Props['active']>;
+	label: string;
+	icon: string;
+	href: string;
+}> = [
+	{ key: 'archive', label: 'The Archive', icon: 'local_library', href: '/archive' },
+	{ key: 'search', label: 'Search', icon: 'search', href: '/search' },
+	{ key: 'current-seeker', label: 'Current Seeker', icon: 'person_book', href: '/user' },
+	{ key: 'reading-list', label: 'Reading List', icon: 'book_2', href: '/user/reading-list' },
+	{ key: 'my-messages', label: 'My Messages', icon: 'mail', href: '/user/messages' },
+	{ key: 'create-story', label: 'Create Story', icon: 'edit_note', href: '/create-story' },
+	{ key: 'reliquary', label: 'Reliquary', icon: 'diamond', href: '#' },
+	{ key: 'past-echoes', label: 'Past Echoes', icon: 'history_edu', href: '/chat' }
+];
+
+const itemClass = (key: NonNullable<Props['active']>) =>
+	`flex items-center gap-3 rounded-xl px-4 py-3 transition-colors ${
+		active === key ? 'bg-primary/20 text-primary font-bold' : 'text-slate-100 hover:bg-primary/5'
+	}`;
+---
+
+<div class:list={['space-y-2', className]} data-library-nav-root>
+	<div
+		class="overflow-hidden transition-all duration-300 ease-in-out"
+		data-library-nav-content
+		style="max-height: 0px; opacity: 0;"
+	>
+		<nav aria-label="Library sections" class="space-y-2">
+			{
+				items.map((item) => (
+					<a aria-current={active === item.key ? 'page' : undefined} class={itemClass(item.key)} href={item.href}>
+						<span class={`material-symbols-outlined ${active === item.key ? '' : 'text-primary'}`}>{item.icon}</span>
+						<span>{item.label}</span>
+					</a>
+				))
+			}
+		</nav>
+		<div class="pt-4">
+			<button
+				class="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[#d4af37] bg-[#b11a2a] px-4 py-3 text-sm font-bold text-white shadow-[0_0_0_2px_rgba(212,175,55,0.25)] transition-all hover:brightness-110"
+				data-signout-button
+				type="button"
+			>
+				<span class="material-symbols-outlined text-sm">logout</span>
+				Sign Out
+			</button>
+		</div>
+	</div>
+
+	<button
+		aria-expanded="false"
+		aria-label="Toggle section navigation"
+		class="mx-auto flex h-9 w-9 items-center justify-center rounded-full border border-primary/30 bg-background-dark/70 text-primary transition-colors hover:bg-primary/10"
+		data-library-nav-toggle
+		type="button"
+	>
+		<span class="material-symbols-outlined" data-library-nav-icon>expand_more</span>
+	</button>
+</div>
+
+<ArcaneToast id="signout-toast" variant="information" />
+
+	<script is:inline type="module" src={signoutScript}></script>
+
+<script is:inline>
+	(() => {
+		const roots = document.querySelectorAll('[data-library-nav-root]');
+
+		roots.forEach((root) => {
+			const content = root.querySelector('[data-library-nav-content]');
+			const toggle = root.querySelector('[data-library-nav-toggle]');
+			const icon = root.querySelector('[data-library-nav-icon]');
+
+			if (!(content instanceof HTMLElement) || !(toggle instanceof HTMLButtonElement) || !(icon instanceof HTMLElement)) {
+				return;
+			}
+
+			let isOpen = false;
+
+			const setOpenState = () => {
+				content.style.maxHeight = isOpen ? `${content.scrollHeight}px` : '0px';
+				content.style.opacity = isOpen ? '1' : '0';
+				toggle.setAttribute('aria-expanded', String(isOpen));
+				icon.textContent = isOpen ? 'expand_less' : 'expand_more';
+			};
+
+			requestAnimationFrame(setOpenState);
+
+			toggle.addEventListener('click', () => {
+				isOpen = !isOpen;
+				setOpenState();
+			});
+
+			window.addEventListener('resize', () => {
+				if (isOpen) {
+					content.style.maxHeight = `${content.scrollHeight}px`;
+				}
+			});
+		});
+	})();
+</script>

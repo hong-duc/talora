@@ -1,0 +1,341 @@
+---
+import "../styles/global.css";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import LibrarySectionNav from "../components/LibrarySectionNav.astro";
+import { archiveContent } from "../site-content";
+import ArcaneButton from "../components/ArcaneButton.svelte";
+import ArcaneToast from "../components/ArcaneToast.astro";
+
+type TagChip = {
+	id: string;
+	name: string;
+	color: string;
+};
+
+async function safeFetchJson<T>(url: URL, fallback: T) {
+	try {
+		const response = await fetch(url);
+		const responseText = await response.text();
+		let payload: T = fallback;
+		if (responseText) {
+			try {
+				payload = JSON.parse(responseText) as T;
+			} catch {
+				payload = fallback;
+			}
+		}
+		if (!response.ok) {
+			const message =
+				(responseText &&
+					(() => {
+						try {
+							const parsed = JSON.parse(responseText);
+							return parsed?.error;
+						} catch {
+							return null;
+						}
+					})()) ||
+				responseText ||
+				response.statusText ||
+				"Request failed.";
+			return { ok: false, data: fallback, error: message };
+		}
+		return { ok: true, data: payload, error: "" };
+	} catch (error) {
+		return {
+			ok: false,
+			data: fallback,
+			error: error instanceof Error ? error.message : "Request failed.",
+		};
+	}
+}
+
+const tagsResult = await safeFetchJson(new URL("/api/tags", Astro.url), {
+	categories: [],
+});
+const tagsPayload = tagsResult.data;
+const tagsError = tagsResult.error;
+
+const tagChips: TagChip[] = (tagsPayload?.categories ?? []).flatMap(
+	(category: any) =>
+		(category?.tags ?? []).map((tag: any) => ({
+			id: tag.id,
+			name: tag.name,
+			color: category.color || "#6b7280",
+		})),
+);
+const tagColorById = new Map(tagChips.map((tag) => [tag.id, tag.color]));
+
+const storiesResult = await safeFetchJson(
+	new URL("/api/stories?all_statuses=true", Astro.url),
+	{
+		success: true,
+		data: {
+			stories: [],
+			pagination: {
+				page: 1,
+				limit: 20,
+				total: 0,
+				totalPages: 0,
+				hasNext: false,
+				hasPrev: false,
+			},
+		},
+	},
+);
+const storiesPayload = storiesResult.data;
+const storiesError = storiesResult.error;
+const stories = storiesPayload?.data?.stories ?? [];
+
+const archiveErrorMessage = [storiesError, tagsError]
+	.filter(Boolean)
+	.join(" | ");
+
+const getInitials = (name: string | null | undefined) => {
+	if (!name) return "??";
+	return name
+		.split(" ")
+		.filter(Boolean)
+		.slice(0, 2)
+		.map((part) => part[0]?.toUpperCase() ?? "")
+		.join("");
+};
+---
+
+<html class="dark" lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="generator" content={Astro.generator} />
+		<title>The Whispering Library - Archive</title>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,200..800&display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+			rel="stylesheet"
+		/>
+	</head>
+	<body class="min-h-screen bg-background-dark font-display text-slate-100">
+		<div
+			class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden bg-background-dark"
+		>
+			<div class="layout-container flex h-full grow flex-col">
+				<SiteHeader />
+				<div class="mx-auto w-full max-w-5xl px-6 pt-6 lg:px-20">
+					<LibrarySectionNav active="archive" />
+				</div>
+
+				<main class="mx-auto w-full max-w-[1200px] flex-1 px-6 py-8">
+					<section class="mb-12">
+						<div
+							class="relative flex h-64 flex-col items-center justify-center overflow-hidden rounded-xl border border-primary/30 bg-gradient-to-br from-primary/20 to-background-dark p-8 text-center"
+							style={`background-image: linear-gradient(rgba(25, 16, 34, 0.7), rgba(25, 16, 34, 0.7)), url('${archiveContent.hero.image}'); background-size: cover; background-position: center;`}
+						>
+							<h1
+								class="mb-6 text-4xl font-bold text-slate-100 drop-shadow-lg md:text-5xl"
+							>
+								{archiveContent.hero.title}
+							</h1>
+							<div class="relative w-full max-w-2xl">
+								<div
+									class="pointer-events-none absolute inset-y-0 left-4 flex items-center"
+								>
+									<span
+										class="material-symbols-outlined text-slate-400"
+										>search</span
+									>
+								</div>
+								<input
+									class="h-14 w-full rounded-xl border border-primary/50 bg-background-dark/80 pl-12 pr-4 text-slate-100 outline-none transition-all placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-primary"
+									placeholder={archiveContent.hero
+										.searchPlaceholder}
+									type="text"
+								/>
+							</div>
+						</div>
+					</section>
+
+					<section class="mb-10">
+						<div class="mb-4 flex items-center justify-between">
+							<h3 class="text-xl font-semibold text-slate-100">
+								{archiveContent.essence.title}
+							</h3>
+						</div>
+						<div
+							class="no-scrollbar flex gap-3 overflow-x-auto pb-4"
+						>
+							{
+								tagChips.map((tag) => (
+									<span
+										class="flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border px-6 font-medium text-slate-100"
+										style={`border-color: ${tag.color}; background-color: color-mix(in srgb, ${tag.color} 20%, #191022);`}
+									>
+										<span
+											class="material-symbols-outlined text-sm"
+											style={`color: ${tag.color};`}
+										>
+											local_offer
+										</span>
+										{tag.name}
+									</span>
+								))
+							}
+						</div>
+					</section>
+
+					<section>
+						<div class="mb-6 flex items-center justify-between">
+							<h2 class="text-2xl font-bold text-slate-100">
+								{archiveContent.recentlyUncovered.title}
+							</h2>
+							<ArcaneButton
+								href="#"
+								className="text-sm px-5 py-2"
+							>
+								{archiveContent.recentlyUncovered.viewAllLabel}
+							</ArcaneButton>
+						</div>
+
+						<div
+							class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3"
+						>
+							{
+								stories.map((story: any) => {
+									const firstTag = story.tags?.[0];
+									const tagColor = firstTag?.id
+										? tagColorById.get(firstTag.id)
+										: null;
+									const displayTag =
+										firstTag?.name || "Unbound";
+									const authorName =
+										story.author?.username ||
+										"Unknown Seeker";
+									const authorInitials =
+										getInitials(authorName);
+									const description =
+										story.description ||
+										story.world_prompt ||
+										"";
+									return (
+										<a
+											href={`/review/${story.id}`}
+											class="group overflow-hidden rounded-xl border border-primary/10 bg-slate-800/50 transition-all hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/10"
+										>
+											<div class="relative h-64 overflow-hidden">
+												<img
+													alt={story.title}
+													class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+													src={
+														story.cover_image_url ||
+														"/hero-library.png"
+													}
+												/>
+												<div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+												<div class="absolute bottom-4 left-4 flex gap-2">
+													<span
+														class="rounded px-2 py-1 text-[10px] uppercase tracking-widest text-white backdrop-blur-sm"
+														style={`background-color: ${tagColor || "#4c1d95"}`}
+													>
+														{displayTag}
+													</span>
+												</div>
+											</div>
+											<div class="p-6">
+												<h3 class="mb-2 text-xl font-bold transition-colors group-hover:text-primary">
+													{story.title}
+												</h3>
+												<p class="line-clamp-2 text-sm leading-relaxed text-slate-400">
+													{description}
+												</p>
+												<div class="mt-4 flex items-center gap-2">
+													<div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold">
+														{authorInitials}
+													</div>
+													<span class="text-xs text-slate-500">
+														{authorName}
+													</span>
+												</div>
+											</div>
+										</a>
+									);
+								})
+							}
+						</div>
+					</section>
+
+					<div class="mt-16 flex justify-center pb-20">
+						<div class="flex gap-2">
+							<button
+								class="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/20 text-slate-400 transition-all hover:text-primary"
+							>
+								<span class="material-symbols-outlined"
+									>chevron_left</span
+								>
+							</button>
+							<button
+								class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary font-bold text-white"
+								>1</button
+							>
+							<button
+								class="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/20 text-slate-400 transition-all hover:text-primary"
+								>2</button
+							>
+							<button
+								class="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/20 text-slate-400 transition-all hover:text-primary"
+								>3</button
+							>
+							<button
+								class="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/20 text-slate-400 transition-all hover:text-primary"
+							>
+								<span class="material-symbols-outlined"
+									>chevron_right</span
+								>
+							</button>
+						</div>
+					</div>
+				</main>
+
+				<SiteFooter />
+
+				<ArcaneToast id="archive-toast" variant="information" />
+
+				<button
+					class="fixed bottom-8 right-8 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-2xl transition-all hover:scale-110 active:scale-95"
+				>
+					<span class="material-symbols-outlined">help_center</span>
+				</button>
+			</div>
+		</div>
+		<script is:inline define:vars={{ archiveErrorMessage }}>
+			(() => {
+				if (!archiveErrorMessage) return;
+				const event = new CustomEvent("arcane-toast:show", {
+					detail: {
+						id: "archive-toast",
+						title: "Archive Error",
+						description: archiveErrorMessage,
+						icon: "error",
+						duration: 6000,
+					},
+				});
+				window.dispatchEvent(event);
+			})();
+		</script>
+	</body>
+</html>
+
+<style>
+	.no-scrollbar::-webkit-scrollbar {
+		display: none;
+	}
+
+	.no-scrollbar {
+		-ms-overflow-style: none;
+		scrollbar-width: none;
+	}
+</style>

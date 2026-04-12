@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Whispering Library - Create a Story</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#7311d4",
+                        "accent-gold": "#d4af37",
+                        "background-light": "#f7f6f8",
+                        "background-dark": "#191022",
+                    },
+                    fontFamily: {
+                        "display": ["Newsreader", "serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Newsreader', serif;
+        }
+        .magical-border {
+            border: 1px solid rgba(115, 17, 212, 0.3);
+            box-shadow: 0 0 15px rgba(115, 17, 212, 0.1);
+        }
+        .gold-glow:focus {
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+            border-color: #d4af37;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<!-- Header Section -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-primary/20 px-6 md:px-20 py-4 bg-background-dark/50 backdrop-blur-md sticky top-0 z-50">
+<div class="flex items-center gap-3 text-primary">
+<div class="size-8 text-accent-gold">
+<span class="material-symbols-outlined text-3xl">auto_stories</span>
+</div>
+<h2 class="text-slate-100 text-xl font-bold leading-tight tracking-tight">The Whispering Library</h2>
+</div>
+<div class="flex flex-1 justify-end gap-6 items-center">
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-slate-300 hover:text-accent-gold transition-colors text-sm font-medium" href="#">Grimoire</a>
+<a class="text-slate-300 hover:text-accent-gold transition-colors text-sm font-medium" href="#">Archives</a>
+<a class="text-slate-300 hover:text-accent-gold transition-colors text-sm font-medium" href="#">Scriptorium</a>
+</nav>
+<div class="bg-primary/20 border border-primary/40 rounded-full p-1">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-8" data-alt="Avatar of a mysterious hooded scholar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBJcb0jPrJaiHgxaY6Y8rZ__AV-mgOWrQiyILKlytKv3whnWiMKM5iEpO3v3TcTvfbCzV-ij-DoxDq4Jkgsc0LrghYwq7QObOb1O4Sl7QqS8ocrILXbbK6jyJPjoTuKmTI4qrb_Akd5X8vZWSGiwsS-f3v_y4c5tDzEKV6sa_K3r82KGASRWdRa8TAi8G0gKCOXlsIVy2Syj0SPz17iSNz9jE4B64DsU9x-YSIAQ9ln_WlEbH0JM1zzgMyCQ1R78UN3iZsgetS4UnU");'></div>
+</div>
+</div>
+</header>
+<main class="flex flex-1 justify-center py-10 px-4 md:px-0">
+<div class="layout-content-container flex flex-col max-w-[800px] flex-1 gap-8">
+<!-- Page Title & Intro -->
+<div class="flex flex-col gap-2 border-l-4 border-accent-gold pl-6 py-2">
+<h1 class="text-slate-100 text-5xl font-black leading-tight tracking-tight italic">Manifestation of Tales</h1>
+<p class="text-slate-400 text-lg font-normal italic">Dip your quill into the ink of eternity and scribe a new legend.</p>
+</div>
+<!-- Creation Form -->
+<div class="flex flex-col gap-8 bg-primary/5 p-8 rounded-xl border border-primary/10 backdrop-blur-sm">
+<!-- Title Field -->
+<div class="flex flex-col gap-3">
+<label class="flex items-center gap-2 text-accent-gold text-lg font-bold tracking-wide uppercase text-xs">
+<span class="material-symbols-outlined text-sm">edit_note</span>
+                                Tome Title
+                            </label>
+<input class="w-full rounded-lg text-slate-100 focus:outline-0 focus:ring-1 focus:ring-accent-gold border border-primary/30 bg-background-dark/60 h-14 px-4 text-xl font-display placeholder:text-slate-600 gold-glow transition-all" placeholder="Whispers of the Forgotten King..." type="text"/>
+</div>
+<!-- Description Field -->
+<div class="flex flex-col gap-3">
+<label class="flex items-center gap-2 text-accent-gold text-lg font-bold tracking-wide uppercase text-xs">
+<span class="material-symbols-outlined text-sm">history_edu</span>
+                                Chronicle Description
+                            </label>
+<textarea class="w-full min-h-[120px] rounded-lg text-slate-100 focus:outline-0 focus:ring-1 focus:ring-accent-gold border border-primary/30 bg-background-dark/60 p-4 text-base font-display placeholder:text-slate-600 gold-glow transition-all resize-none" placeholder="A brief summary of the journey that awaits the reader..."></textarea>
+</div>
+<!-- Arcane Prompt Field -->
+<div class="flex flex-col gap-3">
+<label class="flex items-center gap-2 text-accent-gold text-lg font-bold tracking-wide uppercase text-xs">
+<span class="material-symbols-outlined text-sm">auto_fix_high</span>
+                                Arcane Prompt
+                            </label>
+<div class="relative">
+<textarea class="w-full min-h-[160px] rounded-lg text-slate-100 focus:outline-0 focus:ring-1 focus:ring-accent-gold border border-primary/30 bg-background-dark/80 p-4 text-base font-display italic placeholder:text-slate-600 gold-glow transition-all resize-none" placeholder="Input the magical seed: 'In a kingdom where shadows speak, a librarian finds a book that bleeds ink...'"></textarea>
+<div class="absolute bottom-3 right-3 opacity-20">
+<span class="material-symbols-outlined text-4xl text-primary">ink_pen</span>
+</div>
+</div>
+<p class="text-xs text-slate-500 italic">The catalyst that breathes life into your interactive chronicle.</p>
+</div><!-- Story Essences (Tags) -->
+<div class="flex flex-col gap-3">
+<label class="flex items-center gap-2 text-accent-gold text-lg font-bold tracking-wide uppercase text-xs">
+<span class="material-symbols-outlined text-sm">local_offer</span>
+        Story Essences
+    </label>
+<div class="flex flex-wrap gap-2 p-3 rounded-lg border border-primary/30 bg-background-dark/60 min-h-[56px] items-center gold-glow focus-within:ring-1 focus-within:ring-accent-gold transition-all">
+<!-- Sample Tags -->
+<div class="flex items-center gap-1.5 px-3 py-1 bg-primary/30 border border-accent-gold/40 rounded-full text-xs text-accent-gold font-medium">
+<span>Mystery</span>
+<button class="hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</div>
+<div class="flex items-center gap-1.5 px-3 py-1 bg-primary/30 border border-accent-gold/40 rounded-full text-xs text-accent-gold font-medium">
+<span>High Fantasy</span>
+<button class="hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[14px]">close</span>
+</button>
+</div>
+<input class="bg-transparent border-none focus:ring-0 text-slate-100 placeholder:text-slate-600 text-sm font-display flex-1 min-w-[120px]" placeholder="Infuse essence (e.g. Grimdark, Romance)..." type="text"/>
+</div>
+<p class="text-xs text-slate-500 italic">The spiritual threads that weave your tale into the tapestry of the library.</p>
+</div>
+<!-- Image Upload Area -->
+<div class="flex flex-col gap-3">
+<label class="flex items-center gap-2 text-accent-gold text-lg font-bold tracking-wide uppercase text-xs">
+<span class="material-symbols-outlined text-sm">image</span>
+                                Cover Essence
+                            </label>
+<div class="group relative flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-primary/30 rounded-xl bg-background-dark/40 hover:bg-primary/10 transition-all cursor-pointer overflow-hidden">
+<div class="z-10 flex flex-col items-center gap-2">
+<span class="material-symbols-outlined text-5xl text-primary group-hover:text-accent-gold transition-colors">cloud_upload</span>
+<p class="text-slate-400 group-hover:text-slate-200">Invoke the visual spirit of your tale</p>
+<span class="text-xs text-slate-500 italic">Click to browse or drag an artifact here</span>
+</div>
+<div class="absolute inset-0 opacity-10 bg-cover bg-center" data-alt="Faint texture of ancient parchment and magical symbols" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC6Gsgso5q5AJ6XV8YocMqARukwVaOSCzr0TVTNPwk4ECaP9KFHBBOWgEK6zt3tXp0uLVhdTQWdYYrj_EopAGVqrVYogZer0blnzVR6ClzoSCLnCbj6UKdo5E_6JAAO8Gsdo4fK2323Phdy6CsvyDMa2Qusz8EIvweMhDrviwkLCBJINakAwABwStOdemEnhJ0D5ait7fE3V1d3KXNAr6jEhXkX6hX2XRzkEvFJNUQwRKVOTAofQREGSKRcrw8qLoTOl5_F1LH3G04')"></div>
+</div>
+</div>
+<!-- Submit Button -->
+<div class="flex justify-center pt-6 pb-4">
+<button class="group relative flex items-center gap-3 bg-primary hover:bg-primary/80 text-white font-bold py-4 px-12 rounded-full transition-all shadow-lg hover:shadow-primary/40 active:scale-95">
+<span class="material-symbols-outlined text-accent-gold">book_4</span>
+<span class="text-xl tracking-tight">Scribe to Archive</span>
+<div class="absolute -inset-1 rounded-full border border-accent-gold/30 scale-105 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</button>
+</div>
+</div>
+<!-- Footer Decoration -->
+<div class="flex items-center justify-center gap-4 py-8 opacity-40">
+<div class="h-[1px] flex-1 bg-gradient-to-r from-transparent via-accent-gold to-transparent"></div>
+<span class="material-symbols-outlined text-accent-gold">flare</span>
+<div class="h-[1px] flex-1 bg-gradient-to-r from-transparent via-accent-gold to-transparent"></div>
+</div>
+</div>
+</main>
+<footer class="border-t border-primary/10 py-10 px-20 text-center">
+<p class="text-slate-500 text-sm italic font-display">Property of the High Archivist • Est. Before the First Silence</p>
+</footer>
+</div>
+</div>
+</body></html>

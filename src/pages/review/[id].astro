@@ -1,0 +1,788 @@
+---
+import "../../styles/global.css";
+import SiteHeader from "../../components/SiteHeader.astro";
+import SiteFooter from "../../components/SiteFooter.astro";
+import LibrarySectionNav from "../../components/LibrarySectionNav.astro";
+import ReviewStarRating from "../../components/ReviewStarRating.svelte";
+import ReviewThoughtsThread from "../../components/ReviewThoughtsThread.svelte";
+import ArcaneButton from "../../components/ArcaneButton.svelte";
+import ArcaneToast from "../../components/ArcaneToast.astro";
+
+const { id } = Astro.params;
+
+if (!id) {
+	throw new Response("Not found", { status: 404 });
+}
+
+// ── Utility: fetch JSON with a fallback value ──────────────────────────────
+async function safeFetchJson<T>(url: URL, fallback: T) {
+	try {
+		const response = await fetch(url);
+		const responseText = await response.text();
+		let payload: T = fallback;
+		if (responseText) {
+			try {
+				payload = JSON.parse(responseText) as T;
+			} catch {
+				payload = fallback;
+			}
+		}
+		if (!response.ok) {
+			const message =
+				(responseText &&
+					(() => {
+						try {
+							const parsed = JSON.parse(responseText);
+							return parsed?.error;
+						} catch {
+							return null;
+						}
+					})()) ||
+				responseText ||
+				response.statusText ||
+				"Request failed.";
+			return { ok: false, data: fallback, error: message };
+		}
+		return { ok: true, data: payload, error: "" };
+	} catch (error) {
+		return {
+			ok: false,
+			data: fallback,
+			error: error instanceof Error ? error.message : "Request failed.",
+		};
+	}
+}
+
+// ── Full story record matching the API response ────────────────────────────
+type StoryCharacter = {
+	name: string;
+	description?: string;
+	personality?: string;
+	avatar_url?: string;
+};
+
+type StoryStart = {
+	id?: string;
+	title: string;
+	content: string;
+	sort_order: number;
+};
+
+type StoryRecord = {
+	id: string;
+	title: string;
+	description: string | null;
+	cover_image_url: string | null;
+	created_at: string | null;
+	world_prompt: string | null;
+	rating: number | null;
+	author_id: string | null;
+	author: {
+		id: string;
+		username: string | null;
+		avatar_url: string | null;
+	} | null;
+	tags?: Array<{ id: string; name: string }>;
+	// World-building fields
+	setting: string | null;
+	tone: string[];
+	world_rules: string | null;
+	lore: string | null;
+	// Characters
+	characters: StoryCharacter[];
+	// Story starts (opening scenarios)
+	story_starts: StoryStart[];
+	// Style parameters
+	descriptiveness: number;
+	dialogue_ratio: number;
+	pacing: "slow" | "medium" | "fast";
+	emotional_intensity: number;
+	auto_style: boolean;
+};
+
+// ── Fetch story data ───────────────────────────────────────────────────────
+const storyResult = await safeFetchJson<{ story: StoryRecord | null }>(
+	new URL(`/api/stories/${id}`, Astro.url),
+	{ story: null },
+);
+const story = storyResult.ok ? (storyResult.data?.story ?? null) : null;
+const storyError = storyResult.ok
+	? story
+		? ""
+		: "Story not found."
+	: storyResult.error;
+
+// ── Derive display values ──────────────────────────────────────────────────
+const authorName = story?.author?.username || "Unknown Seeker";
+const authorId = story?.author_id || "";
+const coverImage = story?.cover_image_url || "/hero-library.png";
+
+// Description is HTML — render it with set:html
+const descriptionHtml =
+	story?.description?.trim() || story?.world_prompt?.trim() || "";
+
+const rating = typeof story?.rating === "number" ? story.rating : 0;
+
+const createdAtValue = story?.created_at ?? "";
+const formattedDate = createdAtValue
+	? new Intl.DateTimeFormat("en-US", {
+			month: "long",
+			day: "numeric",
+			year: "numeric",
+		}).format(new Date(createdAtValue))
+	: "";
+
+const tags = story?.tags ?? [];
+const tone = story?.tone ?? [];
+const setting = story?.setting ?? "";
+const worldRules = story?.world_rules ?? "";
+const lore = story?.lore ?? "";
+const characters = story?.characters ?? [];
+const storyStarts = story?.story_starts ?? [];
+const autoStyle = story?.auto_style ?? true;
+const pacing = story?.pacing ?? "medium";
+const descriptiveness = story?.descriptiveness ?? 3;
+const dialogueRatio = story?.dialogue_ratio ?? 3;
+const emotionalIntensity = story?.emotional_intensity ?? 3;
+
+// ── Tone colour map (mirrors global.css tone variables) ──────────────────
+const toneColors: Record<string, string> = {
+	cozy: "bg-amber-500/20 text-amber-400 border-amber-500/40",
+	mysterious: "bg-indigo-500/20 text-indigo-400 border-indigo-500/40",
+	epic: "bg-yellow-500/20 text-yellow-400 border-yellow-500/40",
+	dark: "bg-gray-500/20 text-gray-400 border-gray-500/40",
+	romantic: "bg-rose-500/20 text-rose-400 border-rose-500/40",
+	humorous: "bg-teal-500/20 text-teal-400 border-teal-500/40",
+	"slice-of-life": "bg-green-500/20 text-green-400 border-green-500/40",
+	"martial arts": "bg-red-500/20 text-red-400 border-red-500/40",
+	fantasy: "bg-purple-500/20 text-purple-400 border-purple-500/40",
+};
+const defaultToneClass = "bg-primary/20 text-primary border-primary/40";
+
+// ── Style slider helper: value 1-5 → percentage ───────────────────────────
+function sliderPercent(value: number): number {
+	return ((value - 1) / 4) * 100;
+}
+
+const reviewErrorMessage = storyError;
+---
+
+<html class="dark" lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="generator" content={Astro.generator} />
+		<title>The Whispering Library - {story?.title ?? "Review"}</title>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,200..800&display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+			rel="stylesheet"
+		/>
+	</head>
+	<body
+		class="min-h-screen bg-background-dark text-slate-100 selection:bg-primary/30"
+	>
+		<div
+			class="mystical-gradient relative flex min-h-screen w-full flex-col"
+		>
+			<SiteHeader />
+			<div class="mx-auto w-full max-w-5xl px-6 pt-6 lg:px-20">
+				<LibrarySectionNav active="archive" />
+			</div>
+
+			<main class="mx-auto w-full max-w-5xl px-6 py-12">
+				<!-- ── 1. Hero: Cover + Title + Meta + Actions ─────────────────── -->
+				<section
+					class="mb-16 flex flex-col items-center gap-12 md:flex-row md:items-start"
+				>
+					<!-- Cover image -->
+					<div class="w-64 shrink-0 md:w-80">
+						<div
+							class="group relative aspect-[3/4] overflow-hidden rounded-xl border border-primary/30 bg-primary/20 shadow-2xl shadow-primary/20"
+						>
+							<div
+								class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+								style={`background-image: url('${coverImage}')`}
+							>
+							</div>
+							<div
+								class="absolute inset-0 bg-gradient-to-t from-background-dark/80 to-transparent"
+							>
+							</div>
+						</div>
+					</div>
+
+					<!-- Title + meta -->
+					<div
+						class="flex flex-col gap-5 pt-4 text-center md:text-left"
+					>
+						<!-- Badge + title + author -->
+						<div>
+							<span
+								class="mb-4 inline-block rounded-full bg-primary/20 px-3 py-1 text-xs font-bold uppercase tracking-widest text-primary"
+								>Featured Tome</span
+							>
+							<h1
+								class="mb-2 text-4xl font-bold leading-tight text-slate-100 md:text-6xl"
+							>
+								{story?.title || "Unknown Story"}
+							</h1>
+							<p
+								class="text-xl font-medium italic text-primary md:text-2xl"
+							>
+								by {authorName}
+							</p>
+							{
+								formattedDate ? (
+									<p class="mt-2 text-sm italic text-slate-400">
+										{formattedDate}
+									</p>
+								) : null
+							}
+						</div>
+
+						<!-- Tags (shown only when present) -->
+						{
+							tags.length > 0 ? (
+								<div class="flex flex-wrap justify-center gap-2 md:justify-start">
+									{tags.map((tag) => (
+										<span class="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+											{tag.name}
+										</span>
+									))}
+								</div>
+							) : null
+						}
+
+						<ReviewStarRating client:load initialRating={rating} />
+
+						<!-- Action buttons -->
+						<div
+							class="flex flex-wrap justify-center gap-4 md:justify-start"
+						>
+							<ArcaneButton>Read Now</ArcaneButton>
+							<ArcaneButton
+								className="bg-slate-800 text-slate-100 border border-primary/30"
+								>Add to Library</ArcaneButton
+							>
+							<!-- Author-only: Edit & Delete (revealed by JS after auth check) -->
+							<span
+								id="author-actions"
+								class="hidden contents"
+								data-author-id={authorId}
+								data-story-id={story?.id || ""}
+							>
+								<ArcaneButton
+									href={story
+										? `/create-story?edit=${story.id}`
+										: "/create-story"}
+									className="bg-slate-800 text-slate-100 border border-primary/30"
+									icon="edit_note"
+								>
+									Edit Story
+								</ArcaneButton>
+								<button
+									id="delete-story-button"
+									type="button"
+									class="inline-flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-950/40 px-6 py-3 text-sm font-bold text-red-300 transition-all hover:border-red-500/60 hover:bg-red-950/60 hover:text-red-200 active:scale-95"
+								>
+									<span
+										class="material-symbols-outlined text-base"
+										>delete</span
+									>
+									Delete Story
+								</button>
+							</span>
+						</div>
+					</div>
+				</section>
+
+				<!-- ── 2. Description (HTML) ───────────────────────────────────── -->
+				<section
+					class="relative mb-10 overflow-hidden rounded-xl border border-primary/10 bg-primary/5 p-8 md:p-12"
+				>
+					<div
+						class="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl"
+					>
+					</div>
+					<div class="relative z-10">
+						<h2
+							class="mb-6 flex items-center gap-3 text-2xl font-bold text-slate-100"
+						>
+							<span class="material-symbols-outlined text-primary"
+								>auto_awesome</span
+							>
+							The Tapestry of Fate
+						</h2>
+						<div
+							class="prose-review max-w-3xl text-lg leading-relaxed text-slate-300"
+						>
+							{
+								descriptionHtml ? (
+									<div set:html={descriptionHtml} />
+								) : (
+									<p class="italic text-slate-500">
+										No description yet.
+									</p>
+								)
+							}
+						</div>
+					</div>
+				</section>
+
+				<!-- ── 3. Setting + Tone (shown only when present) ─────────────── -->
+				{
+					setting || tone.length > 0 ? (
+						<section class="mb-10 grid grid-cols-1 gap-6 md:grid-cols-2">
+							{/* Setting / Chronotope */}
+							{setting ? (
+								<div class="glass-card gold-border rounded-xl p-6">
+									<p class="mb-3 text-xs font-bold uppercase tracking-widest text-accent-gold">
+										Chronotope
+									</p>
+									<div class="flex items-start gap-3">
+										<span class="material-symbols-outlined mt-0.5 text-primary">
+											travel_explore
+										</span>
+										<p class="leading-relaxed text-slate-300">
+											{setting}
+										</p>
+									</div>
+								</div>
+							) : null}
+
+							{/* Tone badges */}
+							{tone.length > 0 ? (
+								<div class="glass-card gold-border rounded-xl p-6">
+									<p class="mb-3 text-xs font-bold uppercase tracking-widest text-accent-gold">
+										Story Tone
+									</p>
+									<div class="flex flex-wrap gap-2">
+										{tone.map((t) => {
+											const key = t.toLowerCase();
+											const cls =
+												toneColors[key] ??
+												defaultToneClass;
+											return (
+												<span
+													class={`rounded-lg border px-3 py-1.5 text-xs font-bold ${cls}`}
+												>
+													{t}
+												</span>
+											);
+										})}
+									</div>
+								</div>
+							) : null}
+						</section>
+					) : null
+				}
+
+				<!-- ── 4. Characters (shown only when present) ─────────────────── -->
+				{
+					characters.length > 0 ? (
+						<section class="mb-10">
+							<div class="glass-card gold-border rounded-xl p-6 md:p-8">
+								<h2 class="mb-6 flex items-center gap-3 text-xl font-bold text-slate-100">
+									<span class="material-symbols-outlined text-primary">
+										groups
+									</span>
+									Dramatis Personae
+								</h2>
+								<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+									{characters.map((char) => (
+										<div class="flex items-start gap-3 rounded-lg border border-purple-900/30 bg-surface-container p-4 transition-colors hover:border-primary/40">
+											{/* Avatar or placeholder */}
+											<div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/30 bg-primary/20">
+												{char.avatar_url ? (
+													<img
+														alt={char.name}
+														class="h-full w-full object-cover"
+														src={char.avatar_url}
+													/>
+												) : (
+													<span class="material-symbols-outlined text-base text-primary">
+														person
+													</span>
+												)}
+											</div>
+											<div class="min-w-0">
+												<p class="truncate font-bold text-primary">
+													{char.name}
+												</p>
+												{char.description ? (
+													<p class="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-400">
+														{char.description}
+													</p>
+												) : null}
+											</div>
+										</div>
+									))}
+								</div>
+							</div>
+						</section>
+					) : null
+				}
+
+				<!-- ── 5. World Rules + Lore (shown only when present) ─────────── -->
+				{
+					worldRules || lore ? (
+						<section class="mb-10 grid grid-cols-1 gap-6 md:grid-cols-2">
+							{worldRules ? (
+								<div class="glass-card gold-border rounded-xl p-6">
+									<p class="mb-3 text-xs font-bold uppercase tracking-widest text-accent-gold">
+										Arcane Laws
+									</p>
+									<div class="flex items-start gap-3">
+										<span class="material-symbols-outlined mt-0.5 shrink-0 text-primary">
+											gavel
+										</span>
+										<p class="leading-relaxed text-slate-300">
+											{worldRules}
+										</p>
+									</div>
+								</div>
+							) : null}
+
+							{lore ? (
+								<div class="glass-card gold-border rounded-xl p-6">
+									<p class="mb-3 text-xs font-bold uppercase tracking-widest text-accent-gold">
+										Ancient Echoes
+									</p>
+									<div class="flex items-start gap-3">
+										<span class="material-symbols-outlined mt-0.5 shrink-0 text-primary">
+											history_edu
+										</span>
+										<p class="leading-relaxed text-slate-300">
+											{lore}
+										</p>
+									</div>
+								</div>
+							) : null}
+						</section>
+					) : null
+				}
+
+				<!-- ── 6. Story Starts / Scenarios (shown only when present) ───── -->
+				{
+					storyStarts.length > 0 ? (
+						<section class="mb-10">
+							<div class="glass-card gold-border rounded-xl p-6 md:p-8">
+								<h2 class="mb-6 flex items-center gap-3 text-xl font-bold text-slate-100">
+									<span class="material-symbols-outlined text-primary">
+										fork_right
+									</span>
+									Begin Your Journey
+								</h2>
+								<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+									{storyStarts.map((start) => (
+										<button
+											type="button"
+											class="group flex flex-col gap-2 rounded-xl border border-primary/20 bg-primary/5 p-5 text-left transition-all hover:border-primary/50 hover:bg-primary/10 active:scale-[0.98]"
+										>
+											<div class="flex items-center gap-2">
+												<span class="material-symbols-outlined text-sm text-primary transition-transform group-hover:translate-x-0.5">
+													play_arrow
+												</span>
+												<p class="font-bold text-slate-100">
+													{start.title}
+												</p>
+											</div>
+											<p class="line-clamp-3 text-sm leading-relaxed text-slate-400 italic">
+												{start.content}
+											</p>
+										</button>
+									))}
+								</div>
+							</div>
+						</section>
+					) : null
+				}
+
+				<!-- ── 7. Style Parameters (shown only when auto_style is off) ─── -->
+				{
+					!autoStyle ? (
+						<section class="mb-10">
+							<div class="glass-card gold-border rounded-xl p-6 md:p-8">
+								<h2 class="mb-6 flex items-center gap-3 text-xl font-bold text-slate-100">
+									<span class="material-symbols-outlined text-primary">
+										tune
+									</span>
+									Style of the Chronicle
+								</h2>
+								<div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+									{/* Pacing badge */}
+									<div class="flex items-center gap-4">
+										<span class="material-symbols-outlined shrink-0 text-primary">
+											speed
+										</span>
+										<div>
+											<p class="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">
+												Pacing
+											</p>
+											<span class="rounded-lg border border-primary/30 bg-primary/10 px-3 py-1 text-sm font-bold capitalize text-primary">
+												{pacing}
+											</span>
+										</div>
+									</div>
+
+									{/* Descriptiveness slider */}
+									<div>
+										<div class="mb-2 flex justify-between text-xs text-slate-500">
+											<span>Descriptiveness</span>
+											<span class="capitalize">
+												{descriptiveness <= 2
+													? "Minimal"
+													: descriptiveness >= 4
+														? "Vivid"
+														: "Balanced"}
+											</span>
+										</div>
+										<div class="h-1.5 w-full overflow-hidden rounded-full bg-primary/10">
+											<div
+												class="h-full rounded-full bg-primary"
+												style={`width: ${sliderPercent(descriptiveness)}%`}
+											/>
+										</div>
+									</div>
+
+									{/* Dialogue ratio slider */}
+									<div>
+										<div class="mb-2 flex justify-between text-xs text-slate-500">
+											<span>Dialogue Ratio</span>
+											<span class="capitalize">
+												{dialogueRatio <= 2
+													? "Narration"
+													: dialogueRatio >= 4
+														? "Dialogue"
+														: "Balanced"}
+											</span>
+										</div>
+										<div class="h-1.5 w-full overflow-hidden rounded-full bg-primary/10">
+											<div
+												class="h-full rounded-full bg-primary"
+												style={`width: ${sliderPercent(dialogueRatio)}%`}
+											/>
+										</div>
+									</div>
+
+									{/* Emotional intensity slider */}
+									<div>
+										<div class="mb-2 flex justify-between text-xs text-slate-500">
+											<span>Emotional Intensity</span>
+											<span class="capitalize">
+												{emotionalIntensity <= 2
+													? "Subtle"
+													: emotionalIntensity >= 4
+														? "Intense"
+														: "Moderate"}
+											</span>
+										</div>
+										<div class="h-1.5 w-full overflow-hidden rounded-full bg-primary/10">
+											<div
+												class="h-full rounded-full bg-primary"
+												style={`width: ${sliderPercent(emotionalIntensity)}%`}
+											/>
+										</div>
+									</div>
+								</div>
+							</div>
+						</section>
+					) : null
+				}
+
+				<!-- ── 8. Comments / Thoughts ──────────────────────────────────── -->
+				<section class="mb-16">
+					<ReviewThoughtsThread client:load />
+				</section>
+			</main>
+
+			<SiteFooter />
+		</div>
+
+		<ArcaneToast id="story-toast" variant="information" />
+
+		<script is:inline define:vars={{ reviewErrorMessage }}>
+			// ─── Author-only actions: reveal Edit/Delete if the viewer is the author ───
+			(() => {
+				const authorActions = document.getElementById("author-actions");
+				if (!(authorActions instanceof HTMLElement)) return;
+				const authorId = authorActions.dataset.authorId;
+				const storyId = authorActions.dataset.storyId;
+				if (!authorId) return;
+
+				fetch("/api/auth/session", {
+					headers: { Accept: "application/json" },
+				})
+					.then((res) => (res.ok ? res.json() : null))
+					.then((data) => {
+						if (data?.profile?.id && data.profile.id === authorId) {
+							// Show Edit + Delete buttons
+							authorActions.classList.remove("hidden");
+
+							// Wire up delete button
+							const deleteBtn = document.getElementById(
+								"delete-story-button",
+							);
+							if (deleteBtn) {
+								deleteBtn.addEventListener(
+									"click",
+									async () => {
+										const confirmed = window.confirm(
+											"Are you sure you want to permanently delete this story? This action cannot be undone.",
+										);
+										if (!confirmed) return;
+
+										deleteBtn.disabled = true;
+										deleteBtn.textContent = "Deleting...";
+
+										try {
+											const response = await fetch(
+												`/api/stories/${storyId}`,
+												{
+													method: "DELETE",
+													headers: {
+														"Content-Type":
+															"application/json",
+													},
+													body: JSON.stringify({
+														author_id:
+															data.profile.id,
+													}),
+												},
+											);
+
+											const result = await response
+												.json()
+												.catch(() => ({}));
+
+											if (response.ok) {
+												window.dispatchEvent(
+													new CustomEvent(
+														"arcane-toast:show",
+														{
+															detail: {
+																id: "story-toast",
+																title: "Story Deleted",
+																description:
+																	"The chronicle has been erased from the archives.",
+																icon: "check_circle",
+																duration: 3000,
+															},
+														},
+													),
+												);
+												setTimeout(() => {
+													window.location.href =
+														"/archive";
+												}, 1500);
+											} else {
+												alert(
+													result.error ||
+														"Failed to delete story.",
+												);
+												deleteBtn.disabled = false;
+												deleteBtn.innerHTML =
+													'<span class="material-symbols-outlined text-base">delete</span> Delete Story';
+											}
+										} catch (err) {
+											alert(
+												"Network error. Please try again.",
+											);
+											deleteBtn.disabled = false;
+											deleteBtn.innerHTML =
+												'<span class="material-symbols-outlined text-base">delete</span> Delete Story';
+										}
+									},
+								);
+							}
+						}
+					})
+					.catch(() => {});
+			})();
+
+			// ─── Show error toast if story failed to load ───
+			(() => {
+				if (!reviewErrorMessage) return;
+				window.dispatchEvent(
+					new CustomEvent("arcane-toast:show", {
+						detail: {
+							id: "story-toast",
+							title: "Archive Error",
+							description: reviewErrorMessage,
+							icon: "error",
+							duration: 6000,
+						},
+					}),
+				);
+			})();
+		</script>
+	</body>
+</html>
+
+<style>
+	/* ── Page background ─────────────────────────────────────────────────── */
+	.mystical-gradient {
+		background-color: #191022;
+		background-image:
+			radial-gradient(
+				circle at top right,
+				rgb(115 17 212 / 12%),
+				transparent 55%
+			),
+			radial-gradient(
+				circle at bottom left,
+				rgb(115 17 212 / 8%),
+				transparent 50%
+			);
+	}
+
+	/* ── Prose styles for HTML description content ───────────────────────── */
+	.prose-review :global(h1),
+	.prose-review :global(h2),
+	.prose-review :global(h3) {
+		color: #f1f5f9;
+		font-weight: 700;
+		margin-top: 1.25em;
+		margin-bottom: 0.5em;
+	}
+
+	.prose-review :global(p) {
+		margin-bottom: 1em;
+	}
+
+	.prose-review :global(strong) {
+		color: #e2e8f0;
+	}
+
+	.prose-review :global(em) {
+		color: #d8b9ff;
+	}
+
+	.prose-review :global(ul),
+	.prose-review :global(ol) {
+		padding-left: 1.5em;
+		margin-bottom: 1em;
+	}
+
+	.prose-review :global(li) {
+		margin-bottom: 0.25em;
+	}
+
+	.prose-review :global(a) {
+		color: #7311d4;
+		text-decoration: underline;
+	}
+
+	.prose-review :global(blockquote) {
+		border-left: 3px solid #7311d4;
+		padding-left: 1em;
+		color: #94a3b8;
+		font-style: italic;
+	}
+</style>

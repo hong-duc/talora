@@ -1,0 +1,458 @@
+---
+import "../styles/global.css";
+import "../styles/editor-design.css";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import LibrarySectionNav from "../components/LibrarySectionNav.astro";
+import TagInput from "../components/TagInput.svelte";
+import FirstMessagesInput from "../components/FirstMessagesInput.svelte";
+import CharacterRegistry from "../components/CharacterRegistry.svelte";
+import StyleParameters from "../components/StyleParameters.svelte";
+import RichTextEditor from "../components/RichTextEditor.svelte";
+import createStoryScript from "../scripts/create-story.ts?url";
+import Upload from "@components/Upload.svelte";
+import { getUser } from "@lib/auth";
+import { supabase } from "@lib/supabase";
+import StoryTone from "@components/StoryTone.svelte";
+
+export const prerender = false;
+
+// ─── Auth guard ────────────────────────────────────────────────────────
+const result = await getUser();
+if (result.data == null) {
+    return Astro.redirect("/signin");
+}
+
+// ─── Edit mode: fetch existing story if ?edit=ID is present ────────────
+const editId = Astro.url.searchParams.get("edit");
+let editStory: Record<string, any> | null = null;
+let editTags: Array<{ id: string; name: string }> = [];
+let editStoryStarts: Array<{
+    id?: string;
+    title: string;
+    content: string;
+    sort_order: number;
+}> = [];
+
+if (editId) {
+    // Fetch story data server-side (no extra API round-trip)
+    const { data: storyData } = await supabase
+        .from("stories")
+        .select("*")
+        .eq("id", editId)
+        .maybeSingle();
+
+    if (storyData) {
+        editStory = storyData;
+
+        // Fetch tags for this story
+        const { data: tagLinks } = await supabase
+            .from("story_tags")
+            .select("tags(id, name)")
+            .eq("story_id", editId);
+
+        if (tagLinks) {
+            for (const link of tagLinks) {
+                const tag = Array.isArray((link as any).tags)
+                    ? (link as any).tags[0]
+                    : (link as any).tags;
+                if (tag?.id && tag?.name) {
+                    editTags.push({ id: tag.id, name: tag.name });
+                }
+            }
+        }
+
+        // Fetch story_starts for this story
+        const { data: startsData } = await supabase
+            .from("story_starts")
+            .select("id, title, first_message, sort_order")
+            .eq("story_id", editId)
+            .order("sort_order", { ascending: true });
+
+        if (startsData) {
+            editStoryStarts = startsData.map((s: any) => ({
+                id: s.id,
+                title: s.title,
+                content: s.first_message,
+                sort_order: s.sort_order,
+            }));
+        }
+    }
+}
+
+// ─── Page config: adapt titles/buttons based on create vs edit ─────────
+const isEditMode = !!editStory;
+const pageTitle = isEditMode ? "Revision of Chronicles" : "Forge New Chronicle";
+const pageSubtitle = isEditMode
+    ? "Reshape the tapestry of your existing legend."
+    : "Weave a new legend into the tapestry of the library.";
+const submitButtonText = isEditMode ? "Update Chronicle" : "Create Story";
+
+// ─── Build initial data for Svelte components (empty for create) ───────
+const initialTags = editTags;
+const initialTones = (editStory?.tone as string[]) || [];
+const initialCharacters = (editStory?.characters as any[]) || [];
+const initialMessages = editStoryStarts;
+const initialStyle = {
+    descriptiveness: editStory?.descriptiveness ?? 3,
+    dialogueRatio: editStory?.dialogue_ratio ?? 3,
+    pacing: (editStory?.pacing ?? "medium") as "slow" | "medium" | "fast",
+    emotionalIntensity: editStory?.emotional_intensity ?? 3,
+    autoStyle: editStory?.auto_style ?? true,
+};
+const initialCoverUrl = editStory?.cover_image_url || "";
+
+// Serialize edit data as JSON for the client script to read
+// (only the fields the script needs for native inputs + store init)
+const editDataJson = editStory
+    ? JSON.stringify({
+          id: editStory.id,
+          title: editStory.title || "",
+          description: editStory.description || "",
+          setting: editStory.setting || "",
+          world_rules: editStory.world_rules || "",
+          lore: editStory.lore || "",
+          cover_image_url: editStory.cover_image_url || "",
+          author_id: editStory.author_id || "",
+          tags: editTags,
+          characters: initialCharacters,
+          tone: initialTones,
+          story_starts: editStoryStarts,
+          style: initialStyle,
+      })
+    : "";
+---
+
+<html lang="en" class="dark">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>{pageTitle} - The Whispering Library</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Inter:wght@100..900&display=swap"
+            rel="stylesheet"
+        />
+    </head>
+    <body class="bg-background-dark text-slate-100 min-h-screen">
+        <div
+            class="relative flex min-h-screen w-full flex-col overflow-x-hidden"
+        >
+            <div class="layout-container flex h-full grow flex-col">
+                <!-- Header Section -->
+                <SiteHeader />
+                <div class="mx-auto w-full max-w-5xl px-6 pt-6 lg:px-20">
+                    <LibrarySectionNav active="create-story" />
+                </div>
+
+                <main
+                    class="flex-1 pt-24 pb-12 px-6 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-surface-container-high/40 via-background-dark to-background-dark"
+                >
+                    <div class="max-w-6xl mx-auto">
+                        <!-- Header Section -->
+                        <header class="mb-12 text-center md:text-left">
+                            <h1
+                                class="text-5xl font-extrabold text-on-surface font-headline tracking-tight mb-2"
+                            >
+                                {pageTitle}
+                            </h1>
+                            <p
+                                class="text-accent-gold font-serif italic text-lg"
+                            >
+                                {pageSubtitle}
+                            </p>
+                        </header>
+
+                        <!-- Creation/Edit Form -->
+                        <!-- data-edit-id and data-edit-json let the client script detect edit mode -->
+                        <form
+                            id="create-story-form"
+                            class="space-y-6"
+                            data-submit-text={submitButtonText}
+                            data-edit-id={editId || ""}
+                            data-edit-json={editDataJson}
+                        >
+                            <!-- Hidden field for rich text editor description -->
+                            <input
+                                type="hidden"
+                                id="description-editor-data"
+                                name="description"
+                            />
+
+                            <!-- Bento Grid Layout -->
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                                <!-- 1. Title & 2. Description -->
+                                <div class="md:col-span-8 flex flex-col gap-6">
+                                    <!-- Title Card -->
+                                    <div
+                                        class="glass-card gold-border p-8 rounded-xl relative overflow-hidden group"
+                                    >
+                                        <div
+                                            class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-30 transition-opacity"
+                                        >
+                                            <span
+                                                class="material-symbols-outlined text-6xl"
+                                                >stylus</span
+                                            >
+                                        </div>
+                                        <label
+                                            class="block text-xs uppercase tracking-widest text-accent-gold mb-2 font-bold"
+                                            >Legend Title</label
+                                        >
+                                        <input
+                                            id="title"
+                                            name="title"
+                                            type="text"
+                                            required
+                                            minlength="1"
+                                            value={editStory?.title || ""}
+                                            class="w-full bg-transparent border-none text-4xl font-headline font-bold text-on-surface focus:ring-0 p-0 placeholder:text-on-surface/30"
+                                            placeholder="The Echoes of Aethelgard..."
+                                        />
+                                    </div>
+
+                                    <!-- Description Card with edra Rich Text Editor - Editor Design Style -->
+                                    <div
+                                        class="editor-design-section flex-1 min-h-0 overflow-y-auto"
+                                    >
+                                        <div
+                                            class="double-outline-container rounded-sm flex-1 flex flex-col min-h-0 overflow-y-auto"
+                                        >
+                                            <div
+                                                class="double-outline-inner flex-1 flex flex-col relative min-h-0 overflow-y-auto"
+                                            >
+                                                <!-- Parchment texture overlay -->
+                                                <div
+                                                    class="parchment-texture min-h-0 overflow-y-auto"
+                                                >
+                                                </div>
+
+                                                <div
+                                                    class="editor-content-wrapper flex-1 flex flex-col min-h-0"
+                                                >
+                                                    <!-- Editor content area -->
+                                                    <div
+                                                        class="px-8 inkwell-scrollbar h-60 overflow-y-scroll"
+                                                        id="Editor content area"
+                                                    >
+                                                        <RichTextEditor
+                                                            client:load
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 6. Visual Soul Card -->
+                                <div class="md:col-span-4" id="cover-image-url">
+                                    <Upload
+                                        client:load
+                                        initialImageUrl={initialCoverUrl}
+                                    />
+                                </div>
+
+                                <!-- 3. Character Registry -->
+                                <div
+                                    class="md:col-span-12"
+                                    id="characters-input"
+                                >
+                                    <CharacterRegistry
+                                        label="Character Registry"
+                                        placeholderName="Name"
+                                        placeholderDescription="Describe the soul's essence..."
+                                        name="characters"
+                                        initialCharacters={initialCharacters}
+                                        client:load
+                                    />
+                                </div>
+
+                                <!-- Lore Cards Section -->
+                                <div class="md:col-span-12">
+                                    <div
+                                        class="glass-card gold-border p-8 rounded-xl"
+                                    >
+                                        <div
+                                            class="flex justify-between items-end mb-6"
+                                        >
+                                            <div>
+                                                <label
+                                                    class="block text-xs uppercase tracking-widest text-accent-gold mb-2 font-bold"
+                                                    >Lore area</label
+                                                >
+                                                <h3
+                                                    class="text-2xl font-headline font-bold"
+                                                >
+                                                    Ancient Echoes & Myths
+                                                </h3>
+                                                <p
+                                                    class="text-sm text-slate-400 font-serif italic mt-1"
+                                                >
+                                                    write lore for our story
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <textarea
+                                            id="lore"
+                                            name="lore"
+                                            rows="6"
+                                            class="w-full h-40 bg-slate-950/40 border border-purple-900/30 rounded-xl p-6 focus:ring-2 focus:ring-primary/50 focus:border-transparent text-on-surface-variant font-serif text-lg leading-relaxed placeholder:italic transition-all outline-none"
+                                            placeholder="Etch the forgotten scrolls, the origin of the stars, or the legend of the first blade here..."
+                                            >{editStory?.lore || ""}</textarea
+                                        >
+                                    </div>
+                                </div>
+
+                                <!-- Story Essences & Story Tone -->
+                                <div class="md:col-span-6 space-y-6">
+                                    <!-- Story Essences -->
+                                    <div
+                                        class="gold-border p-8 rounded-xl"
+                                        id="tag-input"
+                                    >
+                                        <TagInput
+                                            label="Story Essences"
+                                            placeholder="Infuse essence (e.g. Grimdark, Romance)..."
+                                            name="story_essences"
+                                            initialTags={initialTags}
+                                            client:load
+                                        />
+                                    </div>
+
+                                    <!-- Story Tone -->
+                                    <div
+                                        class="glass-card gold-border p-8 rounded-xl"
+                                    >
+                                        <div
+                                            class="flex flex-wrap gap-2"
+                                            id="tone-selection"
+                                        >
+                                            <StoryTone
+                                                initialTones={initialTones}
+                                                client:load
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Style Parameters -->
+                                <div class="md:col-span-6" id="style input">
+                                    <div
+                                        class="glass-card gold-border p-8 rounded-xl h-full"
+                                    >
+                                        <StyleParameters
+                                            label="Style Parameters"
+                                            namePrefix="style"
+                                            initialStyle={initialStyle}
+                                            client:load
+                                        />
+                                    </div>
+                                </div>
+
+                                <!-- Chronotope & Arcane Laws -->
+                                <div
+                                    class="md:col-span-7 grid grid-cols-1 gap-6"
+                                >
+                                    <div
+                                        class="glass-card gold-border p-8 rounded-xl"
+                                    >
+                                        <label
+                                            class="block text-xs uppercase tracking-widest text-accent-gold mb-4 font-bold"
+                                            >Chronotope</label
+                                        >
+
+                                        <p
+                                            class="mt-1 text-xs text-accent-gold"
+                                        >
+                                            world setting
+                                        </p>
+                                        <textarea
+                                            id="setting"
+                                            name="setting"
+                                            rows="4"
+                                            class="w-full h-24 bg-transparent border-none focus:ring-0 text-on-surface-variant font-serif placeholder:italic"
+                                            placeholder="Where and when does the story take place? (e.g., The Floating Isles of Zenith, 4th Age of Ruin)"
+                                            >{
+                                                editStory?.setting || ""
+                                            }</textarea
+                                        >
+                                    </div>
+                                    <div
+                                        class="glass-card gold-border p-8 rounded-xl"
+                                    >
+                                        <label
+                                            class="block text-xs uppercase tracking-widest text-accent-gold mb-4 font-bold"
+                                            >prmopt rules</label
+                                        >
+                                        <p
+                                            class="mt-1 text-xs text-accent-gold"
+                                        >
+                                            each rule per bullet point work with
+                                            most ai models
+                                        </p>
+                                        <textarea
+                                            id="world-rules"
+                                            name="world_rules"
+                                            rows="4"
+                                            class="w-full h-24 bg-transparent border-none focus:ring-0 text-on-surface-variant font-serif placeholder:italic"
+                                            placeholder="Special rules, magic systems, factions, or hierarchies..."
+                                            >{
+                                                editStory?.world_rules || ""
+                                            }</textarea
+                                        >
+                                    </div>
+                                </div>
+
+                                <!-- Initial Branches -->
+                                <div
+                                    class="md:col-span-5"
+                                    id="first message input"
+                                >
+                                    <div
+                                        class="glass-card gold-border p-8 rounded-xl h-full flex flex-col"
+                                    >
+                                        <FirstMessagesInput
+                                            label="first Messages"
+                                            placeholder="Infuse first messages..."
+                                            name="first_messages"
+                                            initialMessages={initialMessages}
+                                            client:load
+                                        />
+                                    </div>
+                                </div>
+
+                                <!-- Finalize Section -->
+                                <div class="md:col-span-12 mt-4">
+                                    <div
+                                        class="glass-card gold-border p-8 rounded-xl flex flex-col md:flex-row items-center justify-between gap-6"
+                                    >
+                                        <div></div>
+                                        <button
+                                            id="submit-button"
+                                            type="submit"
+                                            class="w-full md:w-auto px-12 py-4 bg-linear-to-r from-primary-container via-purple-700 to-primary-container bg-size-[200%_auto] hover:bg-right transition-all duration-500 text-white font-headline text-2xl font-bold rounded-xl shadow-2xl shadow-primary-container/40 flex items-center justify-center gap-3 active:scale-95 group disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {submitButtonText}
+                                            <span
+                                                class="material-symbols-outlined group-hover:translate-x-1 transition-transform"
+                                                >auto_awesome</span
+                                            >
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </main>
+
+                <SiteFooter />
+            </div>
+        </div>
+
+        <script is:inline type="module" src={createStoryScript}></script>
+    </body>
+</html>

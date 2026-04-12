@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Compose Whisper - The Whispering Library</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#7311d4",
+                        "background-light": "#f7f6f8",
+                        "background-dark": "#191022",
+                    },
+                    fontFamily: {
+                        "display": ["Newsreader", "serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Newsreader', serif;
+        }
+        .parchment-texture {
+            background-color: #1a1625;
+            background-image: radial-gradient(circle at 2px 2px, rgba(115, 17, 212, 0.05) 1px, transparent 0);
+            background-size: 24px 24px;
+        }
+        .mystical-glow {
+            box-shadow: 0 0 20px rgba(115, 17, 212, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<!-- Header -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-primary/20 px-6 py-4 lg:px-10">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-4 text-primary">
+<div class="size-8">
+<svg fill="currentColor" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M24 45.8096C19.6865 45.8096 15.4698 44.5305 11.8832 42.134C8.29667 39.7376 5.50128 36.3314 3.85056 32.3462C2.19985 28.361 1.76794 23.9758 2.60947 19.7452C3.451 15.5145 5.52816 11.6284 8.57829 8.5783C11.6284 5.52817 15.5145 3.45101 19.7452 2.60948C23.9758 1.76795 28.361 2.19986 32.3462 3.85057C36.3314 5.50129 39.7376 8.29668 42.134 11.8833C44.5305 15.4698 45.8096 19.6865 45.8096 24L24 24L24 45.8096Z"></path>
+</svg>
+</div>
+<h2 class="text-slate-100 text-xl font-bold leading-tight tracking-[-0.015em]">The Whispering Library</h2>
+</div>
+<nav class="hidden md:flex items-center gap-9">
+<a class="text-slate-400 hover:text-primary transition-colors text-sm font-medium leading-normal" href="#">Library</a>
+<a class="text-slate-400 hover:text-primary transition-colors text-sm font-medium leading-normal" href="#">Archive</a>
+<a class="text-slate-400 hover:text-primary transition-colors text-sm font-medium leading-normal" href="#">Rituals</a>
+</nav>
+</div>
+<div class="flex flex-1 justify-end gap-6">
+<label class="hidden sm:flex flex-col min-w-40 !h-10 max-w-64">
+<div class="flex w-full flex-1 items-stretch rounded-xl h-full">
+<div class="text-slate-400 flex border-none bg-primary/10 items-center justify-center pl-4 rounded-l-xl" data-icon="search">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 border-none bg-primary/10 focus:ring-0 text-slate-100 placeholder:text-slate-500 px-4 rounded-r-xl text-base font-normal" placeholder="Search archives..." value=""/>
+</div>
+</label>
+<div class="flex gap-2">
+<button class="flex items-center justify-center rounded-xl size-10 bg-primary/10 text-slate-100 hover:bg-primary/20 transition-all">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="flex items-center justify-center rounded-xl size-10 bg-primary/10 text-slate-100 hover:bg-primary/20 transition-all">
+<span class="material-symbols-outlined">auto_awesome</span>
+</button>
+</div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-primary/30" data-alt="Avatar of a mystical librarian" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCSkk7p1_khjFFtiMXKJlcZvMtLkZQjD9t-PhWkfEbdSU_tKZIDkrJd_i-TWuamQHQYFIv2g9H2MhBPkAEhDtQDOr3sHVMqAm3B1vChdvqWi0H-ZzK0nDExVSlYFm3qzPvDvwunHvPbUsYEsOqv2S1MVrt8TfSCYUSg2gVpK63TrsxNQHmX-LO-nmfWTGIP4c_380wAGXoIYWtMvNpRyjbqV9VSzDO-RL9QgLq9Y5lkTjtUkjal0IIPOGpyzVYJA997ijIe8a2xzbc");'></div>
+</div>
+</header>
+<main class="flex flex-1 overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-64 border-r border-primary/20 bg-background-dark p-6 flex flex-col justify-between">
+<div class="flex flex-col gap-8">
+<div class="flex gap-3 items-center">
+<div class="bg-primary/20 p-2 rounded-lg">
+<span class="material-symbols-outlined text-primary">auto_fix_high</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-slate-100 text-sm font-bold">Whisper Management</h1>
+<p class="text-slate-500 text-xs italic">Message Sanctum</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary text-white shadow-lg shadow-primary/20 transition-all" href="#">
+<span class="material-symbols-outlined">inbox</span>
+<span class="text-sm font-medium">Inbox</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-primary/10 hover:text-slate-100 transition-all" href="#">
+<span class="material-symbols-outlined">grade</span>
+<span class="text-sm font-medium">Important</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-primary/10 hover:text-slate-100 transition-all" href="#">
+<span class="material-symbols-outlined">send</span>
+<span class="text-sm font-medium">Sent</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-primary/10 hover:text-slate-100 transition-all" href="#">
+<span class="material-symbols-outlined">drafts</span>
+<span class="text-sm font-medium">Drafts</span>
+</a>
+</nav>
+</div>
+<div class="p-4 bg-primary/5 rounded-xl border border-primary/10">
+<p class="text-xs text-slate-500 italic text-center leading-relaxed">"The written word is a mirror that reflects the unseen world."</p>
+</div>
+</aside>
+<!-- Content Area -->
+<div class="flex-1 overflow-y-auto bg-background-dark px-8 lg:px-20 py-10">
+<div class="max-w-4xl mx-auto flex flex-col gap-8">
+<!-- Heading -->
+<div class="flex flex-col gap-2">
+<h2 class="text-slate-100 text-4xl font-black tracking-tight font-display">Compose Whisper</h2>
+<p class="text-slate-400 text-lg italic">Draft your message on the sacred parchment.</p>
+</div>
+<!-- Form -->
+<div class="flex flex-col gap-6">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="flex flex-col gap-2">
+<label class="text-primary font-bold text-sm uppercase tracking-widest px-1">Recipient's Seal</label>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors">person_search</span>
+<input class="w-full h-14 pl-12 pr-4 bg-primary/5 border border-primary/20 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary text-slate-100 placeholder:text-slate-600 transition-all" placeholder="Fellow seekers or spirits..." type="text"/>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-primary font-bold text-sm uppercase tracking-widest px-1">Whisper Title</label>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors">label</span>
+<input class="w-full h-14 pl-12 pr-4 bg-primary/5 border border-primary/20 rounded-xl focus:ring-2 focus:ring-primary/50 focus:border-primary text-slate-100 placeholder:text-slate-600 transition-all" placeholder="Enter the subject of your echo..." type="text"/>
+</div>
+</div>
+</div>
+<!-- Parchment Content Area -->
+<div class="flex flex-col gap-2">
+<label class="text-primary font-bold text-sm uppercase tracking-widest px-1">Sacred Parchment</label>
+<div class="relative parchment-texture border border-primary/30 rounded-xl p-8 min-h-[400px] flex flex-col group transition-all hover:border-primary/50 mystical-glow">
+<textarea class="w-full flex-1 bg-transparent border-none focus:ring-0 text-slate-200 text-xl font-display leading-relaxed resize-none placeholder:text-slate-700 italic" placeholder="Begin your transmission here... The ink only appears to those worthy."></textarea>
+<!-- Decoration -->
+<div class="absolute bottom-4 right-4 pointer-events-none opacity-20 group-hover:opacity-40 transition-opacity">
+<span class="material-symbols-outlined text-8xl text-primary">edit_square</span>
+</div>
+<div class="absolute top-4 right-4 text-xs text-primary/40 font-mono">
+                                        RITUAL_ENCODING: ACTIVE
+                                    </div>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col sm:flex-row items-center justify-between gap-4 py-6">
+<div class="flex items-center gap-4">
+<button class="flex items-center gap-2 px-4 py-2 text-slate-400 hover:text-slate-100 transition-colors">
+<span class="material-symbols-outlined">attach_file</span>
+<span class="text-sm font-medium">Bind Artifact</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-2 text-slate-400 hover:text-slate-100 transition-colors">
+<span class="material-symbols-outlined">schedule</span>
+<span class="text-sm font-medium">Delay Echo</span>
+</button>
+</div>
+<div class="flex items-center gap-3">
+<button class="px-6 py-3 rounded-xl border border-primary/30 text-slate-300 hover:bg-primary/10 transition-all font-medium">
+                                        Discard Draft
+                                    </button>
+<button class="flex items-center gap-3 bg-primary hover:bg-primary/80 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-xl shadow-primary/30 transform hover:-translate-y-1">
+<span class="material-symbols-outlined text-lg">history_edu</span>
+                                        Seal and Send Echo
+                                    </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Indicator -->
+<footer class="h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent w-full"></footer>
+</div>
+</div>
+<!-- Success Toast -->
+<div class="fixed top-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-[#2d0a4e] border-2 border-[#d4af37] text-slate-100 px-8 py-4 rounded-xl shadow-[0_0_30px_rgba(212,175,55,0.2)] opacity-0 pointer-events-none transition-all duration-500 transform -translate-y-4" id="success-toast">
+<span class="material-symbols-outlined text-[#d4af37]">auto_awesome</span>
+<span class="text-sm font-medium tracking-wide">Whisper successfully sealed and sent into the void.</span>
+</div>
+<script>
+    document.querySelector('button.bg-primary.hover\\:bg-primary\\/80').addEventListener('click', function() {
+        const toast = document.getElementById('success-toast');
+        // Show toast
+        toast.classList.remove('opacity-0', 'pointer-events-none', '-translate-y-4');
+        toast.classList.add('opacity-100', 'translate-y-0');
+        
+        // Hide toast after 3 seconds
+        setTimeout(() => {
+            toast.classList.add('opacity-0', '-translate-y-4');
+            toast.classList.remove('opacity-100', 'translate-y-0');
+            setTimeout(() => {
+                toast.classList.add('pointer-events-none');
+            }, 500);
+        }, 3000);
+    });
+</script></body></html>

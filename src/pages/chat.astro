@@ -1,0 +1,176 @@
+---
+import '../styles/global.css';
+import SiteHeader from '../components/SiteHeader.astro';
+import ChatWindow from '../components/ChatWindow.svelte';
+---
+
+<html class="dark" lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="generator" content={Astro.generator} />
+		<title>The Whispering Library - Chat</title>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap"
+			rel="stylesheet"
+		/>
+	</head>
+	<body class="h-screen overflow-hidden bg-[#191022] font-display text-slate-100" style="background-color: #191022;">
+		<div class="relative flex h-screen w-full flex-col overflow-hidden bg-[#191022]" style="background-color: #191022;">
+			<SiteHeader variant="chat" />
+
+			<main class="relative flex min-h-0 flex-1 overflow-hidden bg-[#191022]" style="background-color: #191022;">
+				<aside
+					id="chat-sidebar"
+					class="absolute inset-y-0 left-0 z-20 flex w-80 min-h-0 flex-col border-r border-primary/10 bg-[#191022] transition-transform duration-300 ease-in-out"
+				>
+					<div class="flex min-h-0 flex-1 flex-col p-6">
+						<div class="mb-6 flex items-center justify-between">
+							<h3 class="flex items-center gap-2 text-lg font-bold">
+								<span class="material-symbols-outlined text-primary">forum</span>
+								Active Echoes
+							</h3>
+							<span class="rounded-full bg-primary/20 px-2 py-1 text-xs text-primary">4 Active</span>
+						</div>
+						<div class="custom-scrollbar flex-1 space-y-4 overflow-y-auto">
+							<div class="mystical-glow flex cursor-pointer items-center gap-4 rounded-xl border border-primary/30 bg-primary/10 p-3 transition-all">
+								<div class="relative">
+									<div class="size-12 overflow-hidden rounded-full border border-primary">
+										<img
+											alt="Portrait of the Elder Librarian with silver hair"
+											class="h-full w-full object-cover"
+											src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzB8opnqGo6AcvuHFZK5dOxko4IKM5H-hUyw1MJOVvnzd9zXgw3aXReMMddi6JWjDu1crmLovfPQjDwxoloLU2Gya2O6-ZG5aPhJJrldO21bHUODu-GytHV9SMsbZ6swNKva2DQgr6kU9eIgzObKxLHToZIiOIeWB1TuKg4DMeFG2PLOpJJ_1kFZISUnYb0H76HZLGBG4P7DUudPI9pNaWwkwWkRciGm1sc73WXJGh2U9WtUo3hIIhEBmR0lhvqD3-I-pHBjXdGNQ"
+										/>
+									</div>
+									<div class="absolute bottom-0 right-0 size-3 rounded-full border-2 border-background-dark bg-green-500 shadow-sm"></div>
+								</div>
+								<div class="min-w-0 flex-1">
+									<p class="truncate text-sm font-bold">The Elder Librarian</p>
+									<p class="truncate text-xs italic text-slate-400">The stars whisper of...</p>
+								</div>
+								<div class="text-[10px] font-medium text-primary">2m</div>
+							</div>
+
+							<div class="flex cursor-pointer items-center gap-4 rounded-xl border border-transparent p-3 transition-all hover:bg-white/5">
+								<div class="size-12 overflow-hidden rounded-full border border-slate-700">
+									<img
+										alt="Portrait of a young seeker named Elara"
+										class="h-full w-full object-cover"
+										src="https://lh3.googleusercontent.com/aida-public/AB6AXuAy8B6XgMO-JROC9AH43jH0aT-emwuLgOEKYkFAD12ZuCaiEQ2N3SC7Kipks-Kugxo7NZ1uLyX8Z8e2LMAC6o6ZaFehAaaF4aSSDbunU4zZcN7eJy4QO31bhbHR9wpUbVDNS5USbGaclo5BgrqmpSRKUXN017j3B7GrzrOjHZZjzWx-pvSEFBU0DbYBPgslzJBrL3S92xZwiQlY3Eo8A4Y2pxVEC9kIiYi1oI47ChOyYWarBEpiDHs6BGXDf8gAC1lMxMOYClqj7as"
+									/>
+								</div>
+								<div class="min-w-0 flex-1">
+									<p class="truncate text-sm font-bold text-slate-300">Seeker Elara</p>
+									<p class="truncate text-xs text-slate-500">Have you found the scroll?</p>
+								</div>
+								<div class="text-[10px] text-slate-500">1h</div>
+							</div>
+
+							<div class="flex cursor-pointer items-center gap-4 rounded-xl border border-transparent p-3 transition-all hover:bg-white/5">
+								<div class="size-12 overflow-hidden rounded-full border border-slate-700">
+									<img
+										alt="Abstract mystical orb representing a spirit"
+										class="h-full w-full object-cover"
+										src="https://lh3.googleusercontent.com/aida-public/AB6AXuCan1DWcddK5lC3ZU4k2EuPpoIDFApj6rlABSIpwA24wEbr9G6rVqOHgqP29j2hYx0cF3wQP2DkK6vhIpUtjqpWZDf5NGw_ltsdVJGAJlzc0TM-25WzPm45V_jo0Q_VM9ADIZNSt-noiZRjE0wp5eRvxWkM9ERNFxvNsCldtDMULsgSJyr9VD0OJVG0yc8K7SQ-TsWcQHhhwPasamPp6gPSZTgJHqtW9pV1xxE9eTZgdxi-9pSs-F8e4Fw7zmx2s51O_W3sk9AIqYo"
+									/>
+								</div>
+								<div class="min-w-0 flex-1">
+									<p class="truncate text-sm font-bold text-slate-300">Echo of Valerius</p>
+									<p class="truncate text-xs text-slate-500">Memory is a fleeting thing...</p>
+								</div>
+								<div class="text-[10px] text-slate-500">4h</div>
+							</div>
+
+							<div class="border-t border-primary/10 pt-4">
+								<button class="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-primary/30 py-3 text-sm font-medium text-primary/70 transition-all hover:border-primary hover:bg-primary/5 hover:text-primary">
+									<span class="material-symbols-outlined text-sm">add_circle</span>
+									Summon New Echo
+								</button>
+							</div>
+						</div>
+					</div>
+				</aside>
+
+				<button
+					aria-expanded="true"
+					aria-label="Toggle active chats sidebar"
+					id="sidebar-toggle"
+					class="absolute left-80 top-1/2 z-30 -translate-y-1/2 rounded-r-xl border border-primary/30 bg-[#191022]/90 p-2 text-primary shadow-lg transition-all duration-300 hover:bg-primary/10"
+					type="button"
+				>
+					<span class="material-symbols-outlined" id="sidebar-toggle-icon">chevron_left</span>
+				</button>
+
+				<div class="flex min-h-0 flex-1 bg-[#1a1625] pl-80 transition-[padding] duration-300" id="chat-content-wrap" style="background-color: #1a1625;">
+					<ChatWindow client:load />
+				</div>
+			</main>
+		</div>
+		<script is:inline>
+			(() => {
+				const sidebar = document.getElementById('chat-sidebar');
+				const toggle = document.getElementById('sidebar-toggle');
+				const icon = document.getElementById('sidebar-toggle-icon');
+				const contentWrap = document.getElementById('chat-content-wrap');
+
+				if (!sidebar || !toggle || !icon || !contentWrap) return;
+
+				let isOpen = true;
+
+				const applyState = () => {
+					sidebar.classList.toggle('sidebar-hidden', !isOpen);
+					contentWrap.classList.toggle('pl-80', isOpen);
+					contentWrap.classList.toggle('pl-0', !isOpen);
+					toggle.classList.toggle('left-80', isOpen);
+					toggle.classList.toggle('left-0', !isOpen);
+					icon.textContent = isOpen ? 'chevron_left' : 'chevron_right';
+					toggle.setAttribute('aria-expanded', String(isOpen));
+				};
+
+				toggle.addEventListener('click', () => {
+					isOpen = !isOpen;
+					applyState();
+				});
+
+				applyState();
+			})();
+		</script>
+	</body>
+</html>
+
+<style is:global>
+	#chat-sidebar {
+		transform: translateX(0);
+	}
+
+	#chat-sidebar.sidebar-hidden {
+		transform: translateX(-100%);
+	}
+
+	.custom-scrollbar::-webkit-scrollbar {
+		width: 4px;
+	}
+
+	.custom-scrollbar::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.custom-scrollbar::-webkit-scrollbar-thumb {
+		background: rgb(115 17 212 / 20%);
+		border-radius: 10px;
+	}
+
+	.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+		background: rgb(115 17 212 / 50%);
+	}
+
+	.mystical-glow {
+		box-shadow: 0 0 15px rgb(115 17 212 / 30%);
+	}
+</style>

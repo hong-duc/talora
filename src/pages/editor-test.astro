@@ -1,0 +1,172 @@
+---
+import "../styles/global.css";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import RichTextEditor from "../components/RichTextEditor.svelte";
+---
+
+<html lang="en" class="dark">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Editor Test - The Whispering Library</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap"
+            rel="stylesheet"
+        />
+    </head>
+    <body class="bg-background-dark text-slate-100 min-h-screen">
+        <div
+            class="relative flex min-h-screen w-full flex-col overflow-x-hidden"
+        >
+            <div class="layout-container flex h-full grow flex-col">
+                <SiteHeader />
+
+                <main class="flex-1 pt-24 pb-12 px-6">
+                    <div class="max-w-6xl mx-auto">
+                        <header class="mb-12 text-center">
+                            <h1
+                                class="text-5xl font-extrabold text-on-surface font-headline tracking-tight mb-2"
+                            >
+                                Editor Test Page
+                            </h1>
+                            <p
+                                class="text-accent-gold font-serif italic text-lg"
+                            >
+                                Test the new image upload button in the Edra
+                                toolbar
+                            </p>
+                        </header>
+
+                        <div class="space-y-8">
+                            <!-- Test Instructions -->
+                            <div class="glass-card gold-border p-8 rounded-xl">
+                                <h2
+                                    class="text-2xl font-bold text-slate-100 mb-4"
+                                >
+                                    Test Instructions
+                                </h2>
+                                <ol
+                                    class="list-decimal pl-5 space-y-2 text-slate-300"
+                                >
+                                    <li>
+                                        Look for the image upload button in the
+                                        toolbar (should be in the media section
+                                        with other image/video/audio buttons)
+                                    </li>
+                                    <li>
+                                        Click the image upload button (looks
+                                        like an image icon)
+                                    </li>
+                                    <li>
+                                        A file picker should open - select any
+                                        image file
+                                    </li>
+                                    <li>
+                                        Check the browser console for debug log:
+                                        "Image upload mock:"
+                                    </li>
+                                    <li>
+                                        After selection, a mock image should be
+                                        inserted into the editor with URL: <code
+                                            class="bg-slate-800 px-2 py-1 rounded"
+                                            >https://nhxitjtfdhmrqrcoemjo.supabase.co/storage/v1/object/public/images/test/%20-2.jpg</code>
+                                    </li>
+                                    <li>
+                                        The image should appear in the editor
+                                        content area
+                                    </li>
+                                </ol>
+                            </div>
+
+                            <!-- Editor Test Area -->
+                            <div class="glass-card gold-border p-8 rounded-xl">
+                                <h2
+                                    class="text-2xl font-bold text-slate-100 mb-4"
+                                >
+                                    Rich Text Editor
+                                </h2>
+                                <p class="text-slate-400 mb-6">
+                                    This editor includes the new image upload
+                                    button in the toolbar. The button should
+                                    appear alongside other media buttons.
+                                </p>
+
+                                <RichTextEditor
+                                    value="<p>Test the image upload button. Click the image icon in the toolbar to upload an image.</p>"
+                                    storyId="test-story-123"
+                                    client:load
+                                />
+                            </div>
+
+                            <!-- Implementation Details -->
+                            <div class="glass-card gold-border p-8 rounded-xl">
+                                <h2
+                                    class="text-2xl font-bold text-slate-100 mb-4"
+                                >
+                                    Implementation Details
+                                </h2>
+                                <ul class="space-y-2 text-slate-300">
+                                    <li class="flex items-start gap-2">
+                                        <span
+                                            class="material-symbols-outlined text-accent-gold text-sm"
+                                            >check_circle</span
+                                        >
+                                        <span
+                                            >Button added to "media" command
+                                            group in toolbar-commands.ts</span
+                                        >
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <span
+                                            class="material-symbols-outlined text-accent-gold text-sm"
+                                            >check_circle</span
+                                        >
+                                        <span
+                                            >File picker utility in utils.ts
+                                            (openFilePicker function)</span
+                                        >
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <span
+                                            class="material-symbols-outlined text-accent-gold text-sm"
+                                            >check_circle</span
+                                        >
+                                        <span
+                                            >Mock upload function returns fixed
+                                            URL as specified</span
+                                        >
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <span
+                                            class="material-symbols-outlined text-accent-gold text-sm"
+                                            >check_circle</span
+                                        >
+                                        <span
+                                            >Image inserted as actual image node
+                                            (not placeholder)</span
+                                        >
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                <SiteFooter />
+            </div>
+        </div>
+
+        <script>
+            // Log when page loads
+            console.log("Editor test page loaded");
+            console.log(
+                "Look for the image upload button in the toolbar (media section)",
+            );
+        </script>
+    </body>
+</html>

@@ -1,0 +1,208 @@
+---
+import "../styles/global.css";
+import SiteHeader from "./SiteHeader.astro";
+import SiteFooter from "./SiteFooter.astro";
+
+export interface ErrorPageProps {
+    title?: string;
+    subtitle?: string;
+    description?: string;
+    errorCode?: string;
+    errorDetails?: string;
+    returnUrl?: string;
+    returnText?: string;
+}
+
+const {
+    title = "Fractured Reality",
+    subtitle = "The ink has run dry and the parchment resists your gaze.",
+    description = "A rift has formed in the archive, obscuring the knowledge you seek. The celestial alignment has shifted, making this wing of the library temporarily inaccessible to mortal eyes.",
+    errorCode = "403-FORBIDDEN",
+    errorDetails = "Unauthorized access to manuscript editing.",
+    returnUrl = "/",
+    returnText = "Return to the Sanctum",
+} = Astro.props;
+---
+
+<html class="dark" lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>The Whispering Library - {title}</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap"
+            rel="stylesheet"
+        />
+    </head>
+    <body class="bg-background-dark text-slate-100 min-h-screen flex flex-col">
+        <!-- Top Navigation Bar -->
+        <SiteHeader />
+
+        <!-- Main Content: Error Page -->
+        <main
+            class="flex-grow flex items-center justify-center p-6 sm:p-12 relative overflow-hidden"
+        >
+            <!-- Abstract Background Elements -->
+            <div
+                class="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none"
+            >
+                <div
+                    class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary rounded-full blur-[120px]"
+                >
+                </div>
+                <div
+                    class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-mystic-purple rounded-full blur-[120px]"
+                >
+                </div>
+            </div>
+
+            <div
+                class="max-w-3xl w-full flex flex-col items-center text-center z-10"
+            >
+                <!-- Hero Illustration Placeholder -->
+                <div class="relative mb-8 group">
+                    <div
+                        class="absolute -inset-1 bg-gradient-to-r from-primary to-mystic-purple rounded-full blur opacity-25"
+                    >
+                    </div>
+                    <div
+                        class="relative bg-mystic-deep rounded-full p-8 border border-primary/20"
+                    >
+                        <span
+                            class="material-symbols-outlined text-8xl text-primary"
+                            >ink_eraser</span
+                        >
+                    </div>
+                </div>
+
+                <!-- Error Title -->
+                <h1
+                    class="font-serif text-4xl md:text-6xl font-bold mb-4 tracking-tight text-slate-100"
+                >
+                    {title}
+                </h1>
+                <p
+                    class="font-serif italic text-xl md:text-2xl text-gold-accent mb-10 opacity-90"
+                >
+                    "{subtitle}"
+                </p>
+
+                <!-- Parchment Box for Details -->
+                <div
+                    class="w-full bg-mystic-deep/80 p-1 md:p-1.5 rounded-xl border-2 border-primary/40 shadow-xl mb-12"
+                >
+                    <div
+                        class="border border-dashed border-primary/30 rounded-lg p-6 md:p-8 bg-transparent relative"
+                    >
+                        <!-- Corner Ornaments -->
+                        <span
+                            class="material-symbols-outlined absolute top-2 left-2 text-primary/40"
+                            >auto_awesome</span
+                        >
+                        <span
+                            class="material-symbols-outlined absolute top-2 right-2 text-primary/40"
+                            >auto_awesome</span
+                        >
+                        <span
+                            class="material-symbols-outlined absolute bottom-2 left-2 text-primary/40"
+                            >auto_awesome</span
+                        >
+                        <span
+                            class="material-symbols-outlined absolute bottom-2 right-2 text-primary/40"
+                            >auto_awesome</span
+                        >
+
+                        <h3
+                            class="font-serif font-semibold text-lg mb-4 flex items-center justify-center gap-2"
+                        >
+                            <span class="material-symbols-outlined text-primary"
+                                >history_edu</span
+                            >
+                            Anomaly Record: {errorCode}
+                        </h3>
+                        <p
+                            class="text-slate-300 font-display leading-relaxed max-w-xl mx-auto italic"
+                        >
+                            {description}
+                        </p>
+
+                        <div
+                            class="mt-6 pt-6 border-t border-primary/10 flex flex-col items-center"
+                        >
+                            <details class="w-full group">
+                                <summary
+                                    class="cursor-pointer list-none text-xs uppercase tracking-widest text-primary font-bold hover:opacity-80 flex items-center justify-center gap-1"
+                                >
+                                    View Forbidden Scripts
+                                    <span
+                                        class="material-symbols-outlined text-sm transition-transform group-open:rotate-180"
+                                        >expand_more</span
+                                    >
+                                </summary>
+                                <div
+                                    class="mt-4 p-4 bg-black/20 rounded font-mono text-xs text-left overflow-x-auto"
+                                >
+                                    <code class="text-gold-accent">
+                                        [ERROR_LOG]: ACCESS_DENIED<br />
+                                        [LOCATION]: Manuscript Editing Sanctum<br
+                                        />
+                                        [TIMESTAMP]: {
+                                            new Date().toLocaleDateString(
+                                                "en-US",
+                                                {
+                                                    month: "long",
+                                                    day: "numeric",
+                                                    year: "numeric",
+                                                },
+                                            )
+                                        }<br />
+                                        [STATUS]: {errorDetails}
+                                    </code>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                    <a
+                        href={returnUrl}
+                        class="flex items-center justify-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all"
+                    >
+                        <span class="material-symbols-outlined"
+                            >temple_hindu</span
+                        >
+                        {returnText}
+                    </a>
+                    <a
+                        href="/archive"
+                        class="flex items-center justify-center gap-2 border-2 border-primary text-primary px-8 py-4 rounded-xl font-bold hover:bg-primary/5 transition-all"
+                    >
+                        <span class="material-symbols-outlined">menu_book</span>
+                        Browse Archives
+                    </a>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <SiteFooter />
+    </body>
+</html>
+
+<style>
+    .gold-accent {
+        color: #d4af37;
+    }
+    .mystic-purple {
+        color: #4b2038;
+    }
+    .mystic-deep {
+        background-color: #240f1b;
+    }
+</style>

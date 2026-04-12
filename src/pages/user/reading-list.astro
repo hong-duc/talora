@@ -1,0 +1,228 @@
+---
+import '../../styles/global.css';
+import SiteHeader from '../../components/SiteHeader.astro';
+import SiteFooter from '../../components/SiteFooter.astro';
+import LibrarySectionNav from '../../components/LibrarySectionNav.astro';
+---
+
+<html class="dark" lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="generator" content={Astro.generator} />
+		<title>The Whispering Library - Reading List</title>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap"
+			rel="stylesheet"
+		/>
+	</head>
+	<body class="min-h-screen bg-background-dark font-display text-slate-100">
+		<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+			<SiteHeader />
+
+			<div class="mx-auto w-full max-w-6xl px-6 pt-6 lg:px-20">
+				<LibrarySectionNav active="reading-list" />
+			</div>
+
+			<main class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 px-4 py-8 md:flex-row lg:px-20">
+				<aside class="w-full md:w-72">
+					<div class="rounded-xl border border-primary/10 bg-primary/10 p-4">
+						<h3 class="mb-4 px-2 text-xs font-bold uppercase tracking-widest text-primary">Archive of Adventures</h3>
+						<nav class="flex flex-col gap-1">
+							<a class="flex items-center gap-3 rounded-lg bg-primary px-3 py-2.5 text-sm font-medium text-white shadow-lg shadow-primary/20" href="#">
+								<span class="material-symbols-outlined text-[20px]">book_2</span>
+								<span>Currently Reading</span>
+							</a>
+							<a class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-primary/10" href="#">
+								<span class="material-symbols-outlined text-[20px] text-primary">star</span>
+								<span>Favorites</span>
+							</a>
+							<a class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-primary/10" href="#">
+								<span class="material-symbols-outlined text-[20px] text-primary">check_circle</span>
+								<span>Completed Tales</span>
+							</a>
+							<a class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-primary/10" href="#">
+								<span class="material-symbols-outlined text-[20px] text-primary">diamond</span>
+								<span>Future Quests</span>
+							</a>
+						</nav>
+					</div>
+
+					<div class="mt-6 flex flex-col gap-3">
+						<div class="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-5">
+							<p class="text-xs font-medium uppercase tracking-wider text-slate-400">Total Tomes Read</p>
+							<div class="mt-1 flex items-baseline gap-2">
+								<span class="text-3xl font-bold">42</span>
+								<span class="text-xs text-primary">+3 this moon</span>
+							</div>
+						</div>
+						<div class="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-5">
+							<p class="text-xs font-medium uppercase tracking-wider text-slate-400">Arcane Knowledge</p>
+							<div class="mt-1 flex items-baseline gap-2">
+								<span class="text-3xl font-bold">Lv. 12</span>
+							</div>
+							<div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-primary/20">
+								<div class="h-full w-[65%] bg-primary"></div>
+							</div>
+						</div>
+					</div>
+
+					<button class="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-white shadow-lg shadow-primary/30 transition-transform active:scale-95">
+						<span class="material-symbols-outlined">add_circle</span>
+						Add New Tome
+					</button>
+				</aside>
+
+				<section class="min-w-0 flex-1">
+					<div class="mb-8">
+						<h1 class="mb-2 text-4xl font-bold">Currently Reading</h1>
+						<p class="text-slate-400">Chronicles you are presently exploring through the ethereal realms.</p>
+					</div>
+
+					<div class="no-scrollbar mb-8 flex overflow-x-auto border-b border-primary/10">
+						<button class="whitespace-nowrap border-b-2 border-primary px-6 py-3 text-sm font-bold text-primary">Current (3)</button>
+						<button class="whitespace-nowrap border-b-2 border-transparent px-6 py-3 text-sm font-medium text-slate-500 transition-colors hover:text-primary">Pinned (12)</button>
+						<button class="whitespace-nowrap border-b-2 border-transparent px-6 py-3 text-sm font-medium text-slate-500 transition-colors hover:text-primary">Recently Finished</button>
+						<button class="whitespace-nowrap border-b-2 border-transparent px-6 py-3 text-sm font-medium text-slate-500 transition-colors hover:text-primary">The Wishlist</button>
+					</div>
+
+					<div class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+						<article class="group relative flex flex-col overflow-hidden rounded-xl border border-primary/20 bg-primary/10 transition-all duration-300 hover:border-primary/50">
+							<div class="relative h-48 w-full bg-slate-800">
+								<div class="absolute inset-0 bg-gradient-to-t from-background-dark to-transparent opacity-60"></div>
+								<img
+									alt="The Moonshaper's Apprentice"
+									class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+									src="https://lh3.googleusercontent.com/aida-public/AB6AXuCf8MjvK4xctRxGHXkb6WaScCUhiyjMTcqkrbMaAKPKQo0bBwBA39I7eVAQvzDaWvRK6dY4-oncL5uplNkF-kSPXX-Bg0WelNDurfsIwnlYxV8AA8Y3F80G_Fn5IGraoh5WSJM4zpd4JtKwRN26lUL-MxQewQtmmZ4kCVZCRvEJno3PijmHHvawx1w4C1gx1aOi8x2VWDTmFj83RUePxCohPXM-uDrLVvWUxfUcHwbzJ5yP8WsCVYehvoaHWaTTnr0GI0tXQoxN6Q0"
+								/>
+								<span class="absolute right-3 top-3 rounded bg-primary px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-white">75% Complete</span>
+							</div>
+							<div class="flex flex-1 flex-col p-5">
+								<h3 class="mb-1 text-xl font-bold transition-colors group-hover:text-primary">The Moonshaper's Apprentice</h3>
+								<p class="mb-4 text-sm italic text-slate-400">by Lysandra Thorne</p>
+								<div class="mt-auto">
+									<div class="mb-1.5 flex justify-between text-[11px] font-bold uppercase tracking-tighter text-primary">
+										<span>Page 342 of 456</span>
+										<span>75%</span>
+									</div>
+									<div class="h-2 w-full overflow-hidden rounded-full bg-primary/20">
+										<div class="h-full w-[75%] rounded-full bg-primary"></div>
+									</div>
+									<div class="mt-4 flex items-center gap-2">
+										<button class="flex-1 rounded-lg bg-primary/20 py-2 text-xs font-bold transition-colors hover:bg-primary/30">Update Progress</button>
+										<button class="rounded-lg border border-primary/20 p-2 text-slate-400 transition-colors hover:border-primary/50 hover:text-primary">
+											<span class="material-symbols-outlined text-[18px]">more_vert</span>
+										</button>
+									</div>
+								</div>
+							</div>
+						</article>
+
+						<article class="group relative flex flex-col overflow-hidden rounded-xl border border-primary/20 bg-primary/10 transition-all duration-300 hover:border-primary/50">
+							<div class="relative h-48 w-full bg-slate-800">
+								<div class="absolute inset-0 bg-gradient-to-t from-background-dark to-transparent opacity-60"></div>
+								<img
+									alt="Echoes of the Void"
+									class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+									src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgKgm8_dopa6PNhd26jJpKq_ZygcnDWuSbbeGyw9NqoGxSBGMu0-b-v_WvSZ8j_ndhyJp6kECsi_NXewItMJ-R7cOFHUQHDTi6qlqok5H67lTeyBlyfOgXz16IS_SfUWSf52vqci7J9b_fpPY8svpbnbRBfLfBQORKdIUYmibG49tiw4yg3ZBlE1FeYmVv7_VhrKDWWkxc0I4zb_98z6vV_ttXKPm_0aA60Z2a_UIoudFqAHH4U1pZM9Fo0aTcalHRQSK51zesq3M"
+								/>
+								<span class="absolute right-3 top-3 rounded bg-primary px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-white">12% Complete</span>
+							</div>
+							<div class="flex flex-1 flex-col p-5">
+								<h3 class="mb-1 text-xl font-bold transition-colors group-hover:text-primary">Echoes of the Void</h3>
+								<p class="mb-4 text-sm italic text-slate-400">by Archmage Varun</p>
+								<div class="mt-auto">
+									<div class="mb-1.5 flex justify-between text-[11px] font-bold uppercase tracking-tighter text-primary">
+										<span>Page 88 of 720</span>
+										<span>12%</span>
+									</div>
+									<div class="h-2 w-full overflow-hidden rounded-full bg-primary/20">
+										<div class="h-full w-[12%] rounded-full bg-primary"></div>
+									</div>
+									<div class="mt-4 flex items-center gap-2">
+										<button class="flex-1 rounded-lg bg-primary/20 py-2 text-xs font-bold transition-colors hover:bg-primary/30">Update Progress</button>
+										<button class="rounded-lg border border-primary/20 p-2 text-slate-400 transition-colors hover:border-primary/50 hover:text-primary">
+											<span class="material-symbols-outlined text-[18px]">more_vert</span>
+										</button>
+									</div>
+								</div>
+							</div>
+						</article>
+
+						<article class="group relative flex flex-col overflow-hidden rounded-xl border border-primary/10 bg-primary/10 opacity-80 transition-all duration-300 hover:opacity-100">
+							<div class="relative h-48 w-full bg-slate-800">
+								<div class="absolute inset-0 bg-background-dark/40 backdrop-grayscale-[0.5]"></div>
+								<img
+									alt="Legends of the Lost Isle"
+									class="h-full w-full object-cover"
+									src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzn95tcv-ds-2QuiKasIgheqYUZXy8Nua_giIV_trsAC0VCzoMnodgHNZM91_XaQxZnMype6S0lcyUdSEovb7ryCAFHiuJDzHnAWxArfw6g2eIFxGEbuIa0KR4k2vLYH6lLgH38X_qRiuTc4okdAud8eUOTQKo5M-yC7LDTjxpEex660-FtmTTQtkK7vczFYh5-IpLhzddknRm437d8XQgBXZRTHLO1hBLWe23x8RWNNVPu_xs7OViHaIXCxmZWWoby_Den6wVv9Y"
+								/>
+								<div class="absolute right-3 top-3 flex items-center gap-1 rounded bg-green-500 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-white">
+									<span class="material-symbols-outlined text-[12px]">check_circle</span>
+									COMPLETED
+								</div>
+							</div>
+							<div class="flex flex-1 flex-col p-5">
+								<h3 class="mb-1 text-xl font-bold text-slate-400">Legends of the Lost Isle</h3>
+								<p class="mb-4 text-sm italic text-slate-400">by Captain S. Graves</p>
+								<div class="mt-auto">
+									<div class="flex items-center justify-between rounded-lg border border-green-500/20 bg-green-500/10 p-3">
+										<div class="flex flex-col">
+											<span class="text-[10px] font-bold uppercase tracking-wider text-green-500">Completed On</span>
+											<span class="text-xs font-medium">14th Moon, 2024</span>
+										</div>
+										<span class="material-symbols-outlined text-green-500">verified</span>
+									</div>
+									<div class="mt-4 flex items-center gap-2">
+										<button class="flex-1 rounded-lg bg-primary/20 py-2 text-xs font-bold text-primary transition-colors hover:bg-primary/30">Read Again</button>
+									</div>
+								</div>
+							</div>
+						</article>
+
+						<article class="group relative flex flex-col overflow-hidden rounded-xl border border-dashed border-primary/30 bg-primary/10 transition-all duration-300 hover:border-solid hover:border-primary/50">
+							<div class="relative flex h-48 w-full items-center justify-center bg-primary/5 transition-colors group-hover:bg-primary/10">
+								<span class="material-symbols-outlined text-5xl text-primary/30 transition-transform group-hover:scale-110">auto_stories</span>
+								<div class="absolute bottom-3 left-3 flex gap-1">
+									<span class="rounded-full bg-primary/20 px-2 py-0.5 text-[9px] font-bold text-primary">WISH LIST</span>
+								</div>
+							</div>
+							<div class="flex flex-1 flex-col p-5">
+								<h3 class="mb-1 text-xl font-bold">Wings of Silver</h3>
+								<p class="mb-4 text-sm italic text-slate-400">by Elena Highcloud</p>
+								<div class="mt-auto">
+									<p class="mb-4 line-clamp-2 text-xs text-slate-400">A rumored tale of celestial eagles and the secret library hidden in the clouds of Aetheria.</p>
+									<div class="flex items-center gap-2">
+										<button class="flex-1 rounded-lg bg-primary py-2 text-xs font-bold text-white transition-colors hover:bg-primary/90">Begin Adventure</button>
+										<button class="rounded-lg border border-primary/20 p-2 text-slate-400 transition-colors hover:border-primary/50 hover:text-primary">
+											<span class="material-symbols-outlined text-[18px]">bookmark</span>
+										</button>
+									</div>
+								</div>
+							</div>
+						</article>
+					</div>
+				</section>
+			</main>
+
+			<SiteFooter />
+		</div>
+	</body>
+</html>
+
+<style>
+	.no-scrollbar::-webkit-scrollbar {
+		display: none;
+	}
+
+	.no-scrollbar {
+		-ms-overflow-style: none;
+		scrollbar-width: none;
+	}
+</style>

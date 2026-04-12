@@ -1,0 +1,173 @@
+---
+import '../../../styles/global.css';
+import SiteHeader from '../../../components/SiteHeader.astro';
+import SiteFooter from '../../../components/SiteFooter.astro';
+import LibrarySectionNav from '../../../components/LibrarySectionNav.astro';
+---
+
+<html class="dark" lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Compose Whisper - The Whispering Library</title>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+			rel="stylesheet"
+		/>
+	</head>
+	<body class="min-h-screen bg-background-dark font-display text-slate-100">
+		<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-background-dark">
+			<SiteHeader />
+
+			<div class="mx-auto w-full max-w-6xl px-6 pt-6 lg:px-20">
+				<LibrarySectionNav active="my-messages" />
+			</div>
+
+			<main class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-6 px-4 py-8 lg:px-20">
+				<div class="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr]">
+					<aside class="flex flex-col justify-between rounded-xl border border-primary/20 bg-background-dark p-6">
+						<div class="flex flex-col gap-8">
+							<div class="flex items-center gap-3">
+								<div class="rounded-lg bg-primary/20 p-2">
+									<span class="material-symbols-outlined text-primary">auto_fix_high</span>
+								</div>
+								<div class="flex flex-col">
+									<h1 class="text-sm font-bold">Whisper Management</h1>
+									<p class="text-xs italic text-slate-500">Message Sanctum</p>
+								</div>
+							</div>
+							<nav class="flex flex-col gap-2">
+								<a class="flex items-center gap-3 rounded-xl bg-primary px-4 py-3 text-white shadow-lg shadow-primary/20 transition-all" href="/user/messages">
+									<span class="material-symbols-outlined">inbox</span>
+									<span class="text-sm font-medium">Inbox</span>
+								</a>
+								<a class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-400 transition-all hover:bg-primary/10 hover:text-slate-100" href="#">
+									<span class="material-symbols-outlined">grade</span>
+									<span class="text-sm font-medium">Important</span>
+								</a>
+								<a class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-400 transition-all hover:bg-primary/10 hover:text-slate-100" href="#">
+									<span class="material-symbols-outlined">send</span>
+									<span class="text-sm font-medium">Sent</span>
+								</a>
+								<a class="flex items-center gap-3 rounded-xl px-4 py-3 text-slate-400 transition-all hover:bg-primary/10 hover:text-slate-100" href="#">
+									<span class="material-symbols-outlined">drafts</span>
+									<span class="text-sm font-medium">Drafts</span>
+								</a>
+							</nav>
+						</div>
+						<div class="rounded-xl border border-primary/10 bg-primary/5 p-4">
+							<p class="text-center text-xs italic leading-relaxed text-slate-500">"The written word is a mirror that reflects the unseen world."</p>
+						</div>
+					</aside>
+
+					<section class="min-w-0 overflow-y-auto bg-background-dark px-4 py-2 md:px-8">
+						<div class="mx-auto flex max-w-4xl flex-col gap-8">
+							<div class="flex flex-col gap-2">
+								<h2 class="font-display text-4xl font-black tracking-tight">Compose Whisper</h2>
+								<p class="text-lg italic text-slate-400">Draft your message on the sacred parchment.</p>
+							</div>
+
+							<div class="flex flex-col gap-6">
+								<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+									<div class="flex flex-col gap-2">
+										<label class="px-1 text-sm font-bold uppercase tracking-widest text-primary">Recipient's Seal</label>
+										<div class="group relative">
+											<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 transition-colors group-focus-within:text-primary">person_search</span>
+											<input class="h-14 w-full rounded-xl border border-primary/20 bg-primary/5 pl-12 pr-4 text-slate-100 transition-all placeholder:text-slate-600 focus:border-primary focus:ring-2 focus:ring-primary/50" placeholder="Fellow seekers or spirits..." type="text" />
+										</div>
+									</div>
+									<div class="flex flex-col gap-2">
+										<label class="px-1 text-sm font-bold uppercase tracking-widest text-primary">Whisper Title</label>
+										<div class="group relative">
+											<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 transition-colors group-focus-within:text-primary">label</span>
+											<input class="h-14 w-full rounded-xl border border-primary/20 bg-primary/5 pl-12 pr-4 text-slate-100 transition-all placeholder:text-slate-600 focus:border-primary focus:ring-2 focus:ring-primary/50" placeholder="Enter the subject of your echo..." type="text" />
+										</div>
+									</div>
+								</div>
+
+								<div class="flex flex-col gap-2">
+									<label class="px-1 text-sm font-bold uppercase tracking-widest text-primary">Sacred Parchment</label>
+									<div class="mystical-glow parchment-texture group relative flex min-h-[400px] flex-col rounded-xl border border-primary/30 p-8 transition-all hover:border-primary/50">
+										<textarea class="flex-1 resize-none border-none bg-transparent font-display text-xl italic leading-relaxed text-slate-200 placeholder:text-slate-700 focus:ring-0" placeholder="Begin your transmission here... The ink only appears to those worthy."></textarea>
+										<div class="pointer-events-none absolute bottom-4 right-4 opacity-20 transition-opacity group-hover:opacity-40">
+											<span class="material-symbols-outlined text-8xl text-primary">edit_square</span>
+										</div>
+										<div class="absolute right-4 top-4 text-xs font-mono text-primary/40">RITUAL_ENCODING: ACTIVE</div>
+									</div>
+								</div>
+
+								<div class="flex flex-col items-center justify-between gap-4 py-6 sm:flex-row">
+									<div class="flex items-center gap-4">
+										<button class="flex items-center gap-2 px-4 py-2 text-slate-400 transition-colors hover:text-slate-100" type="button">
+											<span class="material-symbols-outlined">attach_file</span>
+											<span class="text-sm font-medium">Bind Artifact</span>
+										</button>
+										<button class="flex items-center gap-2 px-4 py-2 text-slate-400 transition-colors hover:text-slate-100" type="button">
+											<span class="material-symbols-outlined">schedule</span>
+											<span class="text-sm font-medium">Delay Echo</span>
+										</button>
+									</div>
+									<div class="flex items-center gap-3">
+										<a class="rounded-xl border border-primary/30 px-6 py-3 font-medium text-slate-300 transition-all hover:bg-primary/10" href="/user/messages">Discard Draft</a>
+										<button class="transform rounded-xl bg-primary px-8 py-3 font-bold text-white shadow-xl shadow-primary/30 transition-all hover:-translate-y-1 hover:bg-primary/80" data-send-whisper type="button">
+											<span class="material-symbols-outlined text-lg">history_edu</span>
+											Seal and Send Echo
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+					</section>
+				</div>
+			</main>
+
+			<SiteFooter />
+		</div>
+
+		<div class="pointer-events-none fixed left-1/2 top-8 z-50 flex -translate-x-1/2 -translate-y-4 items-center gap-3 rounded-xl border-2 border-[#d4af37] bg-[#2d0a4e] px-8 py-4 text-slate-100 opacity-0 shadow-[0_0_30px_rgba(212,175,55,0.2)] transition-all duration-500" id="success-toast">
+			<span class="material-symbols-outlined text-[#d4af37]">auto_awesome</span>
+			<span class="text-sm font-medium tracking-wide">Whisper successfully sealed and sent into the void.</span>
+		</div>
+
+		<script is:inline>
+			(() => {
+				const sendButton = document.querySelector('[data-send-whisper]');
+				const toast = document.getElementById('success-toast');
+
+				if (!(sendButton instanceof HTMLButtonElement) || !(toast instanceof HTMLElement)) return;
+
+				sendButton.addEventListener('click', () => {
+					toast.classList.remove('opacity-0', 'pointer-events-none', '-translate-y-4');
+					toast.classList.add('opacity-100', 'translate-y-0');
+
+					setTimeout(() => {
+						toast.classList.add('opacity-0', '-translate-y-4');
+						toast.classList.remove('opacity-100', 'translate-y-0');
+						setTimeout(() => {
+							toast.classList.add('pointer-events-none');
+						}, 500);
+					}, 3000);
+				});
+			})();
+		</script>
+	</body>
+</html>
+
+<style>
+	.parchment-texture {
+		background-color: #1a1625;
+		background-image: radial-gradient(circle at 2px 2px, rgb(115 17 212 / 5%) 1px, transparent 0);
+		background-size: 24px 24px;
+	}
+
+	.mystical-glow {
+		box-shadow: 0 0 20px rgb(115 17 212 / 20%);
+	}
+</style>

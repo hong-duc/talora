@@ -1,0 +1,503 @@
+---
+/**
+ * Talora Landing Page
+ * The primary marketing page showcasing Talora's two pillars:
+ *  - The Library: create and author your own stories
+ *  - The Magic: step inside a story and live it interactively
+ */
+import '../styles/global.css';
+import SiteFooter from '../components/SiteFooter.astro';
+
+// Featured stories shown in the story gallery section
+const featuredStories = [
+	{
+		genre: 'Mystery',
+		title: 'The Gilded Grimoire',
+		description: 'Discover the secrets of the ancient alchemy...',
+		image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAbKNnOpcKV60QkSR8UYCKMjs7Vs8zp3iw3Mu4PtbZp1KSFW17jEtTeYNdvE7_BlKSOEcticDlQJMCKJGoKegaLtoJ1lBnu8E4SXsIUrXGb9q8WAIKzuOrRx2NLb-rWsM9EPfvsbMWqGJg_6jcRJtVMNEZsgyLBDpbtVGk2WOg1n6_jJntgx6ZR14KX_m0OR6QFzOFZXxiPb-X3weyKxsfj7Cld3u701lb-AAE7HNNsArgvO9A369JqKNsO0kNJYEphf_nHSub_w-A'
+	},
+	{
+		genre: 'Fantasy',
+		title: 'Echoes of the Void',
+		description: 'A journey beyond the stars of Eldoria...',
+		image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDRCVDykQUEEXB4etLZF1xRjj03Ob87xs2koweKzEfXmPYDYXLI4V28XL1jhLZblkq4ys-CDT4AFrdRfEqfoi8BqIWEdxRvBELD46JFl-82T2genkK-Gjzh22No62_1LU12BuQ0EmuaM_GNYJ6g8wi7-F5LMa0wNRZ0TbFRLMcpIa-1qj2qGdcnxY7aRkZNVgWhtWKgxEwi_CLtmp4P3gVqtNv9hD8duDy3KX136g_uGCSfrvCKRW7_HLnar0STXloBBp4R-I9Z6pE'
+	},
+	{
+		genre: 'Quest',
+		title: "The Alchemist's Secret",
+		description: 'The recipe for immortality comes at a price...',
+		image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCmQnvbVkFtvcse-gDyS3CCm1L-BYDnpoIddkF6k-s7HUalyB2N4A_m_OFBUQrTx-6m7NTixcgt_cGqg6Rek9yG1DBVom5A3wc9LfwF9716526t0Y6L8puNr6rRJlRLNsxKllSMXdh7F8jbbuc5hRKVWrBK59-G4K1vC_78ywEeiD607g4YJb8xr6CkEBXgJWfuWaLSi_gFGu75v99pPYKtovo9DPxyUs4IZZRKWhpDQ9T0pgZcuyxrbs7vUS1VBKUOz4YUxtWTxns'
+	},
+	{
+		genre: 'Horror',
+		title: 'Shadows of Eldoria',
+		description: 'When the sun sets, the shadows awaken...',
+		image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAWJQtp7aQsv7jHF7w4tFgXEuBVpawrlijdXbbFF-Ft_oaIMEgQu9WG_BeL63XxxHzOYMjnbD1E2SQPd9t6thrSJQdPPBDlHL5Vqiwg4IIKIegKzu9nf9faJynbly2ec8rNugcL56K5gobGBIDB1sWlzw9qrSbAj3zUnAayr3uy0u1WldIoSNswDJDkXtDDPW1ZjHtn-y10xsPvQru0GDCpw36C_PbUhv72IjTb1gnW5uhMYo_gp0I-g5qWSHzR7-lKeiMETObwmsA'
+	}
+];
+
+// The three steps of "How Talora Works" section
+const howItWorksSteps = [
+	{
+		step: '01',
+		icon: 'login',
+		title: 'Enter the Gate',
+		description: 'Sign in to claim your place among the Keepers. Your seal unlocks both the quill and the portal.'
+	},
+	{
+		step: '02',
+		icon: 'auto_stories',
+		title: 'Choose Your Role',
+		description: 'Become an Author and craft worlds with the enchanted quill — or become a Traveller and step through the page into living stories.'
+	},
+	{
+		step: '03',
+		icon: 'auto_fix_high',
+		title: 'Shape the Story',
+		description: 'Every word you write ripples through Talora. Every choice you make bends the tale. Nothing here is fixed.'
+	}
+];
+---
+
+<html class="dark" lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Talora — The Magical Library</title>
+		<meta name="description" content="Talora is a magical library where you can craft your own stories or step inside living tales. Your story begins here." />
+		<!-- Display font -->
+		<link
+			href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap"
+			rel="stylesheet"
+		/>
+		<!-- Material icons -->
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+			rel="stylesheet"
+		/>
+	</head>
+
+	<body class="bg-background-dark text-slate-100 selection:bg-primary/30 overflow-x-hidden">
+
+		<!-- ============================================================
+			 LANDING NAV — lightweight top bar with sign-in link
+		     ============================================================ -->
+		<header class="sticky top-0 z-50 border-b border-primary/20 bg-background-dark/80 px-6 py-4 backdrop-blur-md lg:px-20">
+			<div class="mx-auto flex max-w-[1400px] items-center justify-between gap-4">
+
+				<!-- Brand mark -->
+				<a class="group flex items-center gap-3" href="/">
+					<div class="flex size-10 items-center justify-center rounded-xl bg-primary/20 text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-white">
+						<span class="material-symbols-outlined text-2xl">auto_stories</span>
+					</div>
+					<span class="font-display text-2xl font-bold italic tracking-tight text-slate-100">Talora</span>
+				</a>
+
+				<!-- Navigation links (hidden on mobile, shown md+) -->
+				<nav class="hidden items-center gap-8 md:flex">
+					<a class="text-sm font-medium text-slate-300 transition-colors hover:text-primary" href="#about">About</a>
+					<a class="text-sm font-medium text-slate-300 transition-colors hover:text-primary" href="#how-it-works">How It Works</a>
+					<a class="text-sm font-medium text-slate-300 transition-colors hover:text-primary" href="#stories">Stories</a>
+				</nav>
+
+				<!-- Auth actions -->
+				<div class="flex items-center gap-3">
+					<a
+						class="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition-all hover:border-primary/60 hover:bg-primary/20"
+						href="/signin"
+					>
+						<span class="material-symbols-outlined text-base">login</span>
+						Sign In
+					</a>
+					<a
+						class="hidden items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary/90 hover:scale-105 sm:inline-flex"
+						href="/registion"
+					>
+						<span class="material-symbols-outlined text-base">auto_fix_high</span>
+						Join Free
+					</a>
+				</div>
+			</div>
+		</header>
+
+
+		<!-- ============================================================
+			 HERO — full-bleed immersive entrance with library image
+		     ============================================================ -->
+		<section class="relative flex min-h-[92vh] flex-col items-center justify-center overflow-hidden px-6 text-center">
+
+			<!-- Background image with dark overlays -->
+			<img
+				alt="Mystical library interior with floating books and glowing crystals"
+				class="absolute inset-0 h-full w-full object-cover"
+				decoding="async"
+				fetchpriority="high"
+				src="/hero-library.png"
+			/>
+			<!-- Gradient overlay – darker at bottom -->
+			<div class="absolute inset-0 bg-gradient-to-b from-background-dark/60 via-background-dark/50 to-background-dark"></div>
+			<!-- Subtle purple colour tint -->
+			<div class="pointer-events-none absolute inset-0 bg-primary/5 mix-blend-color-dodge"></div>
+
+			<!-- Animated floating particles (pure CSS) -->
+			<div class="particle-field pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+				<div class="particle particle-1"></div>
+				<div class="particle particle-2"></div>
+				<div class="particle particle-3"></div>
+				<div class="particle particle-4"></div>
+				<div class="particle particle-5"></div>
+			</div>
+
+			<!-- Hero content -->
+			<div class="relative z-10 flex max-w-4xl flex-col items-center gap-6">
+				<!-- Eyebrow badge -->
+				<div class="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 backdrop-blur-sm">
+					<span class="material-symbols-outlined text-sm text-primary">auto_awesome</span>
+					<span class="text-xs font-semibold uppercase tracking-widest text-primary">A Magical Library</span>
+				</div>
+
+				<!-- Main headline -->
+				<h1 class="font-display text-6xl font-black leading-none tracking-tight text-slate-100 md:text-8xl lg:text-9xl">
+					Talo<span class="gold-shimmer">ra</span>
+				</h1>
+
+				<!-- Sub-headline -->
+				<p class="max-w-2xl text-xl font-light leading-relaxed text-slate-300 md:text-2xl">
+					A library where stories <em class="text-accent-gold not-italic">breathe</em>. <br class="hidden md:block"/>
+					Write worlds into being — or walk through the page and <em class="text-primary not-italic">live</em> them.
+				</p>
+
+				<!-- CTA buttons -->
+				<div class="mt-4 flex flex-col gap-4 sm:flex-row">
+					<!-- Primary: enter the library to write -->
+					<a
+						class="group flex h-14 min-w-[220px] cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-8 text-lg font-bold text-white shadow-xl shadow-primary/40 transition-all hover:scale-105 hover:bg-primary/90"
+						href="/registion"
+					>
+						<span class="material-symbols-outlined transition-transform group-hover:rotate-12">history_edu</span>
+						Write Your Story
+					</a>
+					<!-- Secondary: browse stories to live -->
+					<a
+						class="group flex h-14 min-w-[220px] cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-accent-gold/40 bg-transparent px-8 text-lg font-bold text-slate-100 transition-all hover:bg-accent-gold/10 hover:border-accent-gold/70"
+						href="/archive"
+					>
+						<span class="material-symbols-outlined transition-transform group-hover:scale-110">travel_explore</span>
+						Live a Story
+					</a>
+				</div>
+
+				<!-- Sign in hint -->
+				<p class="text-sm text-slate-500">
+					Already a Keeper?
+					<a class="font-semibold text-primary underline underline-offset-4 transition-colors hover:text-primary/80" href="/signin">Sign in here</a>
+				</p>
+			</div>
+
+			<!-- Scroll indicator -->
+			<div class="absolute bottom-8 left-1/2 z-10 -translate-x-1/2 animate-bounce">
+				<div class="flex flex-col items-center gap-1">
+					<span class="text-xs uppercase tracking-widest text-slate-500">Scroll</span>
+					<span class="material-symbols-outlined text-primary/60">keyboard_arrow_down</span>
+				</div>
+			</div>
+		</section>
+
+
+		<!-- ============================================================
+			 TWO PILLARS — Library (create) vs Magic (live)
+		     ============================================================ -->
+		<section id="about" class="relative px-6 py-24 lg:px-20">
+			<!-- Section header -->
+			<div class="mx-auto mb-16 max-w-2xl text-center">
+				<h2 class="font-display text-4xl font-bold tracking-tight text-slate-100 md:text-5xl">
+					Two Ways to Enter
+				</h2>
+				<div class="mx-auto mt-4 h-1 w-24 rounded-full bg-gradient-to-r from-primary via-accent-gold to-primary"></div>
+				<p class="mt-6 text-lg text-slate-400">
+					Talora opens two doors. One leads to the writer's desk. The other leads directly into the story.
+				</p>
+			</div>
+
+			<!-- The two-pillar cards -->
+			<div class="mx-auto grid max-w-6xl grid-cols-1 gap-8 md:grid-cols-2">
+
+				<!-- Pillar 1: The Library (create) -->
+				<div class="group relative flex flex-col gap-6 overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5 p-8 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10 lg:p-12">
+					<!-- Corner decoration -->
+					<div class="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-2xl transition-all group-hover:bg-primary/20"></div>
+
+					<!-- Icon badge -->
+					<div class="inline-flex size-16 items-center justify-center rounded-2xl bg-primary/20 text-primary transition-all group-hover:bg-primary group-hover:text-white">
+						<span class="material-symbols-outlined text-4xl">history_edu</span>
+					</div>
+
+					<!-- Label -->
+					<div>
+						<span class="text-xs font-bold uppercase tracking-widest text-primary">The Library</span>
+						<h3 class="font-display mt-2 text-3xl font-bold leading-tight text-slate-100">Create Your Story</h3>
+					</div>
+
+					<p class="text-base leading-relaxed text-slate-400">
+						Step into the Keeper's sanctum — a rich story-crafting workspace enchanted with powerful writing tools.
+						Build characters, weave lore, sculpt choices, and publish tales that live on for every reader who ventures into Talora.
+					</p>
+
+					<!-- Feature bullets -->
+					<ul class="flex flex-col gap-3">
+						{[
+							{ icon: 'draw', label: 'Rich text editor with magical formatting' },
+							{ icon: 'alt_route', label: 'Branching narrative & choice trees' },
+							{ icon: 'palette', label: 'World-building & character registry' },
+							{ icon: 'groups', label: 'Community reviews & shared lore' }
+						].map((f) => (
+							<li class="flex items-center gap-3 text-sm text-slate-300">
+								<span class="material-symbols-outlined text-base text-primary">{f.icon}</span>
+								{f.label}
+							</li>
+						))}
+					</ul>
+
+					<a
+						class="group/btn mt-2 inline-flex items-center gap-2 self-start font-bold text-primary transition-colors hover:text-primary/80"
+						href="/create-story"
+					>
+						Start writing
+						<span class="material-symbols-outlined text-base transition-transform group-hover/btn:translate-x-1">arrow_forward</span>
+					</a>
+				</div>
+
+				<!-- Pillar 2: The Magic (live the story) -->
+				<div class="group relative flex flex-col gap-6 overflow-hidden rounded-2xl border border-accent-gold/20 bg-gradient-to-br from-accent-gold/10 to-accent-gold/5 p-8 transition-all hover:border-accent-gold/40 hover:shadow-lg hover:shadow-accent-gold/10 lg:p-12">
+					<!-- Corner decoration -->
+					<div class="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-accent-gold/10 blur-2xl transition-all group-hover:bg-accent-gold/20"></div>
+
+					<!-- Icon badge -->
+					<div class="inline-flex size-16 items-center justify-center rounded-2xl bg-accent-gold/20 text-accent-gold transition-all group-hover:bg-accent-gold group-hover:text-background-dark">
+						<span class="material-symbols-outlined text-4xl">travel_explore</span>
+					</div>
+
+					<!-- Label -->
+					<div>
+						<span class="text-xs font-bold uppercase tracking-widest text-accent-gold">The Magic</span>
+						<h3 class="font-display mt-2 text-3xl font-bold leading-tight text-slate-100">Live the Story</h3>
+					</div>
+
+					<p class="text-base leading-relaxed text-slate-400">
+						Every story in Talora is a living world. As a Traveller, you don't just read — you inhabit.
+						Make choices that reshape the plot, unlock hidden paths, and forge endings that are wholly your own.
+					</p>
+
+					<!-- Feature bullets -->
+					<ul class="flex flex-col gap-3">
+						{[
+							{ icon: 'forum', label: 'Interactive dialogue & choices' },
+							{ icon: 'bolt', label: 'Real-time narrative reactions' },
+							{ icon: 'map', label: 'Explore hidden paths & secret endings' },
+							{ icon: 'star', label: 'Rate & review the worlds you visit' }
+						].map((f) => (
+							<li class="flex items-center gap-3 text-sm text-slate-300">
+								<span class="material-symbols-outlined text-base text-accent-gold">{f.icon}</span>
+								{f.label}
+							</li>
+						))}
+					</ul>
+
+					<a
+						class="group/btn mt-2 inline-flex items-center gap-2 self-start font-bold text-accent-gold transition-colors hover:text-accent-gold/80"
+						href="/archive"
+					>
+						Explore stories
+						<span class="material-symbols-outlined text-base transition-transform group-hover/btn:translate-x-1">arrow_forward</span>
+					</a>
+				</div>
+			</div>
+		</section>
+
+
+		<!-- ============================================================
+			 HOW IT WORKS — 3-step process
+		     ============================================================ -->
+		<section id="how-it-works" class="px-6 py-24 lg:px-20">
+			<div class="mx-auto max-w-6xl">
+
+				<!-- Section header -->
+				<div class="mb-16 text-center">
+					<h2 class="font-display text-4xl font-bold tracking-tight text-slate-100 md:text-5xl">How Talora Works</h2>
+					<div class="mx-auto mt-4 h-1 w-24 rounded-full bg-primary"></div>
+					<p class="mt-6 text-lg text-slate-400">Three steps from the threshold to the heart of the library.</p>
+				</div>
+
+				<!-- Steps grid -->
+				<div class="grid grid-cols-1 gap-8 md:grid-cols-3">
+					{howItWorksSteps.map((item, i) => (
+						<div class="group relative flex flex-col gap-5 rounded-2xl border border-primary/20 bg-primary/5 p-8 transition-all hover:bg-primary/10">
+							<!-- Step number watermark -->
+							<span class="absolute right-6 top-4 font-display text-6xl font-black text-primary/10 select-none">{item.step}</span>
+
+							<!-- Icon -->
+							<div class="flex size-14 items-center justify-center rounded-xl bg-primary/20 text-primary transition-all group-hover:bg-primary group-hover:text-white">
+								<span class="material-symbols-outlined text-2xl">{item.icon}</span>
+							</div>
+
+							<!-- Content -->
+							<div class="flex flex-col gap-2">
+								<h3 class="font-display text-xl font-bold text-slate-100">{item.title}</h3>
+								<p class="text-base leading-relaxed text-slate-400">{item.description}</p>
+							</div>
+
+							<!-- Connector line (hidden on last item) -->
+							{i < howItWorksSteps.length - 1 && (
+								<div class="absolute -right-4 top-1/2 z-10 hidden -translate-y-1/2 text-primary/30 md:block">
+									<span class="material-symbols-outlined text-2xl">arrow_forward</span>
+								</div>
+							)}
+						</div>
+					))}
+				</div>
+			</div>
+		</section>
+
+
+		<!-- ============================================================
+			 STORY GALLERY — teaser of featured stories
+		     ============================================================ -->
+		<section id="stories" class="px-6 py-24 lg:px-20">
+			<div class="mx-auto max-w-6xl">
+
+				<!-- Section header with "View all" link -->
+				<div class="mb-10 flex items-end justify-between gap-4">
+					<div>
+						<h2 class="font-display text-4xl font-bold text-slate-100">Featured Stories</h2>
+						<p class="mt-1 font-medium text-primary">Curated tales for the brave</p>
+					</div>
+					<a class="group flex items-center gap-1 font-bold text-primary hover:text-primary/80 transition-colors" href="/archive">
+						View All
+						<span class="material-symbols-outlined transition-transform group-hover:translate-x-1">arrow_forward</span>
+					</a>
+				</div>
+
+				<!-- Story cards grid -->
+				<div class="grid grid-cols-2 gap-6 lg:grid-cols-4">
+					{featuredStories.map((story) => (
+						<a
+							class="group relative aspect-[3/4] cursor-pointer overflow-hidden rounded-xl shadow-lg transition-all hover:shadow-primary/20 hover:-translate-y-1"
+							href="/archive"
+						>
+							<!-- Background image with gradient -->
+							<div
+								class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
+								style={`background-image: linear-gradient(0deg, rgba(25,16,34,0.95) 0%, rgba(25,16,34,0.3) 50%, rgba(25,16,34,0) 100%), url("${story.image}");`}
+							></div>
+
+							<!-- Story info at bottom -->
+							<div class="absolute bottom-0 w-full p-5">
+								<span class="mb-2 block text-[10px] font-bold uppercase tracking-widest text-primary">{story.genre}</span>
+								<h4 class="font-display text-base font-bold text-slate-100 transition-colors group-hover:text-accent-gold leading-snug">{story.title}</h4>
+								<p class="mt-2 text-xs leading-relaxed text-slate-400 opacity-0 transition-opacity group-hover:opacity-100">{story.description}</p>
+							</div>
+
+							<!-- Hover overlay -->
+							<div class="absolute inset-0 border-2 border-transparent rounded-xl transition-all group-hover:border-primary/40"></div>
+						</a>
+					))}
+				</div>
+			</div>
+		</section>
+
+
+		<!-- ============================================================
+			 FINAL CTA — sign in / join call to action
+		     ============================================================ -->
+		<section class="px-6 py-24 lg:px-20">
+			<div class="mx-auto max-w-4xl">
+				<div class="ethereal-glow relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/20 via-primary/10 to-background-dark p-12 text-center">
+					<!-- Decorative glow blobs -->
+					<div class="pointer-events-none absolute -left-20 -top-20 h-64 w-64 rounded-full bg-primary/20 blur-3xl"></div>
+					<div class="pointer-events-none absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-accent-gold/10 blur-3xl"></div>
+
+					<!-- Gold corner ornaments (mirrored from footer design) -->
+					<div class="absolute -left-px -top-px h-8 w-8 border-l-2 border-t-2 border-accent-gold/60 rounded-tl-2xl"></div>
+					<div class="absolute -right-px -top-px h-8 w-8 border-r-2 border-t-2 border-accent-gold/60 rounded-tr-2xl"></div>
+					<div class="absolute -bottom-px -left-px h-8 w-8 border-b-2 border-l-2 border-accent-gold/60 rounded-bl-2xl"></div>
+					<div class="absolute -bottom-px -right-px h-8 w-8 border-b-2 border-r-2 border-accent-gold/60 rounded-br-2xl"></div>
+
+					<!-- Content -->
+					<div class="relative z-10 flex flex-col items-center gap-6">
+						<div class="inline-flex size-20 items-center justify-center rounded-2xl bg-primary/30 text-primary">
+							<span class="material-symbols-outlined text-5xl">auto_stories</span>
+						</div>
+
+						<div>
+							<h2 class="font-display text-4xl font-black text-slate-100 md:text-5xl">
+								Your Story Awaits
+							</h2>
+							<p class="mt-4 text-lg text-slate-400 max-w-xl mx-auto">
+								The gates of Talora stand open. Every great tale begins with a single step through the door.
+								Will you take yours today?
+							</p>
+						</div>
+
+						<div class="flex flex-col gap-4 sm:flex-row">
+							<a
+								class="group flex h-14 min-w-[200px] items-center justify-center gap-2 rounded-xl bg-primary px-8 text-lg font-bold text-white shadow-xl shadow-primary/40 transition-all hover:scale-105 hover:bg-primary/90"
+								href="/registion"
+							>
+								<span class="material-symbols-outlined transition-transform group-hover:rotate-12">auto_fix_high</span>
+								Join Talora Free
+							</a>
+							<a
+								class="flex h-14 min-w-[200px] items-center justify-center gap-2 rounded-xl border-2 border-primary/40 bg-transparent px-8 text-lg font-bold text-slate-100 transition-all hover:bg-primary/10"
+								href="/signin"
+							>
+								<span class="material-symbols-outlined">login</span>
+								Sign In
+							</a>
+						</div>
+
+						<p class="text-xs text-slate-600">No ancient blood pacts required. Free to join.</p>
+					</div>
+				</div>
+			</div>
+		</section>
+
+
+		<!-- ============================================================
+			 FOOTER — shared site footer component
+		     ============================================================ -->
+		<SiteFooter />
+
+	</body>
+</html>
+
+<style>
+	/* -----------------------------------------------------------------
+	   Floating particle animation for the hero section
+	   Lightweight CSS-only approach — no JS needed
+	   ----------------------------------------------------------------- */
+	.particle {
+		position: absolute;
+		border-radius: 50%;
+		background: rgba(115, 17, 212, 0.4);
+		filter: blur(1px);
+		animation: float linear infinite;
+		pointer-events: none;
+	}
+
+	/* Each particle gets different size, position, and speed */
+	.particle-1 { width: 6px;  height: 6px;  left: 15%;  top: 20%; animation-duration: 8s;  animation-delay: 0s;   }
+	.particle-2 { width: 4px;  height: 4px;  left: 70%;  top: 60%; animation-duration: 12s; animation-delay: -3s;  background: rgba(212, 175, 55, 0.5); }
+	.particle-3 { width: 8px;  height: 8px;  left: 40%;  top: 80%; animation-duration: 10s; animation-delay: -5s;  }
+	.particle-4 { width: 3px;  height: 3px;  left: 85%;  top: 30%; animation-duration: 15s; animation-delay: -2s;  background: rgba(212, 175, 55, 0.4); }
+	.particle-5 { width: 5px;  height: 5px;  left: 55%;  top: 10%; animation-duration: 9s;  animation-delay: -7s;  }
+
+	@keyframes float {
+		0%   { transform: translateY(0)   translateX(0);   opacity: 0;   }
+		10%  { opacity: 1; }
+		90%  { opacity: 0.6; }
+		100% { transform: translateY(-80vh) translateX(20px); opacity: 0; }
+	}
+</style>

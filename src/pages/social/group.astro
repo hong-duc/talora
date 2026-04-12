@@ -1,0 +1,227 @@
+---
+import '../../styles/global.css';
+import SiteFooter from '../../components/SiteFooter.astro';
+import SiteHeader from '../../components/SiteHeader.astro';
+---
+
+<html class="dark" lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Scholarly Circles - The Whispering Library</title>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,200..800&display=swap"
+			rel="stylesheet"
+		/>
+	</head>
+	<body class="min-h-screen bg-background-dark font-display text-slate-100">
+		<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-background-dark">
+			<div class="layout-container flex h-full grow flex-col">
+				<SiteHeader activeSection="social" />
+
+				<main class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-8 px-6 py-8 md:px-10 lg:flex-row lg:px-20">
+					<aside class="flex w-full flex-col gap-6 lg:w-1/3">
+						<div class="flex flex-col gap-2">
+							<h1 class="text-4xl font-black tracking-tight text-slate-100">Scholarly Circles</h1>
+							<p class="text-slate-400 italic">Manage your secret societies and lore seekers.</p>
+						</div>
+						<div class="flex gap-8 border-b border-primary/20">
+							<a class="flex flex-col items-center justify-center border-b-[3px] border-primary pb-3 font-bold text-primary" href="#">My Circles</a>
+							<a class="flex flex-col items-center justify-center border-b-[3px] border-transparent pb-3 font-bold text-slate-400 transition-colors hover:text-primary" href="#">Discover</a>
+						</div>
+
+						<div class="flex flex-col gap-4">
+							<h3 class="text-lg font-bold uppercase tracking-widest text-primary/80">Active Orders</h3>
+							<div class="group cursor-pointer rounded-xl bg-primary p-4 text-white shadow-lg shadow-primary/20 ring-1 ring-primary">
+								<div class="mb-2 flex items-center justify-between">
+									<span class="material-symbols-outlined">ink_pen</span>
+									<span class="rounded bg-white/20 px-2 py-0.5 text-xs font-bold uppercase tracking-tighter">Primary</span>
+								</div>
+								<h4 class="text-xl font-bold">The Midnight Scribes</h4>
+								<p class="text-sm italic opacity-90">12 Members • 4 Active Goals</p>
+							</div>
+							<div class="group cursor-pointer rounded-xl border border-primary/20 bg-primary/5 p-4 transition-all hover:border-primary">
+								<div class="mb-2 flex items-center justify-between">
+									<span class="material-symbols-outlined text-primary">auto_awesome</span>
+								</div>
+								<h4 class="text-xl font-bold text-slate-100">Lore Seekers</h4>
+								<p class="text-sm italic text-slate-400">42 Members • 1 Active Goal</p>
+							</div>
+							<div class="group cursor-pointer rounded-xl border border-primary/20 bg-primary/5 p-4 opacity-60 transition-all hover:border-primary">
+								<div class="mb-2 flex items-center justify-between">
+									<span class="material-symbols-outlined text-primary">visibility_lock</span>
+								</div>
+								<h4 class="text-xl font-bold text-slate-100">Shadow Keepers</h4>
+								<p class="text-sm italic text-slate-400">Inactive for 3 Moons</p>
+							</div>
+						</div>
+
+						<button class="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/30 py-4 font-bold text-primary transition-colors hover:bg-primary/10">
+							<span class="material-symbols-outlined">add_circle</span>
+							Found a New Circle
+						</button>
+					</aside>
+
+					<section class="relative flex-1 overflow-hidden rounded-xl border border-primary/20 bg-background-dark/50 p-8 shadow-2xl">
+						<div class="absolute -right-32 -top-32 h-64 w-64 rounded-full bg-primary/5 blur-3xl"></div>
+						<div class="relative z-10">
+							<div class="mb-8 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+								<div class="flex items-center gap-6">
+									<div class="flex size-20 items-center justify-center rounded-xl border-2 border-primary bg-primary/10 shadow-lg shadow-primary/10">
+										<span class="material-symbols-outlined text-5xl text-primary">ink_pen</span>
+									</div>
+									<div>
+										<h2 class="text-4xl font-black text-slate-100">The Midnight Scribes</h2>
+										<p class="text-sm font-bold uppercase tracking-widest text-primary">Founded in the Third Age</p>
+									</div>
+								</div>
+								<button class="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 font-bold text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary/90">
+									<span class="material-symbols-outlined">person_add</span>
+									Summon New Member
+								</button>
+							</div>
+
+							<div class="grid grid-cols-1 gap-8 md:grid-cols-2">
+								<div class="space-y-8">
+									<div class="space-y-4">
+										<h3 class="flex items-center gap-2 border-b border-primary/20 pb-2 text-lg font-bold text-primary">
+											<span class="material-symbols-outlined text-sm">history_edu</span>
+											Circle Manifesto
+										</h3>
+										<p class="leading-relaxed text-slate-300 italic">
+											"To record that which is spoken in the dark, and to ensure the ink of truth never fades from the archives of the Whispering Library. We seek the stories others have forgotten."
+										</p>
+									</div>
+
+									<div class="space-y-4">
+										<h3 class="flex items-center gap-2 border-b border-primary/20 pb-2 text-lg font-bold text-primary">
+											<span class="material-symbols-outlined text-sm">target</span>
+											Collective Reading Goals
+										</h3>
+										<div class="space-y-4">
+											<div class="rounded-lg border border-primary/10 bg-primary/5 p-4">
+												<div class="mb-1 flex justify-between text-sm font-bold">
+													<span>Chronicles of the Ethereal</span>
+													<span class="text-primary">85%</span>
+												</div>
+												<div class="h-2 w-full overflow-hidden rounded-full bg-slate-700">
+													<div class="h-full w-[85%] bg-primary"></div>
+												</div>
+												<p class="mt-2 text-xs text-slate-500">Due by next Blood Moon</p>
+											</div>
+											<div class="rounded-lg border border-primary/10 bg-primary/5 p-4">
+												<div class="mb-1 flex justify-between text-sm font-bold">
+													<span>Whispers of the Forbidden Grimoire</span>
+													<span class="text-primary">32%</span>
+												</div>
+												<div class="h-2 w-full overflow-hidden rounded-full bg-slate-700">
+													<div class="h-full w-[32%] bg-primary"></div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<div class="space-y-4">
+									<h3 class="flex items-center gap-2 border-b border-primary/20 pb-2 text-lg font-bold text-primary">
+										<span class="material-symbols-outlined text-sm">group</span>
+										Registry of Scholars
+									</h3>
+									<div class="space-y-3">
+										<div class="flex items-center justify-between rounded-xl bg-primary/5 p-3">
+											<div class="flex items-center gap-3">
+												<div
+													class="size-10 rounded-full bg-cover"
+													style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuADVyRJW_EuutFeRwhhMxzhM34p2AF4brSn2SSkBKgFWBq-4ZCLZIH2Z-uatvGg9xGphN3lCi_d9kQkxyWxT--MxfLiyCjbq5fv4_wcdkQ5EXlTj0LOzxG9uqT38ltseDN4z0WFp4tBKS5nkRJQAnGsl-pAuMknDBl_EPJ3gyQTnrzXMLhPhNzXZIt6mewDFiO9IY8F2Ckkb3EF139JLrCcC6ZqA1M_5wEjWPdMJeRtI8MOLDqYXnCLrm2KiOQus5lGACIAawNq_bk');"
+												></div>
+												<div>
+													<p class="text-sm font-bold">Master Alistair</p>
+													<p class="text-xs font-bold uppercase tracking-tighter text-primary">High Scholar</p>
+												</div>
+											</div>
+											<span class="material-symbols-outlined text-slate-400">more_vert</span>
+										</div>
+										<div class="flex items-center justify-between rounded-xl bg-primary/5 p-3">
+											<div class="flex items-center gap-3">
+												<div
+													class="size-10 rounded-full bg-cover"
+													style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC6JPVxTb3ibUmlaJv92gglpvHkKFNpVqR2DdPXW4S2aosLvEHcsDUbm_s-2kGFPcQ1b4Gel3N7_yqGhjrQLFbG84LNHZYEbLuNOoLDbzw-4bnqAyAVQ98a92pGOvOXApDePb6BZYr7X0gUVocPpc53K9tpK8Cdp1E7XbJjvRuxH4CddEMDGNSVwnWBYEdKmmRWhvpcYGp-ZNTNVZI2nSfkz5ER0tg6rSKmBhmR6F_c6cFpeB2mNFRfBGdw_dLWKTlRArElOKZ3_Lk');"
+												></div>
+												<div>
+													<p class="text-sm font-bold">Elara Vance</p>
+													<p class="text-xs font-bold uppercase tracking-tighter text-slate-500">Keeper of Ink</p>
+												</div>
+											</div>
+											<span class="material-symbols-outlined text-slate-400">more_vert</span>
+										</div>
+										<div class="flex items-center justify-between rounded-xl bg-primary/5 p-3">
+											<div class="flex items-center gap-3">
+												<div
+													class="size-10 rounded-full bg-cover"
+													style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCGsyVmcSeHsoYtvsvFcr8EpsaCPn-iflOYtDmHgU4kv34EZIGSfgpUcQtzrew1nQVV0knLdOzo8rUd5OPOxOjWiy64NwlkAeHJhomqEbrsWv-iiNJwONQF_tqBWPLjXxKkUp9vZ6XrM_7JXCAgUj_7TXi56PQkqu0CNBpP1uNU_D64TSHcUjjU27yHYy0_M-gq11AU44Z9lszPqYIpt-iJ6duTgwWNomgRvpzR1_Z1efq0XmzlhustxL1c2f8bfl4bm91M1A_Ehfk');"
+												></div>
+												<div>
+													<p class="text-sm font-bold">Kaelen Thorne</p>
+													<p class="text-xs font-bold uppercase tracking-tighter italic text-slate-400">Novice Seeker</p>
+												</div>
+											</div>
+											<span class="material-symbols-outlined text-slate-400">more_vert</span>
+										</div>
+										<button class="w-full py-2 text-sm italic text-slate-400 transition-colors hover:text-primary">View all 12 members...</button>
+									</div>
+								</div>
+							</div>
+						</div>
+					</section>
+				</main>
+
+				<section class="bg-primary/5 px-6 py-12 md:px-10 lg:px-20">
+					<div class="mx-auto w-full max-w-[1600px]">
+						<div class="mb-6 flex items-center justify-between">
+							<h2 class="text-2xl font-bold text-slate-100">Discover New Circles</h2>
+							<a class="flex items-center gap-1 font-bold text-primary" href="#">
+								Explore All
+								<span class="material-symbols-outlined text-sm">arrow_forward</span>
+							</a>
+						</div>
+						<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+							<div class="group rounded-xl border border-primary/10 bg-background-dark p-6 transition-all hover:border-primary hover:shadow-xl">
+								<span class="material-symbols-outlined mb-4 block text-3xl text-primary">star</span>
+								<h4 class="mb-1 text-lg font-bold">Celestial Cartographers</h4>
+								<p class="mb-4 text-sm italic text-slate-500">Mapping the stars that whisper.</p>
+								<button class="w-full rounded-lg bg-primary/10 py-2 font-bold text-primary transition-colors group-hover:bg-primary group-hover:text-white">Apply to Join</button>
+							</div>
+							<div class="group rounded-xl border border-primary/10 bg-background-dark p-6 transition-all hover:border-primary hover:shadow-xl">
+								<span class="material-symbols-outlined mb-4 block text-3xl text-primary">psychology</span>
+								<h4 class="mb-1 text-lg font-bold">Mind-Weavers</h4>
+								<p class="mb-4 text-sm italic text-slate-500">Deciphering psychic resonance in manuscripts.</p>
+								<button class="w-full rounded-lg bg-primary/10 py-2 font-bold text-primary transition-colors group-hover:bg-primary group-hover:text-white">Apply to Join</button>
+							</div>
+							<div class="group rounded-xl border border-primary/10 bg-background-dark p-6 transition-all hover:border-primary hover:shadow-xl">
+								<span class="material-symbols-outlined mb-4 block text-3xl text-primary">eco</span>
+								<h4 class="mb-1 text-lg font-bold">Floral Alchemists</h4>
+								<p class="mb-4 text-sm italic text-slate-500">Herbology studies of the garden of ghosts.</p>
+								<button class="w-full rounded-lg bg-primary/10 py-2 font-bold text-primary transition-colors group-hover:bg-primary group-hover:text-white">Apply to Join</button>
+							</div>
+							<div class="group rounded-xl border border-primary/10 bg-background-dark p-6 transition-all hover:border-primary hover:shadow-xl">
+								<span class="material-symbols-outlined mb-4 block text-3xl text-primary">fort</span>
+								<h4 class="mb-1 text-lg font-bold">Citadel Guards</h4>
+								<p class="mb-4 text-sm italic text-slate-500">Protecting the rare scrolls from corruption.</p>
+								<button class="w-full rounded-lg bg-primary/10 py-2 font-bold text-primary transition-colors group-hover:bg-primary group-hover:text-white">Apply to Join</button>
+							</div>
+						</div>
+					</div>
+				</section>
+
+				<SiteFooter />
+			</div>
+		</div>
+	</body>
+</html>

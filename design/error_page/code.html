@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;700&amp;family=Newsreader:ital,wght@0,400;0,600;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                        "mystic-purple": "#4b2038",
+                        "mystic-deep": "#240f1b",
+                        "gold-accent": "#ce8db1", // Using hue-derived secondary for gold-like feel within constraints
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"],
+                        "serif": ["Newsreader", "serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .parchment-glow {
+            box-shadow: 0 0 20px rgba(236, 91, 19, 0.15);
+        }
+        .mystic-border {
+            border: 2px solid;
+            border-image: linear-gradient(to right, #ec5b13, #ce8db1, #ec5b13) 1;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+<!-- Top Navigation Bar -->
+<header class="w-full border-b border-mystic-purple/20 bg-background-light dark:bg-background-dark px-4 md:px-10 py-4 sticky top-0 z-50">
+<div class="max-w-7xl mx-auto flex items-center justify-between">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3 text-primary">
+<span class="material-symbols-outlined text-3xl">auto_stories</span>
+<h2 class="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight tracking-tight font-serif italic">The Whispering Library</h2>
+</div>
+<nav class="hidden md:flex items-center gap-6">
+<a class="hover:text-primary transition-colors text-sm font-medium" href="#">Archives</a>
+<a class="hover:text-primary transition-colors text-sm font-medium" href="#">Grimoires</a>
+<a class="hover:text-primary transition-colors text-sm font-medium" href="#">Sanctum</a>
+<a class="hover:text-primary transition-colors text-sm font-medium" href="#">Almanac</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden sm:flex items-center bg-mystic-purple/10 dark:bg-mystic-purple/40 rounded-xl px-3 py-1.5 border border-mystic-purple/20">
+<span class="material-symbols-outlined text-mystic-purple dark:text-gold-accent text-xl">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-32 md:w-48 placeholder:text-mystic-purple/60" placeholder="Seek knowledge..." type="text"/>
+</div>
+<div class="size-10 rounded-full border-2 border-primary/30 overflow-hidden bg-mystic-purple/20">
+<img class="w-full h-full object-cover" data-alt="User avatar icon in circular frame" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOPbmsfL27eeUO0LvwRJU_wTtkdgs2a3mH6nJpw-M9xRr2Y8rkpX1pZ6-AqyoJChN1HxVvpe8pGlyTzm1Oo4LK3VHERpit94mXfBcTfZ88Qpjg0-w5dg9tfnv-aeD7t1YOSZRUOmjoCx5Lmk-_q28lkxTYURvc4kBDMSlyC3q1xZEmGPbBWZVyg8o21Pt9CF5BExUlvA4SXbH3Mr9V4_4WixLv2muEBNH97lIrzUHHH1Bsq8_ty4-6Zn6xSXvy9_lKAoa392abpF8"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content: Error Page -->
+<main class="flex-grow flex items-center justify-center p-6 sm:p-12 relative overflow-hidden">
+<!-- Abstract Background Elements -->
+<div class="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
+<div class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary rounded-full blur-[120px]"></div>
+<div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-mystic-purple rounded-full blur-[120px]"></div>
+</div>
+<div class="max-w-3xl w-full flex flex-col items-center text-center z-10">
+<!-- Hero Illustration Placeholder -->
+<div class="relative mb-8 group">
+<div class="absolute -inset-1 bg-gradient-to-r from-primary to-mystic-purple rounded-full blur opacity-25"></div>
+<div class="relative bg-background-light dark:bg-mystic-deep rounded-full p-8 border border-primary/20">
+<span class="material-symbols-outlined text-8xl text-primary">ink_eraser</span>
+</div>
+</div>
+<!-- Error Title -->
+<h1 class="font-serif text-4xl md:text-6xl font-bold mb-4 tracking-tight text-slate-900 dark:text-slate-100">
+                Fractured Reality
+            </h1>
+<p class="font-serif italic text-xl md:text-2xl text-mystic-purple dark:text-gold-accent mb-10 opacity-90">
+                "The ink has run dry and the parchment resists your gaze."
+            </p>
+<!-- Parchment Box for Details -->
+<div class="w-full bg-[#fdfaf1] dark:bg-mystic-deep/80 p-1 md:p-1.5 rounded-xl border-2 border-primary/40 shadow-xl mb-12">
+<div class="border border-dashed border-primary/30 rounded-lg p-6 md:p-8 bg-transparent relative">
+<!-- Corner Ornaments -->
+<span class="material-symbols-outlined absolute top-2 left-2 text-primary/40">auto_awesome</span>
+<span class="material-symbols-outlined absolute top-2 right-2 text-primary/40">auto_awesome</span>
+<span class="material-symbols-outlined absolute bottom-2 left-2 text-primary/40">auto_awesome</span>
+<span class="material-symbols-outlined absolute bottom-2 right-2 text-primary/40">auto_awesome</span>
+<h3 class="font-serif font-semibold text-lg mb-4 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-primary">history_edu</span>
+                        Anomaly Record: 404-VOID
+                    </h3>
+<p class="text-slate-700 dark:text-slate-300 font-display leading-relaxed max-w-xl mx-auto italic">
+                        A rift has formed in the archive, obscuring the knowledge you seek. The celestial alignment has shifted, 
+                        making this wing of the library temporarily inaccessible to mortal eyes. The ink of this page has vanished 
+                        into the ether.
+                    </p>
+<div class="mt-6 pt-6 border-t border-primary/10 flex flex-col items-center">
+<details class="w-full group">
+<summary class="cursor-pointer list-none text-xs uppercase tracking-widest text-primary font-bold hover:opacity-80 flex items-center justify-center gap-1">
+                                View Forbidden Scripts
+                                <span class="material-symbols-outlined text-sm transition-transform group-open:rotate-180">expand_more</span>
+</summary>
+<div class="mt-4 p-4 bg-black/5 dark:bg-black/20 rounded font-mono text-xs text-left overflow-x-auto">
+<code class="text-mystic-purple dark:text-gold-accent">
+                                    [ERROR_LOG]: STACK_OVERFLOW_IN_VOID_RECOGNIZER <br/>
+                                    [LOCATION]: Sector_7_Grimoire_Stack <br/>
+                                    [TIMESTAMP]: 12th Cycle of the Blood Moon <br/>
+                                    [STATUS]: Reality_Desynchronized
+                                </code>
+</div>
+</details>
+</div>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+<a class="flex items-center justify-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all" href="#">
+<span class="material-symbols-outlined">temple_hindu</span>
+                    Return to the Sanctum
+                </a>
+<a class="flex items-center justify-center gap-2 border-2 border-primary text-primary dark:text-primary px-8 py-4 rounded-xl font-bold hover:bg-primary/5 transition-all" href="#">
+<span class="material-symbols-outlined">menu_book</span>
+                    Consult High Archivist
+                </a>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="w-full border-t border-mystic-purple/10 bg-background-light dark:bg-background-dark/50 py-8 px-4 mt-auto">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm italic font-serif">
+                © 1234 The Whispering Library. All spells reserved.
+            </div>
+<div class="flex gap-8">
+<a class="text-slate-500 hover:text-primary transition-colors text-sm font-medium" href="#">Terms of Enchantment</a>
+<a class="text-slate-500 hover:text-primary transition-colors text-sm font-medium" href="#">Privacy Sigils</a>
+<a class="text-slate-500 hover:text-primary transition-colors text-sm font-medium" href="#">Manifesto</a>
+</div>
+<div class="flex gap-4">
+<span class="material-symbols-outlined text-mystic-purple/40 hover:text-primary cursor-pointer transition-colors">auto_fix_high</span>
+<span class="material-symbols-outlined text-mystic-purple/40 hover:text-primary cursor-pointer transition-colors">component_exchange</span>
+<span class="material-symbols-outlined text-mystic-purple/40 hover:text-primary cursor-pointer transition-colors">public</span>
+</div>
+</div>
+</footer>
+</body></html>

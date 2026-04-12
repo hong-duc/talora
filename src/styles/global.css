@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+
+
+@import '@skeletonlabs/skeleton';
+@import '@skeletonlabs/skeleton-svelte';
+
+@theme {
+  --color-primary: #7311d4;
+  --color-accent-gold: #d4af37;
+  --color-background-light: #f7f6f8;
+  --color-background-dark: #191022;
+  --font-display: "Newsreader", serif;
+  --color-surface-container: #2a2433;
+  --color-surface-variant: #38333e;
+  --color-surface-dim: #140d1b;
+  --color-surface-container-high: #362e41;
+  --color-surface-container-low: #191022;
+  --color-tertiary: #ffb68a;
+  --color-on-surface: #f7f6f8;
+  --color-on-background: #f7f6f8;
+  --color-secondary-container: #554400;
+  --color-on-secondary-container: #ffefbc;
+  --color-primary-container: #7311d4;
+  --color-on-primary-container: #dabbff;
+  --color-outline: #7311d4;
+  /* Tone colors */
+  --color-cozy: #f59e0b;
+  --color-mysterious: #6366f1;
+  --color-epic: #fbbf24;
+  --color-dark: #4b5563;
+  --color-romantic: #f43f5e;
+  --color-humorous: #0d9488;
+  --color-slice-of-life: #22c55e;
+  --color-martial-arts: #dc2626;
+  --color-fantasy: #a855f7;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-display);
+  }
+
+  .material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+    line-height: 1;
+  }
+
+  .ethereal-glow {
+    box-shadow: 0 0 20px rgb(115 17 212 / 30%);
+  }
+
+  .gold-shimmer {
+    background: linear-gradient(45deg, #d4af37, #f7e08b, #d4af37);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .glass-card {
+    background: rgba(42, 36, 51, 0.4);
+    backdrop-filter: blur(12px);
+  }
+
+  .gold-border {
+    border: 1px solid #d4af3733;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #7311d4;
+    border-radius: 10px;
+  }
+}
