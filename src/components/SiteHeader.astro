@@ -1,52 +1,74 @@
 ---
-import profileScript from '../scripts/profile-sync.ts?url';
-
 interface Props {
-	variant?: 'default' | 'chat';
+	variant?: "default" | "chat";
 	className?: string;
 	showNav?: boolean;
-	activeSection?: 'archive' | 'social';
+	activeSection?: "archive" | "social";
 }
 
-const { variant = 'default', className = '', showNav = variant !== 'chat', activeSection } = Astro.props;
+const {
+	variant = "default",
+	className = "",
+	showNav = variant !== "chat",
+	activeSection,
+} = Astro.props;
 
 const pathname = Astro.url.pathname;
 const resolvedActive =
 	activeSection ??
-	(pathname.startsWith('/archive') ? 'archive' : pathname.startsWith('/social') ? 'social' : undefined);
+	(pathname.startsWith("/archive")
+		? "archive"
+		: pathname.startsWith("/social")
+			? "social"
+			: undefined);
 
-const navItemClass = (key: 'archive' | 'social') =>
+const navItemClass = (key: "archive" | "social") =>
 	`magic-glow flex items-center gap-2 text-base font-medium transition-colors ${
-		resolvedActive === key ? 'text-primary' : 'text-slate-300 hover:text-primary'
+		resolvedActive === key
+			? "text-primary"
+			: "text-slate-300 hover:text-primary"
 	}`;
 
-const headerBgClass = variant === 'chat' ? 'bg-[#191022]/90' : 'bg-[#191022]/80';
+const headerBgClass =
+	variant === "chat" ? "bg-[#191022]/90" : "bg-[#191022]/80";
 ---
 
 <header
 	class:list={[
-		'sticky top-0 z-50 border-b border-primary/20 px-6 py-4 backdrop-blur-md lg:px-20',
+		"sticky top-0 z-50 border-b border-primary/20 px-6 py-4 backdrop-blur-md lg:px-20",
 		headerBgClass,
-		className
+		className,
 	]}
 >
 	<div class="mx-auto flex max-w-[1400px] items-center justify-between gap-4">
 		<div class="flex items-center gap-8">
 			<a class="group flex items-center gap-3" href="/">
-				<div class="flex size-10 items-center justify-center rounded-xl bg-primary/20 text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-white">
-					<span class="material-symbols-outlined text-2xl">auto_stories</span>
+				<div
+					class="flex size-10 items-center justify-center rounded-xl bg-primary/20 text-primary transition-all duration-300 group-hover:bg-primary group-hover:text-white"
+				>
+					<span class="material-symbols-outlined text-2xl"
+						>auto_stories</span
+					>
 				</div>
-				<h1 class="font-display text-xl font-bold italic leading-tight tracking-tight text-slate-100">The Whispering Library</h1>
+				<h1
+					class="font-display text-xl font-bold italic leading-tight tracking-tight text-slate-100"
+				>
+					The Whispering Library
+				</h1>
 			</a>
 			{
 				showNav && (
 					<nav class="hidden items-center gap-8 md:flex">
-						<a class={navItemClass('archive')} href="/archive">
-							<span class="material-symbols-outlined text-lg">castle</span>
+						<a class={navItemClass("archive")} href="/archive">
+							<span class="material-symbols-outlined text-lg">
+								castle
+							</span>
 							The Great Archive
 						</a>
-						<a class={navItemClass('social')} href="/social">
-							<span class="material-symbols-outlined text-lg">forum</span>
+						<a class={navItemClass("social")} href="/social">
+							<span class="material-symbols-outlined text-lg">
+								forum
+							</span>
 							The Hall of Echoes
 						</a>
 					</nav>
@@ -56,8 +78,12 @@ const headerBgClass = variant === 'chat' ? 'bg-[#191022]/90' : 'bg-[#191022]/80'
 		<div class="flex flex-1 items-center justify-end gap-4 lg:gap-6">
 			<div class="hidden flex-1 sm:flex sm:max-w-xs">
 				<label class="relative w-full">
-					<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-primary/60">
-						<span class="material-symbols-outlined text-xl">search</span>
+					<div
+						class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-primary/60"
+					>
+						<span class="material-symbols-outlined text-xl"
+							>search</span
+						>
 					</div>
 					<input
 						class="w-full rounded-xl border border-primary/10 bg-primary/5 py-2 pl-10 pr-4 text-sm text-slate-100 outline-none transition-all placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/40"
@@ -66,7 +92,10 @@ const headerBgClass = variant === 'chat' ? 'bg-[#191022]/90' : 'bg-[#191022]/80'
 					/>
 				</label>
 			</div>
-			<button class="rounded-xl p-2 text-slate-300 transition-colors hover:bg-primary/10 sm:hidden" type="button">
+			<button
+				class="rounded-xl p-2 text-slate-300 transition-colors hover:bg-primary/10 sm:hidden"
+				type="button"
+			>
 				<span class="material-symbols-outlined">search</span>
 			</button>
 			<div class="relative flex items-center" data-notification-root>
@@ -79,52 +108,112 @@ const headerBgClass = variant === 'chat' ? 'bg-[#191022]/90' : 'bg-[#191022]/80'
 					type="button"
 				>
 					<span class="material-symbols-outlined">notifications</span>
-					<span class="absolute right-2 top-2 size-2 rounded-full border-2 border-[#191022] bg-primary"></span>
+					<span
+						class="absolute right-2 top-2 size-2 rounded-full border-2 border-[#191022] bg-primary"
+					></span>
 				</button>
 				<div
 					class="pointer-events-none absolute right-0 top-full z-50 mt-4 w-72 origin-top-right scale-95 overflow-hidden rounded-lg border-2 border-[#d4c5a1] bg-[#f4ecd8] text-slate-900 opacity-0 shadow-2xl transition duration-200"
 					data-notification-panel
 					id="header-notification-panel"
 				>
-					<div class="flex items-center justify-between border-b border-[#d4c5a1] bg-[#ece2c6] p-4">
-						<h3 class="font-display text-lg font-bold italic text-primary">Echoes &amp; Whispers</h3>
-						<span class="material-symbols-outlined text-sm opacity-50">history_edu</span>
+					<div
+						class="flex items-center justify-between border-b border-[#d4c5a1] bg-[#ece2c6] p-4"
+					>
+						<h3
+							class="font-display text-lg font-bold italic text-primary"
+						>
+							Echoes &amp; Whispers
+						</h3>
+						<span
+							class="material-symbols-outlined text-sm opacity-50"
+							>history_edu</span
+						>
 					</div>
 					<div class="max-h-80 overflow-y-auto">
-						<button class="w-full cursor-pointer border-b border-[#d4c5a1]/50 p-4 text-left transition-colors hover:bg-[#ece2c6]" type="button">
-							<p class="font-display text-sm leading-snug">New echo heard in the Hall</p>
-							<p class="mt-1 text-[10px] uppercase tracking-widest text-primary/60">Just now</p>
+						<button
+							class="w-full cursor-pointer border-b border-[#d4c5a1]/50 p-4 text-left transition-colors hover:bg-[#ece2c6]"
+							type="button"
+						>
+							<p class="font-display text-sm leading-snug">
+								New echo heard in the Hall
+							</p>
+							<p
+								class="mt-1 text-[10px] uppercase tracking-widest text-primary/60"
+							>
+								Just now
+							</p>
 						</button>
-						<button class="w-full cursor-pointer border-b border-[#d4c5a1]/50 p-4 text-left transition-colors hover:bg-[#ece2c6]" type="button">
-							<p class="font-display text-sm leading-snug">A story milestone reached: The Shadowed Tome</p>
-							<p class="mt-1 text-[10px] uppercase tracking-widest text-primary/60">2 hours ago</p>
+						<button
+							class="w-full cursor-pointer border-b border-[#d4c5a1]/50 p-4 text-left transition-colors hover:bg-[#ece2c6]"
+							type="button"
+						>
+							<p class="font-display text-sm leading-snug">
+								A story milestone reached: The Shadowed Tome
+							</p>
+							<p
+								class="mt-1 text-[10px] uppercase tracking-widest text-primary/60"
+							>
+								2 hours ago
+							</p>
 						</button>
-						<button class="w-full cursor-pointer p-4 text-left transition-colors hover:bg-[#ece2c6]" type="button">
-							<p class="font-display text-sm leading-snug">Circle application accepted: The Seekers of Silence</p>
-							<p class="mt-1 text-[10px] uppercase tracking-widest text-primary/60">Yesterday</p>
+						<button
+							class="w-full cursor-pointer p-4 text-left transition-colors hover:bg-[#ece2c6]"
+							type="button"
+						>
+							<p class="font-display text-sm leading-snug">
+								Circle application accepted: The Seekers of
+								Silence
+							</p>
+							<p
+								class="mt-1 text-[10px] uppercase tracking-widest text-primary/60"
+							>
+								Yesterday
+							</p>
 						</button>
 					</div>
-					<div class="border-t border-[#d4c5a1] bg-[#ece2c6] p-3 text-center">
-						<button class="text-xs font-bold uppercase tracking-tighter text-primary hover:underline" type="button">View all scrolls</button>
+					<div
+						class="border-t border-[#d4c5a1] bg-[#ece2c6] p-3 text-center"
+					>
+						<button
+							class="text-xs font-bold uppercase tracking-tighter text-primary hover:underline"
+							type="button">View all scrolls</button
+						>
 					</div>
 				</div>
 			</div>
-			<div class="flex items-center gap-3 border-l border-primary/10 pl-4" data-auth="signed-out">
+			<div
+				class="flex items-center gap-3 border-l border-primary/10 pl-4"
+				data-auth="signed-out"
+			>
 				<a
 					class="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/20 px-4 py-2 text-sm font-semibold text-primary transition-all hover:border-primary/60 hover:bg-primary/30"
 					href="/signin"
 				>
-					<span class="material-symbols-outlined text-base">login</span>
+					<span class="material-symbols-outlined text-base"
+						>login</span
+					>
 					Sign In
 				</a>
 			</div>
-			<div class="hidden items-center gap-3 border-l border-primary/10 pl-4" data-auth="signed-in">
+			<div
+				class="hidden items-center gap-3 border-l border-primary/10 pl-4"
+				data-auth="signed-in"
+			>
 				<button class="hidden flex-col items-end lg:flex" type="button">
-					<span class="text-xs font-semibold uppercase tracking-widest text-primary">Acolyte</span>
-					<span class="text-sm font-medium text-slate-100" data-profile-name>Elena Vance</span>
+					<span
+						class="text-xs font-semibold uppercase tracking-widest text-primary"
+						>Acolyte</span
+					>
+					<span
+						class="text-sm font-medium text-slate-100"
+						data-profile-name>Elena Vance</span
+					>
 				</button>
 				<a class="group relative cursor-pointer" href="/user">
-					<div class="size-10 overflow-hidden rounded-full border-2 border-primary/30 bg-primary/10 p-0.5 transition-all group-hover:border-primary">
+					<div
+						class="size-10 overflow-hidden rounded-full border-2 border-primary/30 bg-primary/10 p-0.5 transition-all group-hover:border-primary"
+					>
 						<img
 							alt="User Profile"
 							class="h-full w-full rounded-full object-cover"
@@ -132,7 +221,10 @@ const headerBgClass = variant === 'chat' ? 'bg-[#191022]/90' : 'bg-[#191022]/80'
 							src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKqfGt2kbuJ09X81rvdyQQg81Aur4pR04MJUFSDVPOIUGeQ7-GJ-Sj9tmwKsxEZiyyShbYswEbpVUrao70rEmsq4j3doo60DUAH9FNyyEVExWYl6D_JsLe0RdSN7Vxn-1Sz83Pjke0JhToH9IILzgRAbmZxIkL_fwxaa89ERb3Z05dTtyQVPzOLwp4_OSbVzlTAtyYnalEFOUBzNPFUqFy0akr4ik4Y1Xrt8PY9fN2pmA01RkTmMS20xeKUkZe1fSbz4v-PVmDzQ4"
 						/>
 					</div>
-					<div class="absolute bottom-0 right-0 size-3 rounded-full border-2 border-[#191022] bg-emerald-500"></div>
+					<div
+						class="absolute bottom-0 right-0 size-3 rounded-full border-2 border-[#191022] bg-emerald-500"
+					>
+					</div>
 				</a>
 			</div>
 		</div>
@@ -141,27 +233,35 @@ const headerBgClass = variant === 'chat' ? 'bg-[#191022]/90' : 'bg-[#191022]/80'
 
 <script is:inline>
 	(() => {
-		const roots = document.querySelectorAll('[data-notification-root]');
+		const roots = document.querySelectorAll("[data-notification-root]");
 
 		roots.forEach((root) => {
-			if (!(root instanceof HTMLElement) || root.dataset.popupReady === 'true') return;
-			root.dataset.popupReady = 'true';
+			if (
+				!(root instanceof HTMLElement) ||
+				root.dataset.popupReady === "true"
+			)
+				return;
+			root.dataset.popupReady = "true";
 
-			const toggle = root.querySelector('[data-notification-toggle]');
-			const panel = root.querySelector('[data-notification-panel]');
+			const toggle = root.querySelector("[data-notification-toggle]");
+			const panel = root.querySelector("[data-notification-panel]");
 
-			if (!(toggle instanceof HTMLButtonElement) || !(panel instanceof HTMLElement)) return;
+			if (
+				!(toggle instanceof HTMLButtonElement) ||
+				!(panel instanceof HTMLElement)
+			)
+				return;
 
 			let open = false;
 
 			const setOpen = (nextOpen) => {
 				open = nextOpen;
-				toggle.setAttribute('aria-expanded', String(open));
-				panel.classList.toggle('pointer-events-none', !open);
-				panel.classList.toggle('opacity-0', !open);
-				panel.classList.toggle('scale-95', !open);
-				panel.classList.toggle('opacity-100', open);
-				panel.classList.toggle('scale-100', open);
+				toggle.setAttribute("aria-expanded", String(open));
+				panel.classList.toggle("pointer-events-none", !open);
+				panel.classList.toggle("opacity-0", !open);
+				panel.classList.toggle("scale-95", !open);
+				panel.classList.toggle("opacity-100", open);
+				panel.classList.toggle("scale-100", open);
 			};
 
 			const onDocumentClick = (event) => {
@@ -169,22 +269,24 @@ const headerBgClass = variant === 'chat' ? 'bg-[#191022]/90' : 'bg-[#191022]/80'
 			};
 
 			const onDocumentKeydown = (event) => {
-				if (event.key === 'Escape') setOpen(false);
+				if (event.key === "Escape") setOpen(false);
 			};
 
-			toggle.addEventListener('click', (event) => {
+			toggle.addEventListener("click", (event) => {
 				event.stopPropagation();
 				setOpen(!open);
 			});
 
-			document.addEventListener('click', onDocumentClick);
-			document.addEventListener('keydown', onDocumentKeydown);
+			document.addEventListener("click", onDocumentClick);
+			document.addEventListener("keydown", onDocumentKeydown);
 			setOpen(false);
 		});
 	})();
 </script>
 
-	<script is:inline type="module" src={profileScript}></script>
+<script>
+	import "../scripts/profile-sync";
+</script>
 
 <style>
 	.magic-glow:hover {

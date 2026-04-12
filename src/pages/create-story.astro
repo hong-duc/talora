@@ -9,7 +9,6 @@ import FirstMessagesInput from "../components/FirstMessagesInput.svelte";
 import CharacterRegistry from "../components/CharacterRegistry.svelte";
 import StyleParameters from "../components/StyleParameters.svelte";
 import RichTextEditor from "../components/RichTextEditor.svelte";
-import createStoryScript from "../scripts/create-story.ts?url";
 import Upload from "@components/Upload.svelte";
 import { getUser } from "@lib/auth";
 import { supabase } from "@lib/supabase";
@@ -453,6 +452,8 @@ const editDataJson = editStory
             </div>
         </div>
 
-        <script is:inline type="module" src={createStoryScript}></script>
+        <script>
+            import "../scripts/create-story";
+        </script>
     </body>
 </html>

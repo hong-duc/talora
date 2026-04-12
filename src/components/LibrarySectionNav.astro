@@ -1,45 +1,75 @@
 ---
-import ArcaneToast from './ArcaneToast.astro';
-import signoutScript from '../scripts/signout.ts?url';
-
+import ArcaneToast from "./ArcaneToast.astro";
 interface Props {
 	active?:
-		| 'archive'
-		| 'search'
-		| 'current-seeker'
-		| 'reading-list'
-		| 'my-messages'
-		| 'reliquary'
-		| 'past-echoes'
-		| 'create-story';
+		| "archive"
+		| "search"
+		| "current-seeker"
+		| "reading-list"
+		| "my-messages"
+		| "reliquary"
+		| "past-echoes"
+		| "create-story";
 	className?: string;
 }
 
-const { active, className = '' } = Astro.props;
+const { active, className = "" } = Astro.props;
 
 const items: Array<{
-	key: NonNullable<Props['active']>;
+	key: NonNullable<Props["active"]>;
 	label: string;
 	icon: string;
 	href: string;
 }> = [
-	{ key: 'archive', label: 'The Archive', icon: 'local_library', href: '/archive' },
-	{ key: 'search', label: 'Search', icon: 'search', href: '/search' },
-	{ key: 'current-seeker', label: 'Current Seeker', icon: 'person_book', href: '/user' },
-	{ key: 'reading-list', label: 'Reading List', icon: 'book_2', href: '/user/reading-list' },
-	{ key: 'my-messages', label: 'My Messages', icon: 'mail', href: '/user/messages' },
-	{ key: 'create-story', label: 'Create Story', icon: 'edit_note', href: '/create-story' },
-	{ key: 'reliquary', label: 'Reliquary', icon: 'diamond', href: '#' },
-	{ key: 'past-echoes', label: 'Past Echoes', icon: 'history_edu', href: '/chat' }
+	{
+		key: "archive",
+		label: "The Archive",
+		icon: "local_library",
+		href: "/archive",
+	},
+	{ key: "search", label: "Search", icon: "search", href: "/search" },
+	{
+		key: "current-seeker",
+		label: "Current Seeker",
+		icon: "person_book",
+		href: "/user",
+	},
+	{
+		key: "reading-list",
+		label: "Reading List",
+		icon: "book_2",
+		href: "/user/reading-list",
+	},
+	{
+		key: "my-messages",
+		label: "My Messages",
+		icon: "mail",
+		href: "/user/messages",
+	},
+	{
+		key: "create-story",
+		label: "Create Story",
+		icon: "edit_note",
+		href: "/create-story",
+	},
+	{ key: "reliquary", label: "Reliquary", icon: "diamond", href: "#" },
+	{
+		key: "past-echoes",
+		label: "Past Echoes",
+		icon: "history_edu",
+		href: "/chat",
+	},
 ];
 
-const itemClass = (key: NonNullable<Props['active']>) =>
+const itemClass = (key: NonNullable<Props["active"]>) =>
 	`flex items-center gap-3 rounded-xl px-4 py-3 transition-colors ${
-		active === key ? 'bg-primary/20 text-primary font-bold' : 'text-slate-100 hover:bg-primary/5'
+		active === key
+			? "bg-primary/20 text-primary font-bold"
+			: "text-slate-100 hover:bg-primary/5"
 	}`;
 ---
 
-<div class:list={['space-y-2', className]} data-library-nav-root>
+<div class:list={["space-y-2", className]} data-library-nav-root>
 	<div
 		class="overflow-hidden transition-all duration-300 ease-in-out"
 		data-library-nav-content
@@ -48,8 +78,16 @@ const itemClass = (key: NonNullable<Props['active']>) =>
 		<nav aria-label="Library sections" class="space-y-2">
 			{
 				items.map((item) => (
-					<a aria-current={active === item.key ? 'page' : undefined} class={itemClass(item.key)} href={item.href}>
-						<span class={`material-symbols-outlined ${active === item.key ? '' : 'text-primary'}`}>{item.icon}</span>
+					<a
+						aria-current={active === item.key ? "page" : undefined}
+						class={itemClass(item.key)}
+						href={item.href}
+					>
+						<span
+							class={`material-symbols-outlined ${active === item.key ? "" : "text-primary"}`}
+						>
+							{item.icon}
+						</span>
 						<span>{item.label}</span>
 					</a>
 				))
@@ -74,44 +112,54 @@ const itemClass = (key: NonNullable<Props['active']>) =>
 		data-library-nav-toggle
 		type="button"
 	>
-		<span class="material-symbols-outlined" data-library-nav-icon>expand_more</span>
+		<span class="material-symbols-outlined" data-library-nav-icon
+			>expand_more</span
+		>
 	</button>
 </div>
 
 <ArcaneToast id="signout-toast" variant="information" />
 
-	<script is:inline type="module" src={signoutScript}></script>
+<script>
+	import "../scripts/signout";
+</script>
 
 <script is:inline>
 	(() => {
-		const roots = document.querySelectorAll('[data-library-nav-root]');
+		const roots = document.querySelectorAll("[data-library-nav-root]");
 
 		roots.forEach((root) => {
-			const content = root.querySelector('[data-library-nav-content]');
-			const toggle = root.querySelector('[data-library-nav-toggle]');
-			const icon = root.querySelector('[data-library-nav-icon]');
+			const content = root.querySelector("[data-library-nav-content]");
+			const toggle = root.querySelector("[data-library-nav-toggle]");
+			const icon = root.querySelector("[data-library-nav-icon]");
 
-			if (!(content instanceof HTMLElement) || !(toggle instanceof HTMLButtonElement) || !(icon instanceof HTMLElement)) {
+			if (
+				!(content instanceof HTMLElement) ||
+				!(toggle instanceof HTMLButtonElement) ||
+				!(icon instanceof HTMLElement)
+			) {
 				return;
 			}
 
 			let isOpen = false;
 
 			const setOpenState = () => {
-				content.style.maxHeight = isOpen ? `${content.scrollHeight}px` : '0px';
-				content.style.opacity = isOpen ? '1' : '0';
-				toggle.setAttribute('aria-expanded', String(isOpen));
-				icon.textContent = isOpen ? 'expand_less' : 'expand_more';
+				content.style.maxHeight = isOpen
+					? `${content.scrollHeight}px`
+					: "0px";
+				content.style.opacity = isOpen ? "1" : "0";
+				toggle.setAttribute("aria-expanded", String(isOpen));
+				icon.textContent = isOpen ? "expand_less" : "expand_more";
 			};
 
 			requestAnimationFrame(setOpenState);
 
-			toggle.addEventListener('click', () => {
+			toggle.addEventListener("click", () => {
 				isOpen = !isOpen;
 				setOpenState();
 			});
 
-			window.addEventListener('resize', () => {
+			window.addEventListener("resize", () => {
 				if (isOpen) {
 					content.style.maxHeight = `${content.scrollHeight}px`;
 				}
