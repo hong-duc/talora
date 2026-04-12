@@ -1,5 +1,6 @@
 import { store, clearProfile } from '../lib/store';
 import { saveProfile } from '../lib/profile-storage';
+import { supabase } from '../lib/supabase';
 
 const whenReady = (fn: () => void) => {
     if (document.readyState === 'loading') {
@@ -35,6 +36,9 @@ const handleSignOut = async () => {
         showErrorToast(payload?.error ?? 'Unable to sign out.');
         return;
     }
+
+    // Clear the client-side Supabase session (removes tokens from localStorage)
+    await supabase.auth.signOut();
 
     store.dispatch(clearProfile());
     saveProfile(null);

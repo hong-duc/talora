@@ -55,7 +55,7 @@ const signInHandler = async ({ request }: Parameters<APIRoute>[0]) => {
             ));
         }
 
-        return createApiResponse(true, { profile });
+        return createApiResponse(true, { profile, session: data.session });
     } catch (error) {
         return createApiResponse(false, errors.unknown('Failed to sign in.', error as Error));
     }

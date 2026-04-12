@@ -1,5 +1,6 @@
 import { store, setProfile, clearProfile } from '../lib/store';
 import { loadProfile, saveProfile } from '../lib/profile-storage';
+import { supabase } from '../lib/supabase';
 
 type Profile = ReturnType<typeof store.getState>['auth']['profile'];
 
@@ -63,22 +64,50 @@ whenReady(() => {
 
     const fetchSessionProfile = async () => {
         try {
-            const response = await fetch('/api/auth/session', {
-                headers: { Accept: 'application/json' },
-            });
-            if (!response.ok) {
-                const message = await response.text();
-                throw new Error(message || response.statusText);
+            // Use the client-side Supabase to get the current session.
+            // This checks localStorage for a valid (or auto-refreshable) token.
+            const { data: { session }, error } = await supabase.auth.getSession();
+
+            if (error || !session) {
+                // No valid session — user is not authenticated
+                store.dispatch(clearProfile());
+                saveProfile(null);
+                return;
             }
+
+            // Session is valid. Try the locally stored profile first to avoid
+            // an extra network round-trip on every page load.
+            const storedProfile = loadProfile();
+            if (storedProfile) {
+                store.dispatch(setProfile(storedProfile));
+                return;
+            }
+
+            // No stored profile but session is valid — fetch fresh from server
+            // using the access token so the server can verify it.
+            const response = await fetch('/api/auth/session', {
+                headers: {
+                    Accept: 'application/json',
+                    Authorization: `Bearer ${session.access_token}`,
+                },
+            });
+
+            if (!response.ok) {
+                store.dispatch(clearProfile());
+                saveProfile(null);
+                return;
+            }
+
             const result = await response.json().catch(() => null);
             if (result?.signedIn && result.profile) {
                 store.dispatch(setProfile(result.profile));
                 saveProfile(result.profile);
-                return;
+            } else {
+                store.dispatch(clearProfile());
+                saveProfile(null);
             }
-            store.dispatch(clearProfile());
-            saveProfile(null);
         } catch {
+            // Network error — keep whatever is in localStorage as a fallback
             const fallback = loadProfile();
             if (fallback) {
                 store.dispatch(setProfile(fallback));

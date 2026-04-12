@@ -5,18 +5,30 @@ import { getProfileByUserId } from '../../../lib/auth';
 
 export const prerender = false;
 
-export const GET: APIRoute = async () => {
+export const GET: APIRoute = async ({ request }) => {
     try {
-        const { data, error } = await supabase.auth.getUser();
+        // Accept an access token from the Authorization header sent by the client
+        const authHeader = request.headers.get('Authorization');
+        const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
-        if (error || !data?.user) {
+        let userId: string | null = null;
+
+        if (accessToken) {
+            // Validate the token by calling getUser with it
+            const { data, error } = await supabase.auth.getUser(accessToken);
+            if (!error && data?.user) {
+                userId = data.user.id;
+            }
+        }
+
+        if (!userId) {
             return new Response(
                 JSON.stringify({ signedIn: false, profile: null }),
                 { status: 200, headers: { 'Content-Type': 'application/json' } }
             );
         }
 
-        const { data: profile, error: profileError } = await getProfileByUserId(data.user.id);
+        const { data: profile, error: profileError } = await getProfileByUserId(userId);
 
         if (profileError) {
             return new Response(

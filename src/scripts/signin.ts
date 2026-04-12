@@ -1,5 +1,6 @@
 import { store, setProfile } from '../lib/store';
 import { saveProfile } from '../lib/profile-storage';
+import { supabase } from '../lib/supabase';
 
 type NullableInput = HTMLInputElement | null;
 
@@ -62,6 +63,17 @@ const signInAndLoadProfile = async (
 
     const payload = await response.json().catch(() => ({}));
     const profile = payload?.profile ?? null;
+    const session = payload?.session ?? null;
+
+    // Persist the Supabase session in the browser so it survives page refreshes.
+    // This stores the access_token & refresh_token in localStorage via the
+    // Supabase client, enabling automatic token refresh.
+    if (session?.access_token && session?.refresh_token) {
+        await supabase.auth.setSession({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+        });
+    }
 
     store.dispatch(setProfile(profile));
     saveProfile(profile);

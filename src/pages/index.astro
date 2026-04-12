@@ -475,6 +475,23 @@ const howItWorksSteps = [
 	</body>
 </html>
 
+<script>
+	// If the user is already authenticated, skip the landing page and go
+	// straight to the archive so they don't have to click through again.
+	import { supabase } from '../lib/supabase';
+
+	(async () => {
+		try {
+			const { data: { session } } = await supabase.auth.getSession();
+			if (session) {
+				window.location.replace('/archive');
+			}
+		} catch {
+			// If the check fails just stay on the landing page
+		}
+	})();
+</script>
+
 <style>
 	/* -----------------------------------------------------------------
 	   Floating particle animation for the hero section
