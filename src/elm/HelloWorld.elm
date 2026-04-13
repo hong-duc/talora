@@ -41,7 +41,7 @@ view model =
     div
         [ class """
             p-8 m-4 rounded-2xl 
-            bg-gradient-to-br from-purple-50 to-indigo-100 
+            bg-linear-to-br from-purple-50 to-indigo-100 
             border border-purple-200
             shadow-lg ethereal-glow
             max-w-2xl mx-auto

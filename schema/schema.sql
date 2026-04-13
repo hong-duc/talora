@@ -1332,6 +1332,62 @@ ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON T
 ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON TABLES TO service_role;
 
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- ai_configs migration
+--
+-- Purpose: Store each user's AI backend configuration.
+--          The API key is stored AES-256-GCM encrypted (server-side only).
+--          The plaintext key NEVER leaves the server after being saved.
+--
+-- Prerequisites:
+--   • Set the environment variable AI_KEY_SECRET to a 32-byte base64 string.
+--     Generate one with:  openssl rand -base64 32
+--   • Keep this secret out of version control (.env is gitignored).
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS public.ai_configs (
+    id          uuid        NOT NULL DEFAULT gen_random_uuid(),
+    user_id     uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    name        text        NOT NULL,                          -- human label, e.g. "My DeepSeek"
+    provider    text        NOT NULL                           -- 'deepseek' | 'openrouter' | 'langdb' | 'custom'
+                CHECK (provider IN ('deepseek', 'openrouter', 'langdb', 'custom')),
+    model       text        NOT NULL,                          -- e.g. 'deepseek-chat'
+    api_key_enc text        NOT NULL DEFAULT '',               -- AES-256-GCM ciphertext (base64)
+    base_url    text,                                          -- required for 'custom', optional override for others
+    is_default  boolean     NOT NULL DEFAULT false,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    updated_at  timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT ai_configs_pkey PRIMARY KEY (id)
+);
+
+-- Index so sidebar/settings load is fast even with many configs per user
+CREATE INDEX IF NOT EXISTS ai_configs_user_id_idx ON public.ai_configs (user_id);
+
+-- ── Row Level Security ────────────────────────────────────────────────────────
+-- Each user can only read/write their own configs.
+
+ALTER TABLE public.ai_configs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users manage own ai_configs"
+    ON public.ai_configs
+    FOR ALL
+    USING  (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
+-- ── Grants ────────────────────────────────────────────────────────────────────
+GRANT ALL ON TABLE public.ai_configs TO authenticated;
+GRANT ALL ON TABLE public.ai_configs TO service_role;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- story_starts — add optional description column
+-- Shown on /story/[id] as a summary beneath each scenario title.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.story_starts
+    ADD COLUMN IF NOT EXISTS description text;
+
+
 --
 -- PostgreSQL database dump complete
 --

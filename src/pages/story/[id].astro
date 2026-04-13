@@ -1,0 +1,303 @@
+---
+/**
+ * /story/[id]
+ *
+ * SSR page that shows a story's details and lets the user choose a
+ * story_start scenario before jumping into the chat.
+ *
+ * Flow:
+ *  1. Server: Fetch the story + its available story_starts from Supabase
+ *  2. Render the hero + start options
+ *  3. Client: "Begin Story" → POST /api/sessions → redirect to /chat?session=<id>
+ */
+export const prerender = false;
+
+import "../../styles/global.css";
+import SiteHeader from "../../components/SiteHeader.astro";
+import SiteFooter from "../../components/SiteFooter.astro";
+import { supabase } from "../../lib/supabase";
+
+const { id } = Astro.params;
+
+// ─── Fetch story ──────────────────────────────────────────────────────────────
+
+const { data: story, error: storyError } = await supabase
+    .from("stories")
+    .select(
+        "id, title, description, cover_image_url, setting, tone, characters",
+    )
+    .eq("id", id)
+    .single();
+
+if (storyError || !story) {
+    return Astro.redirect("/404");
+}
+
+// ─── Fetch story starts ───────────────────────────────────────────────────────
+
+const { data: starts } = await supabase
+    .from("story_starts")
+    .select("id, title, description, first_message")
+    .eq("story_id", id)
+    .order("created_at", { ascending: true });
+
+const storyStarts = starts ?? [];
+
+// Pass Supabase credentials to the client script via define:vars
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL as string;
+const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY as string;
+---
+
+<html class="dark" lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="icon" href="/favicon.ico" />
+        <meta name="generator" content={Astro.generator} />
+        <title>{story.title} — The Whispering Library</title>
+        <meta
+            name="description"
+            content={story.description ?? `Begin the story: ${story.title}`}
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap"
+            rel="stylesheet"
+        />
+    </head>
+    <body class="min-h-screen bg-background-dark font-display text-slate-100">
+        <SiteHeader />
+
+        <!-- Hero banner -->
+        <section class="relative overflow-hidden">
+            {
+                story.cover_image_url ? (
+                    <img
+                        src={story.cover_image_url}
+                        alt={story.title}
+                        class="absolute inset-0 h-full w-full object-cover opacity-20"
+                    />
+                ) : (
+                    <div class="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent" />
+                )
+            }
+            <div class="relative mx-auto max-w-4xl px-6 py-20 text-center">
+                <p
+                    class="mb-4 text-xs font-bold uppercase tracking-widest text-primary"
+                >
+                    Interactive Story
+                </p>
+                <h1 class="mb-6 text-5xl font-black leading-tight">
+                    {story.title}
+                </h1>
+                {
+                    story.description && (
+                        <p class="mx-auto max-w-2xl text-lg leading-relaxed text-slate-300">
+                            {story.description}
+                        </p>
+                    )
+                }
+
+                <!-- Tone + setting tags -->
+                {
+                    (story.tone?.length || story.setting) && (
+                        <div class="mt-6 flex flex-wrap items-center justify-center gap-2">
+                            {story.setting && (
+                                <span class="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs text-primary">
+                                    ✦ {story.setting}
+                                </span>
+                            )}
+                            {(story.tone ?? []).map((t: string) => (
+                                <span class="rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-xs text-slate-300">
+                                    {t}
+                                </span>
+                            ))}
+                        </div>
+                    )
+                }
+            </div>
+        </section>
+
+        <!-- Choose your start -->
+        <main class="mx-auto max-w-4xl px-6 pb-24 pt-12">
+            {
+                storyStarts.length > 0 ? (
+                    <>
+                        <h2 class="mb-8 text-center text-2xl font-bold">
+                            Choose Your Opening
+                        </h2>
+                        <div id="start-grid" class="grid gap-4 sm:grid-cols-2">
+                            {storyStarts.map((start) => (
+                                <button
+                                    type="button"
+                                    data-start-id={start.id}
+                                    class="start-card group flex flex-col gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-6 text-left transition-all hover:border-primary hover:bg-primary/10 hover:shadow-lg hover:shadow-primary/10"
+                                >
+                                    <div class="flex items-start justify-between gap-4">
+                                        <span class="material-symbols-outlined text-2xl text-primary">
+                                            auto_stories
+                                        </span>
+                                        <span class="material-symbols-outlined text-slate-600 transition-colors group-hover:text-primary">
+                                            arrow_forward
+                                        </span>
+                                    </div>
+                                    <h3 class="font-bold text-slate-100">
+                                        {start.title}
+                                    </h3>
+                                    {start.description && (
+                                        <p class="text-sm leading-relaxed text-slate-400">
+                                            {start.description}
+                                        </p>
+                                    )}
+                                    {start.first_message && (
+                                        <blockquote class="mt-2 border-l-2 border-primary/40 pl-3 text-xs italic text-slate-500">
+                                            "{start.first_message.slice(0, 120)}
+                                            {start.first_message.length > 120
+                                                ? "…"
+                                                : ""}
+                                            "
+                                        </blockquote>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </>
+                ) : (
+                    /* No story_starts defined — jump in without a pre-set opening */
+                    <div class="flex flex-col items-center gap-6 text-center py-12">
+                        <span class="material-symbols-outlined text-6xl text-primary/30">
+                            ink_pen
+                        </span>
+                        <div>
+                            <h2 class="text-2xl font-bold">Ready to begin?</h2>
+                            <p class="mt-2 text-slate-400">
+                                Dive straight into {story.title} and let the
+                                story unfold.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            id="begin-no-start-btn"
+                            class="flex items-center gap-2 rounded-xl bg-primary px-8 py-4 text-lg font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/80 active:scale-95"
+                        >
+                            <span class="material-symbols-outlined">
+                                magic_button
+                            </span>
+                            Begin the Story
+                        </button>
+                    </div>
+                )
+            }
+
+            <!-- Loading overlay (shown during session creation) -->
+            <div
+                id="loading-overlay"
+                class="fixed inset-0 z-50 hidden flex-col items-center justify-center gap-4 bg-background-dark/80 backdrop-blur-sm"
+            >
+                <span
+                    class="material-symbols-outlined animate-spin text-5xl text-primary"
+                    >autorenew</span
+                >
+                <p class="text-lg font-medium text-slate-300">
+                    Opening the story…
+                </p>
+            </div>
+
+            <!-- Error message -->
+            <div
+                id="error-msg"
+                class="mt-8 hidden rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-center text-sm text-red-400"
+            >
+            </div>
+        </main>
+
+        <SiteFooter />
+
+        <script define:vars={{ storyId: story.id, supabaseUrl, supabaseKey }}>
+            /**
+             * Handle "Begin Story" — creates a session and redirects to chat.
+             *
+             * We get the Supabase access token from the client-side SDK
+             * (same pattern as profile-sync.ts) and POST to /api/sessions.
+             */
+            async function beginStory(startId) {
+                const overlay = document.getElementById("loading-overlay");
+                const errorMsg = document.getElementById("error-msg");
+
+                if (overlay) {
+                    overlay.classList.remove("hidden");
+                    overlay.classList.add("flex");
+                }
+                if (errorMsg) errorMsg.classList.add("hidden");
+
+                try {
+                    // supabaseUrl + supabaseKey are injected by define:vars (server-side env vars)
+                    const { createClient } =
+                        await import("@supabase/supabase-js");
+                    const client = createClient(supabaseUrl, supabaseKey);
+                    const {
+                        data: { session },
+                    } = await client.auth.getSession();
+
+                    if (!session) {
+                        window.location.href = `/signin?redirect=/story/${storyId}`;
+                        return;
+                    }
+
+                    const body = { story_id: storyId };
+                    if (startId) body.start_id = startId;
+
+                    const res = await fetch("/api/sessions", {
+                        method: "POST",
+                        headers: {
+                            Authorization: `Bearer ${session.access_token}`,
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(body),
+                    });
+
+                    const json = await res.json();
+
+                    if (!res.ok) {
+                        throw new Error(json.error ?? "Failed to start story");
+                    }
+
+                    // Redirect to the chat page with the new session
+                    window.location.href = `/chat?session=${json.session.id}`;
+                } catch (err) {
+                    if (overlay) {
+                        overlay.classList.add("hidden");
+                        overlay.classList.remove("flex");
+                    }
+                    if (errorMsg) {
+                        errorMsg.textContent =
+                            err instanceof Error
+                                ? err.message
+                                : "Something went wrong. Please try again.";
+                        errorMsg.classList.remove("hidden");
+                    }
+                }
+            }
+
+            // Wire up start-card buttons
+            document.querySelectorAll(".start-card").forEach((card) => {
+                card.addEventListener("click", () => {
+                    const startId = card.getAttribute("data-start-id");
+                    void beginStory(startId);
+                });
+            });
+
+            // Wire up the no-start begin button
+            const noStartBtn = document.getElementById("begin-no-start-btn");
+            if (noStartBtn) {
+                noStartBtn.addEventListener("click", () => {
+                    void beginStory(null);
+                });
+            }
+        </script>
+    </body>
+</html>

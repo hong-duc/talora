@@ -288,19 +288,20 @@ export function validateAll<T extends Record<string, Validator<any>>>(
     data: Record<string, unknown>
 ): { [K in keyof T]: ReturnType<T[K]> extends ValidationResult<infer U> ? U : never } {
     const result: any = {};
-    const errors: string[] = [];
+    // Use a distinct name to avoid shadowing the imported `errors` object
+    const errorMessages: string[] = [];
 
     for (const [key, validator] of Object.entries(validators)) {
         const validationResult = validator(data[key]);
         if (validationResult.valid) {
             result[key] = validationResult.value;
         } else {
-            errors.push(`${key}: ${validationResult.error.message}`);
+            errorMessages.push(`${key}: ${validationResult.error.message}`);
         }
     }
 
-    if (errors.length > 0) {
-        throw new Error(`Validation failed:\n${errors.join('\n')}`);
+    if (errorMessages.length > 0) {
+        throw new Error(`Validation failed:\n${errorMessages.join('\n')}`);
     }
 
     return result;

@@ -55,17 +55,17 @@ const cardClass =
 
 const overlayClass =
 	variant === "success"
-		? "bg-gradient-to-r from-accent-gold/5 to-transparent"
+		? "bg-linear-to-r from-accent-gold/5 to-transparent"
 		: variant === "information"
-			? "bg-gradient-to-r from-primary/10 to-transparent"
-			: "bg-gradient-to-r from-primary/15 to-transparent";
+			? "bg-linear-to-r from-primary/10 to-transparent"
+			: "bg-linear-to-r from-primary/15 to-transparent";
 
 const iconWrapClass =
 	variant === "success"
 		? "bg-accent-gold/20 text-accent-gold"
 		: variant === "information"
 			? "bg-primary/20 text-primary"
-			: "bg-gradient-to-br from-primary to-[#4a0a8b] text-white shadow-lg";
+			: "bg-linear-to-br from-primary to-[#4a0a8b] text-white shadow-lg";
 
 const eyebrowColorClass =
 	variant === "success"
@@ -171,7 +171,9 @@ const bodyColorClass =
 			candidate && candidate.dataset.arcaneToastId
 				? candidate
 				: document.getElementById(targetId) ||
-					document.querySelector("[data-arcane-toast][data-arcane-toast-id]");
+					document.querySelector(
+						"[data-arcane-toast][data-arcane-toast-id]",
+					);
 
 		if (
 			!root ||

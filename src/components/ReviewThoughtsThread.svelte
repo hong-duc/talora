@@ -1,27 +1,41 @@
-<script>
-	import { tick } from 'svelte';
+<script lang="ts">
+	/**
+	 * ReviewThoughtsThread — comment thread for story review pages.
+	 * Allows users to submit and view reflections.
+	 * Migrated to Svelte 5 runes.
+	 */
+	import { tick } from "svelte";
 
-	let totalReflections = 128;
-	let draft = '';
-	let threadEl;
+	type Reflection = {
+		id: number;
+		icon: string;
+		author: string;
+		time: string;
+		text: string;
+	};
 
-	let reflections = [
+	// State
+	let totalReflections = $state(128);
+	let draft = $state("");
+	let threadEl = $state<HTMLElement | undefined>(undefined);
+	let reflections = $state<Reflection[]>([
 		{
 			id: 1,
-			icon: 'storm',
-			author: 'Aethelgard',
-			time: '3 lunar cycles ago',
-			text: "The prose feels like silk between fingers. I haven't felt this connected to a world since the first Age of Whispers."
+			icon: "storm",
+			author: "Aethelgard",
+			time: "3 lunar cycles ago",
+			text: "The prose feels like silk between fingers. I haven't felt this connected to a world since the first Age of Whispers.",
 		},
 		{
 			id: 2,
-			icon: 'nights_stay',
-			author: 'Selene_Shadow',
-			time: 'Yesterday',
-			text: 'The twist at the Loom of Ages left me breathless. Elara Vox has truly outdone herself with the starlight descriptions.'
-		}
-	];
+			icon: "nights_stay",
+			author: "Selene_Shadow",
+			time: "Yesterday",
+			text: "The twist at the Loom of Ages left me breathless. Elara Vox has truly outdone herself with the starlight descriptions.",
+		},
+	]);
 
+	/** Add a new reflection and scroll the thread to the bottom */
 	async function submitReflection() {
 		const text = draft.trim();
 		if (!text) return;
@@ -30,22 +44,17 @@
 			...reflections,
 			{
 				id: Date.now(),
-				icon: 'auto_awesome',
-				author: 'Guest Scholar',
-				time: 'Just now',
-				text
-			}
+				icon: "auto_awesome",
+				author: "Guest Scholar",
+				time: "Just now",
+				text,
+			},
 		];
 		totalReflections += 1;
-		draft = '';
+		draft = "";
 
 		await tick();
-		if (threadEl) {
-			threadEl.scrollTo({
-				top: threadEl.scrollHeight,
-				behavior: 'smooth'
-			});
-		}
+		threadEl?.scrollTo({ top: threadEl.scrollHeight, behavior: "smooth" });
 	}
 </script>
 
@@ -54,21 +63,38 @@
 		<span class="material-symbols-outlined text-primary">edit_note</span>
 		Scroll of Thoughts
 	</h3>
-	<span class="text-sm font-bold uppercase tracking-wider text-primary">{totalReflections} Reflections</span>
+	<span class="text-sm font-bold uppercase tracking-wider text-primary"
+		>{totalReflections} Reflections</span
+	>
 </div>
 
-<div bind:this={threadEl} class="custom-scrollbar max-h-[360px] space-y-6 overflow-y-auto pr-1">
+<div
+	bind:this={threadEl}
+	class="custom-scrollbar max-h-[360px] space-y-6 overflow-y-auto pr-1"
+>
 	{#each reflections as reflection (reflection.id)}
-		<div class="flex items-start gap-4 rounded-xl border border-primary/10 bg-slate-900/40 p-6">
-			<div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/20">
-				<span class="material-symbols-outlined text-primary">{reflection.icon}</span>
+		<div
+			class="flex items-start gap-4 rounded-xl border border-primary/10 bg-slate-900/40 p-6"
+		>
+			<div
+				class="flex size-12 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/20"
+			>
+				<span class="material-symbols-outlined text-primary"
+					>{reflection.icon}</span
+				>
 			</div>
 			<div class="flex-1">
 				<div class="mb-2 flex items-center justify-between">
-					<h4 class="font-bold text-slate-200">{reflection.author}</h4>
-					<span class="text-xs font-medium text-slate-500">{reflection.time}</span>
+					<h4 class="font-bold text-slate-200">
+						{reflection.author}
+					</h4>
+					<span class="text-xs font-medium text-slate-500"
+						>{reflection.time}</span
+					>
 				</div>
-				<p class="italic leading-relaxed text-slate-400">"{reflection.text}"</p>
+				<p class="italic leading-relaxed text-slate-400">
+					"{reflection.text}"
+				</p>
 			</div>
 		</div>
 	{/each}
@@ -84,7 +110,7 @@
 	<div class="mt-3 flex justify-end">
 		<button
 			class="rounded-lg border border-primary/40 bg-primary/20 px-6 py-2 font-bold text-primary transition-all hover:bg-primary/30"
-			on:click={submitReflection}
+			onclick={submitReflection}
 			type="button"
 		>
 			Submit Reflection

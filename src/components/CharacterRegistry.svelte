@@ -1,9 +1,12 @@
 <script lang="ts">
+    /**
+     * CharacterRegistry — manage a list of story characters.
+     * Emits a "change" custom event with the updated character array
+     * whenever a character is added, edited, or removed.
+     */
     import { untrack } from "svelte";
     import type { StoryCharacterJson } from "../lib/types";
 
-    // Props with Svelte 5 syntax
-    // initialCharacters allows pre-populating when editing a story
     let {
         label = "Character Registry",
         placeholderName = "Name",
@@ -17,20 +20,30 @@
         initialCharacters?: StoryCharacterJson[];
     }>();
 
-    let rootelement: HTMLElement;
-    // $state required so bind:this can reactively update these references
+    // bind:this sets this to the element on mount; undefined beforehand
+    let rootelement: HTMLElement | undefined = $state(undefined);
+    // bind:this needs $state so Svelte can track the reference
     let nameInput = $state<HTMLInputElement>();
     let descriptionInput = $state<HTMLTextAreaElement>();
 
     type Character = StoryCharacterJson;
 
-    // State with runes — seed from initialCharacters if provided (edit mode)
-    // untrack: we intentionally want only the initial value, not a reactive derived
+    // Seed from initialCharacters only once — untrack prevents a reactive loop
     let characters = $state<Character[]>(untrack(() => [...initialCharacters]));
 
-    let editingIndex = $state<number | null>();
-
+    let editingIndex = $state<number | null>(null);
     let isAdding = $state(false);
+
+    /** Dispatch current character list to parent */
+    const emitChange = () => {
+        rootelement?.dispatchEvent(
+            new CustomEvent("change", {
+                detail: $state.snapshot(characters),
+                bubbles: true,
+                composed: true,
+            }),
+        );
+    };
 
     const startAdd = () => {
         isAdding = true;
@@ -39,54 +52,45 @@
 
     const cancelAdd = () => {
         isAdding = false;
+        editingIndex = null;
     };
 
     const saveCharacter = () => {
         if (!nameInput || !descriptionInput) return;
+
         const newCharacter: Character = {
-            name: nameInput.value,
+            name: nameInput.value.trim(),
             description: descriptionInput.value,
         };
-        console.log("newCharacter:", newCharacter);
-        if (!newCharacter.name.trim()) {
-            return;
-        }
+
+        // A name is required
+        if (!newCharacter.name) return;
 
         if (editingIndex !== null) {
-            // Update existing character
-            characters = characters.map((char, index) =>
-                index === editingIndex ? { ...newCharacter } : char,
+            // Update existing character in-place
+            characters = characters.map((char, idx) =>
+                idx === editingIndex ? { ...newCharacter } : char,
             );
             editingIndex = null;
         } else {
-            // Add new character
+            // Append new character
             characters.push(newCharacter);
-
-            const rawdata = $state.snapshot(characters);
-
-            rootelement.dispatchEvent(
-                new CustomEvent("change", {
-                    detail: rawdata,
-                    bubbles: true,
-                    composed: true,
-                }),
-            );
         }
 
+        // Always emit after any change (add or edit)
+        emitChange();
         isAdding = false;
     };
 
     const editCharacter = (index: number) => {
         editingIndex = index;
         isAdding = true;
-        // let newCharacter = { ...characters[index] };
     };
 
     const removeCharacter = (index: number) => {
         characters = characters.filter((_, i) => i !== index);
-        if (editingIndex === index) {
-            cancelAdd();
-        }
+        if (editingIndex === index) cancelAdd();
+        emitChange();
     };
 </script>
 
@@ -100,7 +104,7 @@
             >
                 {label}
             </label>
-            <h3 class="text-2xl font-headline font-bold">characters</h3>
+            <h3 class="text-2xl font-display font-bold">characters</h3>
         </div>
         <button
             class="flex items-center gap-2 bg-secondary/10 border border-secondary text-secondary px-4 py-2 rounded-lg text-sm font-bold hover:bg-secondary/20 transition-all"
@@ -112,21 +116,27 @@
         </button>
     </div>
 
-    <!-- Add/Edit Form -->
+    <!-- Add / Edit form -->
     {#if isAdding}
         <div
             class="bg-surface-container rounded-lg p-5 border border-purple-900/30 hover:border-primary/50 transition-all mb-6"
         >
             <input
-                class="w-full bg-transparent border-none text-primary font-bold p-0 mb-3 focus:ring-0 text-lg"
+                class="w-full bg-transparent border-none text-primary font-bold p-0 mb-3 focus:ring-0 text-lg font-display"
                 placeholder={placeholderName}
+                value={editingIndex !== null
+                    ? characters[editingIndex]?.name
+                    : ""}
                 bind:this={nameInput}
                 type="text"
             />
             <textarea
-                class="w-full bg-transparent border-none text-xs text-on-surface-variant font-serif leading-relaxed p-0 focus:ring-0 h-24 min-h-20"
+                class="w-full bg-transparent border-none text-xs text-on-surface-variant font-display leading-relaxed p-0 focus:ring-0 h-24 min-h-20"
                 placeholder={placeholderDescription}
                 bind:this={descriptionInput}
+                value={editingIndex !== null
+                    ? characters[editingIndex]?.description
+                    : ""}
             ></textarea>
             <div class="flex justify-end gap-2 mt-4">
                 <button
@@ -147,7 +157,7 @@
         </div>
     {/if}
 
-    <!-- Character List -->
+    <!-- Character grid -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         {#each characters as character, index (index)}
             <div
@@ -155,7 +165,7 @@
             >
                 <div class="flex justify-between items-start mb-3">
                     <input
-                        class="w-full bg-transparent border-none text-primary font-bold p-0 focus:ring-0 text-lg"
+                        class="w-full bg-transparent border-none text-primary font-bold p-0 focus:ring-0 text-lg font-display"
                         value={character.name}
                         readonly
                         type="text"
@@ -182,13 +192,13 @@
                     </div>
                 </div>
                 <textarea
-                    class="w-full bg-transparent border-none text-xs text-on-surface-variant font-serif leading-relaxed p-0 focus:ring-0 h-20 min-h-20"
+                    class="w-full bg-transparent border-none text-xs text-on-surface-variant font-display leading-relaxed p-0 focus:ring-0 h-20 min-h-20"
                     readonly>{character.description}</textarea
                 >
             </div>
         {/each}
 
-        <!-- Empty State -->
+        <!-- Empty state -->
         {#if characters.length === 0 && !isAdding}
             <div
                 class="bg-surface-container rounded-lg p-5 border border-purple-900/30 hover:border-primary/50 transition-all opacity-40 col-span-full md:col-span-3"
@@ -206,22 +216,4 @@
             </div>
         {/if}
     </div>
-
-    <!-- Hidden input removed - data now emitted via onChange event -->
 </div>
-
-<style>
-    input,
-    textarea {
-        font-family: "Newsreader", serif;
-    }
-
-    .font-headline {
-        font-family: "Newsreader", serif;
-        font-weight: 700;
-    }
-
-    .font-serif {
-        font-family: "Newsreader", serif;
-    }
-</style>

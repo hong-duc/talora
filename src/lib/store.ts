@@ -1,4 +1,4 @@
-import { configureStore, createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { configureStore, createSlice, type PayloadAction, type Middleware } from '@reduxjs/toolkit';
 import type { Tag, StoryCharacterJson } from './types';
 
 export type Profile = {
@@ -261,16 +261,17 @@ export const {
 export const selectFormData = (state: RootState) => state.storyForm.form;
 export const selectFormDirty = (state: RootState) => state.storyForm.form?.dirty || false;
 
-// localStorage middleware
-const localStorageMiddleware = (store: any) => (next: any) => (action: any) => {
+// localStorage middleware — persists storyForm changes to localStorage
+const localStorageMiddleware: Middleware = (storeAPI) => (next) => (action) => {
     const result = next(action);
 
-    // Save to localStorage on storyForm actions (except initializeForm from localStorage load)
-    if (action.type.startsWith('storyForm/') && action.type !== 'storyForm/initializeForm') {
-        const state = store.getState().storyForm.form;
-        if (state) {
+    // Only save for storyForm mutations (skip initializeForm to avoid a write-on-load cycle)
+    const actionType = typeof action === 'object' && action !== null ? (action as { type: string }).type : '';
+    if (actionType.startsWith('storyForm/') && actionType !== 'storyForm/initializeForm') {
+        const formState = storeAPI.getState().storyForm.form;
+        if (formState) {
             try {
-                localStorage.setItem('storyFormDraft', JSON.stringify(state));
+                localStorage.setItem('storyFormDraft', JSON.stringify(formState));
             } catch (error) {
                 console.warn('Failed to save form draft to localStorage:', error);
             }

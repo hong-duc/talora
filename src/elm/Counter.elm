@@ -58,7 +58,7 @@ view model =
     div
         [ class """
             p-8 m-4 rounded-2xl 
-            bg-gradient-to-br from-blue-50 to-cyan-100 
+            bg-linear-to-br from-blue-50 to-cyan-100 
             border border-blue-200
             shadow-lg
             max-w-2xl mx-auto

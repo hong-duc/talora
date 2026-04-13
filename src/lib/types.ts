@@ -80,7 +80,7 @@ export interface StoryCharacter {
     role?: string;
 }
 
-// Story Instance model
+// Story Instance model (legacy — kept for backwards compat)
 export interface StoryInstance {
     id?: string;
     story_id: string;
@@ -89,14 +89,68 @@ export interface StoryInstance {
     last_message_at?: string;
 }
 
-// Message model
+// ─── Chat / Session models (matches schema.sql) ──────────────────────────────
+
+// A user's interactive play-through of a story
+export interface StorySession {
+    id?: string;
+    story_id: string;
+    user_id?: string;
+    title?: string;           // optional display name for the session
+    start_id?: string;        // which story_start was chosen
+    created_at?: string;
+    updated_at?: string;
+}
+
+// One of the pre-authored opening messages for a story
+export interface StoryStart {
+    id?: string;
+    story_id: string;
+    title: string;            // short label shown in the UI
+    first_message: string;    // the AI's opening line for this scenario
+    sort_order?: number;
+    created_at?: string;
+}
+
+// AI-tracked scene context — updated after each exchange
+export interface SceneState {
+    session_id: string;
+    summary?: string;
+    current_location?: string;
+    current_situation?: string;
+    last_mode?: 'character' | 'narrator' | 'hybrid';
+    last_intensity?: number;  // 1-5
+    updated_at?: string;
+}
+
+// A single chat message in a session
 export interface Message {
     id?: string;
-    story_instance_id: string;
-    role: 'user' | 'assistant' | 'system';
+    session_id: string;        // FK → story_sessions.id
+    role: 'user' | 'assistant';
     content: string;
     created_at?: string;
 }
+
+// ─── AI Configuration models ──────────────────────────────────────────────────
+
+// A user's saved AI backend config (stored in ai_configs table)
+export interface AiConfig {
+    id?: string;
+    user_id: string;
+    name: string;          // user-given label, shown in the dropdown
+    provider: AiProvider;
+    model: string;         // free-text — user types whatever the API accepts
+    // api_key is NEVER returned from the server; the client only sees api_key_masked
+    api_key_masked?: string;   // "••••••••" sent to client to confirm a key is saved
+    base_url?: string;     // required for 'custom', optional override for others
+    is_default: boolean;
+    created_at?: string;
+    updated_at?: string;
+}
+
+// Supported AI provider identifiers
+export type AiProvider = 'deepseek' | 'openrouter' | 'langdb' | 'custom';
 
 // Comment model
 export interface Comment {

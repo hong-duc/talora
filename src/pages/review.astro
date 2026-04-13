@@ -1,10 +1,10 @@
 ---
-import '../styles/global.css';
-import SiteHeader from '../components/SiteHeader.astro';
-import SiteFooter from '../components/SiteFooter.astro';
-import LibrarySectionNav from '../components/LibrarySectionNav.astro';
-import ReviewStarRating from '../components/ReviewStarRating.svelte';
-import ReviewThoughtsThread from '../components/ReviewThoughtsThread.svelte';
+import "../styles/global.css";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import LibrarySectionNav from "../components/LibrarySectionNav.astro";
+import ReviewStarRating from "../components/ReviewStarRating.svelte";
+import ReviewThoughtsThread from "../components/ReviewThoughtsThread.svelte";
 ---
 
 <html class="dark" lang="en">
@@ -24,51 +24,106 @@ import ReviewThoughtsThread from '../components/ReviewThoughtsThread.svelte';
 			rel="stylesheet"
 		/>
 	</head>
-	<body class="min-h-screen bg-background-dark text-slate-100 selection:bg-primary/30">
-		<div class="mystical-gradient relative flex min-h-screen w-full flex-col">
+	<body
+		class="min-h-screen bg-background-dark text-slate-100 selection:bg-primary/30"
+	>
+		<div
+			class="mystical-gradient relative flex min-h-screen w-full flex-col"
+		>
 			<SiteHeader />
 			<div class="mx-auto w-full max-w-5xl px-6 pt-6 lg:px-20">
 				<LibrarySectionNav active="archive" />
 			</div>
 
 			<main class="mx-auto w-full max-w-5xl px-6 py-12">
-				<section class="mb-16 flex flex-col items-center gap-12 md:flex-row md:items-start">
+				<section
+					class="mb-16 flex flex-col items-center gap-12 md:flex-row md:items-start"
+				>
 					<div class="w-64 shrink-0 md:w-80">
-						<div class="group relative aspect-[3/4] overflow-hidden rounded-xl border border-primary/30 bg-primary/20 shadow-2xl shadow-primary/20">
+						<div
+							class="group relative aspect-[3/4] overflow-hidden rounded-xl border border-primary/30 bg-primary/20 shadow-2xl shadow-primary/20"
+						>
 							<div
 								class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
 								style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBTLkX3EG9NkCukJ3Z0fBy3pLj3F4cGczhgSJnukvUBY8YbJLZNM_rOQDenOPXb5J33sk1v-qZqiAVdkL14VD80wcMitXOubqP_dPBXyYJIP_mFSUtOfMTOKyXxc_dyA0W6o0ImddfFYf0oPy8pnWBijvDkj19Co1nsHsh0PAXB1UHgc2j7PZ7Egfp8O5VIaXH8oowH_K0aeLGIB4eaEeNM04E5rt2UYAMsg3_HH9Z-gLkrLAZRmMU00NrikKxPvblUl0ZVqvObFhM')"
-							></div>
-							<div class="absolute inset-0 bg-gradient-to-t from-background-dark/80 to-transparent"></div>
+							>
+							</div>
+							<div
+								class="absolute inset-0 bg-linear-to-t from-background-dark/80 to-transparent"
+							>
+							</div>
 						</div>
 					</div>
-					<div class="flex flex-col gap-6 pt-4 text-center md:text-left">
+					<div
+						class="flex flex-col gap-6 pt-4 text-center md:text-left"
+					>
 						<div>
-							<span class="mb-4 inline-block rounded-full bg-primary/20 px-3 py-1 text-xs font-bold uppercase tracking-widest text-primary">Featured Tome</span>
-							<h1 class="mb-2 text-4xl font-bold leading-tight text-slate-100 md:text-6xl">The Weaver's Echo</h1>
-							<p class="text-xl font-medium italic text-primary md:text-2xl">by Elara Vox</p>
+							<span
+								class="mb-4 inline-block rounded-full bg-primary/20 px-3 py-1 text-xs font-bold uppercase tracking-widest text-primary"
+								>Featured Tome</span
+							>
+							<h1
+								class="mb-2 text-4xl font-bold leading-tight text-slate-100 md:text-6xl"
+							>
+								The Weaver's Echo
+							</h1>
+							<p
+								class="text-xl font-medium italic text-primary md:text-2xl"
+							>
+								by Elara Vox
+							</p>
 						</div>
 						<ReviewStarRating client:load initialRating={4.8} />
-						<div class="flex flex-wrap justify-center gap-4 md:justify-start">
-							<button class="rounded-lg bg-primary px-8 py-3 font-bold text-white shadow-lg shadow-primary/40 transition-all hover:bg-primary/90">Read Now</button>
-							<button class="rounded-lg border border-primary/30 bg-slate-800 px-8 py-3 font-bold text-slate-100 transition-all hover:bg-slate-700">Add to Library</button>
+						<div
+							class="flex flex-wrap justify-center gap-4 md:justify-start"
+						>
+							<button
+								class="rounded-lg bg-primary px-8 py-3 font-bold text-white shadow-lg shadow-primary/40 transition-all hover:bg-primary/90"
+								>Read Now</button
+							>
+							<button
+								class="rounded-lg border border-primary/30 bg-slate-800 px-8 py-3 font-bold text-slate-100 transition-all hover:bg-slate-700"
+								>Add to Library</button
+							>
 						</div>
 					</div>
 				</section>
 
-				<section class="relative mb-16 overflow-hidden rounded-xl border border-primary/10 bg-primary/5 p-8 md:p-12">
-					<div class="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl"></div>
+				<section
+					class="relative mb-16 overflow-hidden rounded-xl border border-primary/10 bg-primary/5 p-8 md:p-12"
+				>
+					<div
+						class="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl"
+					>
+					</div>
 					<div class="relative z-10">
-						<h2 class="mb-6 flex items-center gap-3 text-2xl font-bold text-slate-100">
-							<span class="material-symbols-outlined text-primary">auto_awesome</span>
+						<h2
+							class="mb-6 flex items-center gap-3 text-2xl font-bold text-slate-100"
+						>
+							<span class="material-symbols-outlined text-primary"
+								>auto_awesome</span
+							>
 							The Tapestry of Fate
 						</h2>
-						<div class="max-w-3xl space-y-4 text-lg leading-relaxed text-slate-300">
+						<div
+							class="max-w-3xl space-y-4 text-lg leading-relaxed text-slate-300"
+						>
 							<p>
-								In the hollowed halls of the Silent City, Elara weaves threads of silver and shadow. <span class="text-primary italic">'The Weaver's Echo'</span> is a haunting melody of forgotten memories and the magic that binds the stars to the earth.
+								In the hollowed halls of the Silent City, Elara
+								weaves threads of silver and shadow. <span
+									class="text-primary italic"
+									>'The Weaver's Echo'</span
+								> is a haunting melody of forgotten memories and the
+								magic that binds the stars to the earth.
 							</p>
 							<p>
-								A poetic journey through a world where every stitch tells a story of lost time. When the last thread is pulled, the Echo begins, a sound that could either rewrite history or silence the universe forever. Readers are invited to step into the loom and witness the unravelling of reality itself.
+								A poetic journey through a world where every
+								stitch tells a story of lost time. When the last
+								thread is pulled, the Echo begins, a sound that
+								could either rewrite history or silence the
+								universe forever. Readers are invited to step
+								into the loom and witness the unravelling of
+								reality itself.
 							</p>
 						</div>
 					</div>
@@ -79,34 +134,79 @@ import ReviewThoughtsThread from '../components/ReviewThoughtsThread.svelte';
 				</section>
 
 				<section class="mb-12">
-					<div class="mb-8 flex items-center justify-between border-b border-primary/10 pb-4">
-						<h3 class="font-display flex items-center gap-3 text-2xl font-bold italic text-slate-100">
-							<span class="material-symbols-outlined text-primary">auto_fix_high</span>
+					<div
+						class="mb-8 flex items-center justify-between border-b border-primary/10 pb-4"
+					>
+						<h3
+							class="font-display flex items-center gap-3 text-2xl font-bold italic text-slate-100"
+						>
+							<span class="material-symbols-outlined text-primary"
+								>auto_fix_high</span
+							>
 							Echoes in the Hall
 						</h3>
-						<a class="text-sm font-bold text-primary hover:underline" href="#">View All Tomes</a>
+						<a
+							class="text-sm font-bold text-primary hover:underline"
+							href="#">View All Tomes</a
+						>
 					</div>
 					<div class="grid grid-cols-1 gap-8 md:grid-cols-3">
 						<div class="group cursor-pointer">
-							<div class="mb-4 aspect-[3/4] overflow-hidden rounded-xl border border-primary/10 bg-slate-800 shadow-lg transition-all group-hover:-translate-y-2 group-hover:border-primary/50">
-								<div class="h-full w-full bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCtH_f7Ql5XXmaoCyWcejNrqJZUBCbXSLvwApsSyBWI9bbu3mIthXXcj1I-X1EX-9RupHaq7b4KhVZL-ZXYn2ph94aek5Au9Y8YSfQNWZNIhix9O6AH3_y-4L2qneDkEVfKmm1prR0n2HELzFy_zSYr6-_vNNo-KBi-7PpIwzZZgWU1MnYkW8uazbki2fTSlXVVZwE9H_lI9Bzf2Bo1Ae3v_aPBiP9G3tt0iQ9vn0KSLNomV-lSSF8Pyxw5lx7gx_ItWVFoieGkW-E')"></div>
+							<div
+								class="mb-4 aspect-[3/4] overflow-hidden rounded-xl border border-primary/10 bg-slate-800 shadow-lg transition-all group-hover:-translate-y-2 group-hover:border-primary/50"
+							>
+								<div
+									class="h-full w-full bg-cover bg-center"
+									style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCtH_f7Ql5XXmaoCyWcejNrqJZUBCbXSLvwApsSyBWI9bbu3mIthXXcj1I-X1EX-9RupHaq7b4KhVZL-ZXYn2ph94aek5Au9Y8YSfQNWZNIhix9O6AH3_y-4L2qneDkEVfKmm1prR0n2HELzFy_zSYr6-_vNNo-KBi-7PpIwzZZgWU1MnYkW8uazbki2fTSlXVVZwE9H_lI9Bzf2Bo1Ae3v_aPBiP9G3tt0iQ9vn0KSLNomV-lSSF8Pyxw5lx7gx_ItWVFoieGkW-E')"
+								>
+								</div>
 							</div>
-							<h4 class="text-lg font-bold text-slate-100 transition-colors group-hover:text-primary">The Silver Compass</h4>
-							<p class="text-sm italic text-slate-500">by Julian Thorne</p>
+							<h4
+								class="text-lg font-bold text-slate-100 transition-colors group-hover:text-primary"
+							>
+								The Silver Compass
+							</h4>
+							<p class="text-sm italic text-slate-500">
+								by Julian Thorne
+							</p>
 						</div>
 						<div class="group cursor-pointer">
-							<div class="mb-4 aspect-[3/4] overflow-hidden rounded-xl border border-primary/10 bg-slate-800 shadow-lg transition-all group-hover:-translate-y-2 group-hover:border-primary/50">
-								<div class="h-full w-full bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDd0SmVARQD9y8aZrbhgR4r8D6E96sD4MLXDzcapuy5CfWishRkWEIblqQZ7GKGrkHg8cKhSiTEif-ctM5OdPUMH9ojEx6FiN4p5rdZ-6jRnfnkTdJ8WGZmywtQK_19LceBk1J-An-QIFAfsby8uF0r0ewqpY8LVbzXamtuIiT4NcjMJnQbFjNCJtJqNyLn3xQBOD8kSQvD5p3tEN9iSkniiR7lLMoswW4UbPWWBMLS13JgFWKC_pNpvNsyvCPiZUIzy8zqCf3Ll0A')"></div>
+							<div
+								class="mb-4 aspect-[3/4] overflow-hidden rounded-xl border border-primary/10 bg-slate-800 shadow-lg transition-all group-hover:-translate-y-2 group-hover:border-primary/50"
+							>
+								<div
+									class="h-full w-full bg-cover bg-center"
+									style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDd0SmVARQD9y8aZrbhgR4r8D6E96sD4MLXDzcapuy5CfWishRkWEIblqQZ7GKGrkHg8cKhSiTEif-ctM5OdPUMH9ojEx6FiN4p5rdZ-6jRnfnkTdJ8WGZmywtQK_19LceBk1J-An-QIFAfsby8uF0r0ewqpY8LVbzXamtuIiT4NcjMJnQbFjNCJtJqNyLn3xQBOD8kSQvD5p3tEN9iSkniiR7lLMoswW4UbPWWBMLS13JgFWKC_pNpvNsyvCPiZUIzy8zqCf3Ll0A')"
+								>
+								</div>
 							</div>
-							<h4 class="text-lg font-bold text-slate-100 transition-colors group-hover:text-primary">Starlight Atlas</h4>
-							<p class="text-sm italic text-slate-500">by Orion Vance</p>
+							<h4
+								class="text-lg font-bold text-slate-100 transition-colors group-hover:text-primary"
+							>
+								Starlight Atlas
+							</h4>
+							<p class="text-sm italic text-slate-500">
+								by Orion Vance
+							</p>
 						</div>
 						<div class="group cursor-pointer">
-							<div class="mb-4 aspect-[3/4] overflow-hidden rounded-xl border border-primary/10 bg-slate-800 shadow-lg transition-all group-hover:-translate-y-2 group-hover:border-primary/50">
-								<div class="h-full w-full bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBq8dkv2t3JOvrk5MO56ZGfP4r_FrRty6Jp5DEZLdJcqL1uMOcoffJ8O-LFJBJGYZQEaxnGu0O9y1dlDxwxKlJe4NOq_ZbgLGw6Tq4VbUqiyMea_A2w9M6ZAbBrOk51LWPbtiQNXyddhVt4rT1CsHboJoYLBZT-7US4W99rk43nNymZnnq6ksvzZvjBbxKy7_aNwmRJK0e2us90HQi0Th2RrSkNc0nzFFS6yA3C5eD2OL8wILA_Ob4Nxr1WKOzukAaHiKljJAOy-qA')"></div>
+							<div
+								class="mb-4 aspect-[3/4] overflow-hidden rounded-xl border border-primary/10 bg-slate-800 shadow-lg transition-all group-hover:-translate-y-2 group-hover:border-primary/50"
+							>
+								<div
+									class="h-full w-full bg-cover bg-center"
+									style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBq8dkv2t3JOvrk5MO56ZGfP4r_FrRty6Jp5DEZLdJcqL1uMOcoffJ8O-LFJBJGYZQEaxnGu0O9y1dlDxwxKlJe4NOq_ZbgLGw6Tq4VbUqiyMea_A2w9M6ZAbBrOk51LWPbtiQNXyddhVt4rT1CsHboJoYLBZT-7US4W99rk43nNymZnnq6ksvzZvjBbxKy7_aNwmRJK0e2us90HQi0Th2RrSkNc0nzFFS6yA3C5eD2OL8wILA_Ob4Nxr1WKOzukAaHiKljJAOy-qA')"
+								>
+								</div>
 							</div>
-							<h4 class="text-lg font-bold text-slate-100 transition-colors group-hover:text-primary">Midnight Fables</h4>
-							<p class="text-sm italic text-slate-500">by Seraphina Black</p>
+							<h4
+								class="text-lg font-bold text-slate-100 transition-colors group-hover:text-primary"
+							>
+								Midnight Fables
+							</h4>
+							<p class="text-sm italic text-slate-500">
+								by Seraphina Black
+							</p>
 						</div>
 					</div>
 				</section>
@@ -120,7 +220,16 @@ import ReviewThoughtsThread from '../components/ReviewThoughtsThread.svelte';
 <style>
 	.mystical-gradient {
 		background-color: #191022;
-		background-image: radial-gradient(circle at top right, rgb(115 17 212 / 12%), transparent 55%),
-			radial-gradient(circle at bottom left, rgb(115 17 212 / 8%), transparent 50%);
+		background-image:
+			radial-gradient(
+				circle at top right,
+				rgb(115 17 212 / 12%),
+				transparent 55%
+			),
+			radial-gradient(
+				circle at bottom left,
+				rgb(115 17 212 / 8%),
+				transparent 50%
+			);
 	}
 </style>
