@@ -23,8 +23,13 @@ import type { AiProvider } from './types';
 export interface ResolvedAiConfig {
     provider: AiProvider;
     model: string;
-    apiKey: string;      // decrypted plaintext — only passed server-side
-    baseUrl?: string;    // optional user override
+    apiKey: string;       // decrypted plaintext — only passed server-side
+    baseUrl?: string;     // optional user override
+    // Generation parameter overrides — if not set the defaults below are used
+    maxTokens?: number;   // default: 800
+    temperature?: number; // default: 0.9
+    topP?: number;        // default: not sent (provider default)
+    topK?: number;        // default: not sent (provider default)
 }
 
 /** A single OpenAI-format chat message */
@@ -206,12 +211,15 @@ export async function generateReply(
     const systemPrompt = buildSystemPrompt(story, sceneState);
     const messages = buildMessageHistory(history, systemPrompt);
 
-    const body = {
+    // Build request body — honour per-config overrides, fall back to good defaults
+    const body: Record<string, unknown> = {
         model: config.model,
         messages,
-        max_tokens: 800,
-        temperature: 0.9,  // Higher creativity for storytelling
+        max_tokens: config.maxTokens ?? 800,
+        temperature: config.temperature ?? 0.9,  // Higher creativity for storytelling
     };
+    if (config.topP !== undefined) body.top_p = config.topP;
+    if (config.topK !== undefined) body.top_k = config.topK;
 
     const response = await fetch(endpoint, {
         method: 'POST',

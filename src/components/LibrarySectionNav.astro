@@ -7,6 +7,7 @@ interface Props {
 		| "current-seeker"
 		| "reading-list"
 		| "my-messages"
+		| "my-stories"
 		| "reliquary"
 		| "past-echoes"
 		| "create-story";
@@ -45,6 +46,12 @@ const items: Array<{
 		label: "My Messages",
 		icon: "mail",
 		href: "/user/messages",
+	},
+	{
+		key: "my-stories",
+		label: "My Stories",
+		icon: "auto_stories",
+		href: "/user/my-stories",
 	},
 	{
 		key: "create-story",

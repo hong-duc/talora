@@ -1,8 +1,8 @@
 ---
-import '../styles/global.css';
-import SiteHeader from '../components/SiteHeader.astro';
-import SiteFooter from '../components/SiteFooter.astro';
-import LibrarySectionNav from '../components/LibrarySectionNav.astro';
+import "../styles/global.css";
+import SiteHeader from "../components/SiteHeader.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import LibrarySectionNav from "../components/LibrarySectionNav.astro";
 ---
 
 <html class="dark" lang="en">
@@ -23,153 +23,298 @@ import LibrarySectionNav from '../components/LibrarySectionNav.astro';
 		/>
 	</head>
 	<body class="min-h-screen bg-background-dark font-display text-slate-100">
-		<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+		<div
+			class="relative flex min-h-screen w-full flex-col overflow-x-hidden"
+		>
 			<div class="layout-container flex h-full grow flex-col">
 				<SiteHeader />
 				<div class="mx-auto w-full max-w-5xl px-6 pt-6 lg:px-20">
 					<LibrarySectionNav active="current-seeker" />
 				</div>
 
-				<main class="mx-auto w-full max-w-5xl flex-1 px-6 py-8 lg:px-20">
+				<main
+					class="mx-auto w-full max-w-5xl flex-1 px-6 py-8 lg:px-20"
+				>
 					<div class="grid grid-cols-1 gap-8 md:grid-cols-12">
 						<aside class="space-y-2 md:col-span-3">
 							<div>
-								<div class="rounded-xl border border-primary/20 bg-linear-to-br from-primary/10 to-transparent p-4">
-									<p class="mb-2 text-xs font-bold uppercase tracking-widest text-primary">Current Quest</p>
-									<p class="text-sm italic leading-relaxed">"The Whisper of the Frozen Spire remains unheard. Journey north to the Silent Peaks."</p>
+								<div
+									class="rounded-xl border border-primary/20 bg-linear-to-br from-primary/10 to-transparent p-4"
+								>
+									<p
+										class="mb-2 text-xs font-bold uppercase tracking-widest text-primary"
+									>
+										Current Quest
+									</p>
+									<p class="text-sm italic leading-relaxed">
+										"The Whisper of the Frozen Spire remains
+										unheard. Journey north to the Silent
+										Peaks."
+									</p>
 								</div>
 							</div>
 						</aside>
 
 						<div class="space-y-8 md:col-span-9">
-							<div class="relative flex flex-col items-center gap-8 overflow-hidden rounded-xl border border-primary/10 bg-primary/5 p-8 md:flex-row">
-								<div class="absolute right-0 top-0 p-4 opacity-10">
-									<span class="material-symbols-outlined text-9xl">flare</span>
+							<div
+								class="relative flex flex-col items-center gap-8 overflow-hidden rounded-xl border border-primary/10 bg-primary/5 p-8 md:flex-row"
+							>
+								<div
+									class="absolute right-0 top-0 p-4 opacity-10"
+								>
+									<span
+										class="material-symbols-outlined text-9xl"
+										>flare</span
+									>
 								</div>
 								<div class="relative">
-									<div class="size-40 rounded-full border-4 border-primary/40 p-1">
+									<div
+										class="size-40 rounded-full border-4 border-primary/40 p-1"
+									>
 										<div
 											class="h-full w-full rounded-full bg-cover bg-center shadow-2xl shadow-primary/20"
 											data-profile-avatar
 											style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDmUMYj1C_8z8v-8ztxeKutnJlWZakKBxrIuSs9o7sfbQyi0ZEaLPEkX07tMoxBXpmg-xuIifP_rBTPr2-_8EavTCGyzS5EyZTLkN9aZUEvuf249p2zCdZp6WX0K0VJFhzC0YErOvMhRB6d_1nHSyrdDCQjfO61IA-DLrJ23x6y1siPkB7giwm0zHzOB5JI25i_4w_EfjH3ljrL5FeqwgxupMmXxHYuNmuz9sv08jjeGHXbwIOzvKEsWiEHBE2cxCZdQZKLwKmviLA')"
-										></div>
+										>
+										</div>
 									</div>
-									<div class="absolute -bottom-2 -right-2 rounded-full bg-primary px-3 py-1 text-xs font-bold text-white shadow-lg">
+									<div
+										class="absolute -bottom-2 -right-2 rounded-full bg-primary px-3 py-1 text-xs font-bold text-white shadow-lg"
+									>
 										Master Seeker
 									</div>
 								</div>
 								<div class="text-center md:text-left">
-									<h1 class="mb-1 text-4xl font-extrabold tracking-tight" data-profile-name>Elara Vox</h1>
-									<p class="text-xl font-medium italic text-primary opacity-80">The Silent Seeker</p>
-									<div class="mt-4 flex flex-wrap justify-center gap-4 md:justify-start">
-										<div class="flex items-center gap-2 rounded-full border border-slate-700/50 bg-slate-800/50 px-3 py-1">
-											<span class="material-symbols-outlined text-sm text-primary">verified</span>
-											<span class="text-sm">Initiate of the Echoes</span>
+									<h1
+										class="mb-1 text-4xl font-extrabold tracking-tight"
+										data-profile-name
+									>
+										Elara Vox
+									</h1>
+									<p
+										class="text-xl font-medium italic text-primary opacity-80"
+									>
+										The Silent Seeker
+									</p>
+									<div
+										class="mt-4 flex flex-wrap justify-center gap-4 md:justify-start"
+									>
+										<div
+											class="flex items-center gap-2 rounded-full border border-slate-700/50 bg-slate-800/50 px-3 py-1"
+										>
+											<span
+												class="material-symbols-outlined text-sm text-primary"
+												>verified</span
+											>
+											<span class="text-sm"
+												>Initiate of the Echoes</span
+											>
 										</div>
-										<div class="flex items-center gap-2 rounded-full border border-slate-700/50 bg-slate-800/50 px-3 py-1">
-											<span class="material-symbols-outlined text-sm text-primary">auto_awesome</span>
-											<span class="text-sm">Star-Touched</span>
+										<div
+											class="flex items-center gap-2 rounded-full border border-slate-700/50 bg-slate-800/50 px-3 py-1"
+										>
+											<span
+												class="material-symbols-outlined text-sm text-primary"
+												>auto_awesome</span
+											>
+											<span class="text-sm"
+												>Star-Touched</span
+											>
 										</div>
 									</div>
 								</div>
 							</div>
 
 							<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-								<div class="flex flex-col items-center justify-center rounded-xl border border-primary/20 bg-primary/5 p-6 text-center">
-									<p class="text-3xl font-bold text-primary">24</p>
-									<p class="mt-1 text-sm uppercase tracking-widest opacity-60">Level</p>
-									<div class="mt-4 h-1 w-full overflow-hidden rounded-full bg-primary/10">
-										<div class="h-full w-3/4 bg-primary shadow-[0_0_8px_rgba(115,17,212,0.6)]"></div>
+								<div
+									class="flex flex-col items-center justify-center rounded-xl border border-primary/20 bg-primary/5 p-6 text-center"
+								>
+									<p class="text-3xl font-bold text-primary">
+										24
+									</p>
+									<p
+										class="mt-1 text-sm uppercase tracking-widest opacity-60"
+									>
+										Level
+									</p>
+									<div
+										class="mt-4 h-1 w-full overflow-hidden rounded-full bg-primary/10"
+									>
+										<div
+											class="h-full w-3/4 bg-primary shadow-[0_0_8px_rgba(115,17,212,0.6)]"
+										>
+										</div>
 									</div>
 								</div>
-								<div class="flex flex-col items-center justify-center rounded-xl border border-primary/20 bg-primary/5 p-6 text-center">
-									<p class="text-3xl font-bold text-primary">1,250</p>
-									<p class="mt-1 text-sm uppercase tracking-widest opacity-60">Essence</p>
-									<span class="material-symbols-outlined mt-3 text-primary/40">storm</span>
+								<div
+									class="flex flex-col items-center justify-center rounded-xl border border-primary/20 bg-primary/5 p-6 text-center"
+								>
+									<p class="text-3xl font-bold text-primary">
+										1,250
+									</p>
+									<p
+										class="mt-1 text-sm uppercase tracking-widest opacity-60"
+									>
+										Essence
+									</p>
+									<span
+										class="material-symbols-outlined mt-3 text-primary/40"
+										>storm</span
+									>
 								</div>
-								<div class="flex flex-col items-center justify-center rounded-xl border border-primary/20 bg-primary/5 p-6 text-center">
-									<p class="text-3xl font-bold text-primary">42</p>
-									<p class="mt-1 text-sm uppercase tracking-widest opacity-60">Stories Discovered</p>
-									<span class="material-symbols-outlined mt-3 text-primary/40">book_2</span>
+								<div
+									class="flex flex-col items-center justify-center rounded-xl border border-primary/20 bg-primary/5 p-6 text-center"
+								>
+									<p class="text-3xl font-bold text-primary">
+										42
+									</p>
+									<p
+										class="mt-1 text-sm uppercase tracking-widest opacity-60"
+									>
+										Stories Discovered
+									</p>
+									<span
+										class="material-symbols-outlined mt-3 text-primary/40"
+										>book_2</span
+									>
 								</div>
 							</div>
 
 							<section class="space-y-4">
 								<div class="flex items-center gap-2">
-									<span class="material-symbols-outlined text-primary">ink_pen</span>
-									<h3 class="text-2xl font-bold tracking-tight">Personal Legend</h3>
+									<span
+										class="material-symbols-outlined text-primary"
+										>ink_pen</span
+									>
+									<h3
+										class="text-2xl font-bold tracking-tight"
+									>
+										Personal Legend
+									</h3>
 								</div>
-								<div class="relative rounded-xl border border-primary/10 bg-primary/5 p-8 text-lg italic leading-relaxed">
-									<span class="absolute left-4 top-4 text-6xl font-serif text-primary/10">"</span>
-									Born in the city of whispers, Elara discovered the ability to hear the echoes of forgotten history within ancient stone. She walks the thin line between reality and the stories that once were, seeking the Ultimate Chronos, a tome said to rewrite the future of the dying sun. Her silence is not a lack of voice, but a choice to listen to the world's fading memories.
-									<span class="absolute bottom-4 right-4 text-6xl font-serif text-primary/10">"</span>
+								<div
+									class="relative rounded-xl border border-primary/10 bg-primary/5 p-8 text-lg italic leading-relaxed"
+								>
+									<span
+										class="absolute left-4 top-4 text-6xl font-serif text-primary/10"
+										>"</span
+									>
+									Born in the city of whispers, Elara discovered
+									the ability to hear the echoes of forgotten history
+									within ancient stone. She walks the thin line
+									between reality and the stories that once were,
+									seeking the Ultimate Chronos, a tome said to rewrite
+									the future of the dying sun. Her silence is not
+									a lack of voice, but a choice to listen to the
+									world's fading memories.
+									<span
+										class="absolute bottom-4 right-4 text-6xl font-serif text-primary/10"
+										>"</span
+									>
 								</div>
 							</section>
 
-							<section class="space-y-4">
-								<div class="flex items-center justify-between">
-									<div class="flex items-center gap-2">
-										<span class="material-symbols-outlined text-primary">inventory_2</span>
-										<h3 class="text-2xl font-bold tracking-tight">Unlocked Artifacts</h3>
-									</div>
-									<button class="text-sm font-bold text-primary hover:underline">View All</button>
+							<section
+								class="space-y-4"
+								id="user-stories-section"
+							>
+								<div class="flex items-center gap-2">
+									<span
+										class="material-symbols-outlined text-primary"
+										>menu_book</span
+									>
+									<h3
+										class="text-2xl font-bold tracking-tight"
+									>
+										Created Stories
+									</h3>
 								</div>
-								<div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-									<div class="group relative flex aspect-square cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border border-primary/10 bg-primary/5 p-4 transition-all hover:bg-primary/10">
-										<div class="mb-3 flex size-16 items-center justify-center rounded-full bg-primary/20 transition-transform group-hover:scale-110">
-											<span class="material-symbols-outlined text-3xl text-primary">hourglass_empty</span>
-										</div>
-										<p class="text-center text-sm font-bold">Temporal Key</p>
-										<p class="text-[10px] uppercase tracking-tighter opacity-50">Legendary</p>
+								<!-- Story cards injected by script below -->
+								<div
+									id="user-stories-grid"
+									class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3"
+								>
+									<!-- Loading skeletons -->
+									<div
+										class="animate-pulse rounded-xl border border-primary/10 bg-primary/5"
+										style="height:176px"
+									>
 									</div>
-									<div class="group relative flex aspect-square cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border border-primary/10 bg-primary/5 p-4 transition-all hover:bg-primary/10">
-										<div class="mb-3 flex size-16 items-center justify-center rounded-full bg-primary/20 transition-transform group-hover:scale-110">
-											<span class="material-symbols-outlined text-3xl text-primary">ac_unit</span>
-										</div>
-										<p class="text-center text-sm font-bold">Frost Heart</p>
-										<p class="text-[10px] uppercase tracking-tighter opacity-50">Rare</p>
+									<div
+										class="animate-pulse rounded-xl border border-primary/10 bg-primary/5"
+										style="height:176px"
+									>
 									</div>
-									<div class="group relative flex aspect-square cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border border-primary/10 bg-primary/5 p-4 transition-all hover:bg-primary/10">
-										<div class="mb-3 flex size-16 items-center justify-center rounded-full bg-primary/20 transition-transform group-hover:scale-110">
-											<span class="material-symbols-outlined text-3xl text-primary">shield_moon</span>
-										</div>
-										<p class="text-center text-sm font-bold">Lunar Aegis</p>
-										<p class="text-[10px] uppercase tracking-tighter opacity-50">Epic</p>
-									</div>
-									<div class="relative flex aspect-square flex-col items-center justify-center overflow-hidden rounded-xl border border-slate-700/50 bg-slate-800/20 p-4">
-										<div class="mb-3 flex size-16 items-center justify-center rounded-full bg-slate-700/30 grayscale">
-											<span class="material-symbols-outlined text-3xl text-slate-500">lock</span>
-										</div>
-										<p class="text-center text-sm font-bold opacity-30">Locked Slot</p>
+									<div
+										class="animate-pulse rounded-xl border border-primary/10 bg-primary/5"
+										style="height:176px"
+									>
 									</div>
 								</div>
 							</section>
 
 							<section class="space-y-4">
 								<div class="flex items-center gap-2">
-									<span class="material-symbols-outlined text-primary">group</span>
-									<h3 class="text-2xl font-bold tracking-tight">Known Companions</h3>
+									<span
+										class="material-symbols-outlined text-primary"
+										>group</span
+									>
+									<h3
+										class="text-2xl font-bold tracking-tight"
+									>
+										Known Companions
+									</h3>
 								</div>
 								<div class="flex flex-wrap gap-4">
-									<div class="flex cursor-pointer items-center gap-3 rounded-xl border border-primary/10 bg-primary/5 p-3 pr-6 transition-all hover:border-primary/30">
-										<div class="size-10 rounded-full bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCh4RbyITRjRtAvrAkZGWgytKN3h_Jrsy4NSi_o6TU_ZCyjLzZAPsANuHPT7u8oZN0H6tPdjtsBeq0DrZIFlhHPz5RHOw6VBfHEBtrKOkWAl1Y2NMU7gTviFYtelYFtherQKhgNXDgdHxQUn7m1e0_C_CycOGbz2134eVxxDZ-rB7s2TRdKUM6N86uMnxNkI1N-KA-tLH0ID1zL4fgGj3kOxRdVVg-WLx0y2q5tP9piVSlwe6U8oMBF-Hx7EqiUswc2F7VJ1BfYXwU')"></div>
+									<div
+										class="flex cursor-pointer items-center gap-3 rounded-xl border border-primary/10 bg-primary/5 p-3 pr-6 transition-all hover:border-primary/30"
+									>
+										<div
+											class="size-10 rounded-full bg-cover bg-center"
+											style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCh4RbyITRjRtAvrAkZGWgytKN3h_Jrsy4NSi_o6TU_ZCyjLzZAPsANuHPT7u8oZN0H6tPdjtsBeq0DrZIFlhHPz5RHOw6VBfHEBtrKOkWAl1Y2NMU7gTviFYtelYFtherQKhgNXDgdHxQUn7m1e0_C_CycOGbz2134eVxxDZ-rB7s2TRdKUM6N86uMnxNkI1N-KA-tLH0ID1zL4fgGj3kOxRdVVg-WLx0y2q5tP9piVSlwe6U8oMBF-Hx7EqiUswc2F7VJ1BfYXwU')"
+										>
+										</div>
 										<div>
-											<p class="text-sm font-bold">Kaelen</p>
-											<p class="text-xs opacity-60">The Wise Librarian</p>
+											<p class="text-sm font-bold">
+												Kaelen
+											</p>
+											<p class="text-xs opacity-60">
+												The Wise Librarian
+											</p>
 										</div>
 									</div>
-									<div class="flex cursor-pointer items-center gap-3 rounded-xl border border-primary/10 bg-primary/5 p-3 pr-6 transition-all hover:border-primary/30">
-										<div class="size-10 rounded-full bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAvQrT80rztgEV3g-eGNZbOzbGbIRiBbqdu3H6guZOGdHsV3Nghn9s-N20ZBdJW_Rge71SfQebr9HKB_RRQm-znzwQ4305WVyyWEr3zazdSyd1f7cqxzmgcRhfBkSVB1TalRH6uVLDPUQzF-GBBSbwUpHfnSKt2POuKyStjSXznE_0FuAkJFiWw6nNv440Sa3X4ljNmtjeIUggfHvf_B4HiI3ejhvLOOEq8cpgZZEJuK9FgMoWrLQskMEllHbV2Ks1HxvQaliCTnMM')"></div>
+									<div
+										class="flex cursor-pointer items-center gap-3 rounded-xl border border-primary/10 bg-primary/5 p-3 pr-6 transition-all hover:border-primary/30"
+									>
+										<div
+											class="size-10 rounded-full bg-cover bg-center"
+											style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAvQrT80rztgEV3g-eGNZbOzbGbIRiBbqdu3H6guZOGdHsV3Nghn9s-N20ZBdJW_Rge71SfQebr9HKB_RRQm-znzwQ4305WVyyWEr3zazdSyd1f7cqxzmgcRhfBkSVB1TalRH6uVLDPUQzF-GBBSbwUpHfnSKt2POuKyStjSXznE_0FuAkJFiWw6nNv440Sa3X4ljNmtjeIUggfHvf_B4HiI3ejhvLOOEq8cpgZZEJuK9FgMoWrLQskMEllHbV2Ks1HxvQaliCTnMM')"
+										>
+										</div>
 										<div>
-											<p class="text-sm font-bold">Thorne</p>
-											<p class="text-xs opacity-60">Shadow Weaver</p>
+											<p class="text-sm font-bold">
+												Thorne
+											</p>
+											<p class="text-xs opacity-60">
+												Shadow Weaver
+											</p>
 										</div>
 									</div>
-									<div class="flex cursor-pointer items-center gap-3 rounded-xl border border-primary/10 bg-primary/5 p-3 pr-6 transition-all hover:border-primary/30">
-										<div class="size-10 rounded-full bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAyVpWL6pxj7F042Eiu9MT_vvP150msHpOPqwh9weqq4ON09xbIJ0srKieRMpzoBaiEfmKg0yCycP8OTLjIvRe0ARjRJrhTjumOmt4UJBAOVXYPTUbVlAGxWM6EI-e1v3bRGn3gK0iTxYpMLG44jdfhc-4N8aK-e-8nrzelpgVnRpYkBHXCelkJhQLiKurw-GPXSD2q6gTLJiaoQ0zwBrxcUy7m2IuVmQ0PcRp7i1FHi3L5bKfnaAUsWdb3Wx45CbQSDdBZGWmXSqo')"></div>
+									<div
+										class="flex cursor-pointer items-center gap-3 rounded-xl border border-primary/10 bg-primary/5 p-3 pr-6 transition-all hover:border-primary/30"
+									>
+										<div
+											class="size-10 rounded-full bg-cover bg-center"
+											style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAyVpWL6pxj7F042Eiu9MT_vvP150msHpOPqwh9weqq4ON09xbIJ0srKieRMpzoBaiEfmKg0yCycP8OTLjIvRe0ARjRJrhTjumOmt4UJBAOVXYPTUbVlAGxWM6EI-e1v3bRGn3gK0iTxYpMLG44jdfhc-4N8aK-e-8nrzelpgVnRpYkBHXCelkJhQLiKurw-GPXSD2q6gTLJiaoQ0zwBrxcUy7m2IuVmQ0PcRp7i1FHi3L5bKfnaAUsWdb3Wx45CbQSDdBZGWmXSqo')"
+										>
+										</div>
 										<div>
-											<p class="text-sm font-bold">Lyra</p>
-											<p class="text-xs opacity-60">Silent Arrow</p>
+											<p class="text-sm font-bold">
+												Lyra
+											</p>
+											<p class="text-xs opacity-60">
+												Silent Arrow
+											</p>
 										</div>
 									</div>
 								</div>
@@ -181,5 +326,83 @@ import LibrarySectionNav from '../components/LibrarySectionNav.astro';
 				<SiteFooter />
 			</div>
 		</div>
+		<script is:inline>
+			(function () {
+				function escapeHtml(str) {
+					const div = document.createElement("div");
+					div.appendChild(document.createTextNode(str));
+					return div.innerHTML;
+				}
+
+				async function loadUserStories() {
+					const grid = document.getElementById("user-stories-grid");
+					if (!grid) return;
+
+					// Get the profile owner's ID from the URL (?id=<uuid>)
+					const profileUserId = new URLSearchParams(
+						window.location.search,
+					).get("id");
+
+					if (!profileUserId) {
+						// No user ID in URL — hide the section entirely
+						const section = document.getElementById(
+							"user-stories-section",
+						);
+						if (section) section.style.display = "none";
+						return;
+					}
+
+					try {
+						// Fetch only PUBLIC stories — no auth header needed
+						const res = await fetch(
+							`/api/stories?author_id=${encodeURIComponent(profileUserId)}&limit=9`,
+						);
+						if (!res.ok) throw new Error("fetch failed");
+						const json = await res.json();
+						const stories = json.stories ?? [];
+
+						if (stories.length === 0) {
+							grid.innerHTML = `
+								<div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;gap:12px;padding:40px 0;text-align:center">
+									<span class="material-symbols-outlined" style="font-size:48px;color:rgb(115 17 212/0.3)">ink_pen</span>
+									<p style="color:#94a3b8">No public stories yet.</p>
+								</div>`;
+							return;
+						}
+
+						grid.innerHTML = stories
+							.map(
+								(story) => `
+							<a href="/review/${escapeHtml(story.id)}"
+								style="text-decoration:none;display:flex;flex-direction:column;overflow:hidden;border-radius:12px;border:1px solid rgb(115 17 212/0.1);background:rgb(115 17 212/0.05);transition:border-color 0.2s,background 0.2s"
+								onmouseover="this.style.borderColor='rgb(115 17 212/0.4)';this.style.background='rgb(115 17 212/0.1)'"
+								onmouseout="this.style.borderColor='rgb(115 17 212/0.1)';this.style.background='rgb(115 17 212/0.05)'">
+								<div style="aspect-ratio:16/9;overflow:hidden;background:#1e1a2e">
+									${
+										story.cover_image_url
+											? `<img src="${escapeHtml(story.cover_image_url)}" alt="" style="width:100%;height:100%;object-fit:cover;opacity:0.85;display:block" loading="lazy"/>`
+											: `<div style="display:flex;align-items:center;justify-content:center;height:100%;background:linear-gradient(135deg,rgb(115 17 212/0.15),transparent)"><span class="material-symbols-outlined" style="font-size:40px;color:rgb(115 17 212/0.3)">book_2</span></div>`
+									}
+								</div>
+								<div style="padding:14px 16px;flex:1;display:flex;flex-direction:column;gap:4px">
+									<p style="font-weight:700;color:#f1f5f9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+										${escapeHtml(story.title)}
+									</p>
+									<p style="font-size:11px;color:rgb(115 17 212/0.6);margin-top:auto;padding-top:4px">
+										<span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle">library_books</span>
+										View Story
+									</p>
+								</div>
+							</a>`,
+							)
+							.join("");
+					} catch {
+						grid.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:#64748b;padding:32px 0">Could not load stories.</p>`;
+					}
+				}
+
+				loadUserStories();
+			})();
+		</script>
 	</body>
 </html>

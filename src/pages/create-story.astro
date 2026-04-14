@@ -107,6 +107,7 @@ const editDataJson = editStory
     ? JSON.stringify({
           id: editStory.id,
           title: editStory.title || "",
+          tagline: editStory.tagline || "",
           description: editStory.description || "",
           setting: editStory.setting || "",
           world_rules: editStory.world_rules || "",
@@ -210,6 +211,16 @@ const editDataJson = editStory
                                             value={editStory?.title || ""}
                                             class="w-full bg-transparent border-none text-4xl font-headline font-bold text-on-surface focus:ring-0 p-0 placeholder:text-on-surface/30"
                                             placeholder="The Echoes of Aethelgard..."
+                                        />
+                                        <!-- Tagline -->
+                                        <input
+                                            id="tagline"
+                                            name="tagline"
+                                            type="text"
+                                            maxlength="160"
+                                            value={editStory?.tagline || ""}
+                                            class="mt-3 w-full bg-transparent border-none text-lg font-serif italic text-accent-gold/70 focus:ring-0 p-0 placeholder:text-accent-gold/30"
+                                            placeholder="A short tagline… (optional)"
                                         />
                                     </div>
 

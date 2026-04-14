@@ -56,6 +56,11 @@
     let formApiKey = $state(""); // plaintext while typing; masked after save
     let formBaseUrl = $state("");
     let formIsDefault = $state(false);
+    // Generation params
+    let formMaxTokens = $state<string>("");
+    let formTemperature = $state<string>("");
+    let formTopP = $state<string>("");
+    let formTopK = $state<string>("");
 
     // ─── Computed ──────────────────────────────────────────────────────────────
 
@@ -111,12 +116,21 @@
         isSaving = true;
         feedback = null;
 
+        // Parse generation params — empty string → omit from payload
+        const parseNum = (s: string) => {
+            const n = parseFloat(s);
+            return isFinite(n) ? n : undefined;
+        };
         const payload: Record<string, any> = {
             name: formName,
             provider: formProvider,
             model: formModel,
             base_url: formBaseUrl || undefined,
             is_default: formIsDefault,
+            max_tokens: parseNum(formMaxTokens),
+            temperature: parseNum(formTemperature),
+            top_p: parseNum(formTopP),
+            top_k: parseNum(formTopK),
         };
 
         // Only include api_key if the user typed something (not the masked placeholder)
@@ -204,6 +218,12 @@
         formApiKey = cfg.api_key_masked ?? ""; // Show mask; user replaces to update key
         formBaseUrl = cfg.base_url ?? "";
         formIsDefault = cfg.is_default;
+        // Generation params
+        const gp = cfg.generation_params ?? {};
+        formMaxTokens = gp.max_tokens != null ? String(gp.max_tokens) : "";
+        formTemperature = gp.temperature != null ? String(gp.temperature) : "";
+        formTopP = gp.top_p != null ? String(gp.top_p) : "";
+        formTopK = gp.top_k != null ? String(gp.top_k) : "";
         feedback = null;
     }
 
@@ -217,6 +237,10 @@
         formApiKey = "";
         formBaseUrl = "";
         formIsDefault = false;
+        formMaxTokens = "";
+        formTemperature = "";
+        formTopP = "";
+        formTopK = "";
         feedback = null;
     }
 
@@ -421,6 +445,97 @@
                             >Set as active default</span
                         >
                     </label>
+
+                    <!-- Generation Parameters -->
+                    <div
+                        class="rounded-xl border border-primary/10 bg-primary/5 p-4"
+                    >
+                        <p
+                            class="mb-3 text-xs font-bold uppercase tracking-widest text-primary"
+                        >
+                            Generation Parameters <span
+                                class="text-slate-500 normal-case font-normal"
+                                >(optional)</span
+                            >
+                        </p>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label
+                                    class="mb-1 block text-xs text-slate-400"
+                                    for="cfg-max-tokens"
+                                >
+                                    Max Reply Tokens
+                                </label>
+                                <input
+                                    id="cfg-max-tokens"
+                                    class="w-full rounded-lg border border-primary/20 bg-background-dark px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-primary focus:ring-1 focus:ring-primary"
+                                    type="number"
+                                    min="1"
+                                    max="131072"
+                                    step="1"
+                                    placeholder="e.g. 2048"
+                                    bind:value={formMaxTokens}
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    class="mb-1 block text-xs text-slate-400"
+                                    for="cfg-temperature"
+                                >
+                                    Temperature
+                                </label>
+                                <input
+                                    id="cfg-temperature"
+                                    class="w-full rounded-lg border border-primary/20 bg-background-dark px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-primary focus:ring-1 focus:ring-primary"
+                                    type="number"
+                                    min="0"
+                                    max="2"
+                                    step="0.05"
+                                    placeholder="e.g. 0.8"
+                                    bind:value={formTemperature}
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    class="mb-1 block text-xs text-slate-400"
+                                    for="cfg-top-p"
+                                >
+                                    Top-P
+                                </label>
+                                <input
+                                    id="cfg-top-p"
+                                    class="w-full rounded-lg border border-primary/20 bg-background-dark px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-primary focus:ring-1 focus:ring-primary"
+                                    type="number"
+                                    min="0"
+                                    max="1"
+                                    step="0.01"
+                                    placeholder="e.g. 0.95"
+                                    bind:value={formTopP}
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    class="mb-1 block text-xs text-slate-400"
+                                    for="cfg-top-k"
+                                >
+                                    Top-K
+                                </label>
+                                <input
+                                    id="cfg-top-k"
+                                    class="w-full rounded-lg border border-primary/20 bg-background-dark px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-primary focus:ring-1 focus:ring-primary"
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    placeholder="e.g. 40"
+                                    bind:value={formTopK}
+                                />
+                            </div>
+                        </div>
+                        <p class="mt-2 text-[10px] text-slate-500">
+                            Leave blank to use provider defaults. Supported
+                            parameters vary by model.
+                        </p>
+                    </div>
 
                     <!-- Feedback -->
                     {#if feedback}

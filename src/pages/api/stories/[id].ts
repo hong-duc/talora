@@ -117,6 +117,7 @@ export const GET: APIRoute = async ({ params }) => {
         const story = {
             id: storyData.id,
             title: storyData.title,
+            tagline: storyData.tagline || null,
             description: storyData.description,
             cover_image_url: storyData.cover_image_url,
             created_at: storyData.created_at,
@@ -124,7 +125,8 @@ export const GET: APIRoute = async ({ params }) => {
             author,
             tags,
             story_starts,
-            // New fields
+            is_public: storyData.is_public ?? true,
+            // World-building fields
             setting: storyData.setting || null,
             tone: storyData.tone || [],
             world_rules: storyData.world_rules || null,
@@ -164,12 +166,14 @@ export const PUT: APIRoute = async ({ params, request }) => {
         const body = await request.json();
         const {
             title,
+            tagline,
             description,
             cover_image_url,
             tags,
             story_starts,
             author_id, // For authorization check
-            // New fields
+            is_public,
+            // World-building fields
             setting,
             tone,
             world_rules,
@@ -263,9 +267,11 @@ export const PUT: APIRoute = async ({ params, request }) => {
         // Update story with all fields
         const { data: _updatedStory, error: updateError } = await updateStory(id, {
             title: title.trim(),
+            tagline: tagline?.trim() || undefined,
             description: description?.trim() || undefined,
             cover_image_url: cover_image_url || undefined,
             updated_at: new Date().toISOString(),
+            ...(typeof is_public === 'boolean' ? { is_public } : {}),
             // New fields
             setting: setting?.trim() || undefined,
             tone: toneArray.length > 0 ? toneArray : undefined,
@@ -497,6 +503,83 @@ export const PUT: APIRoute = async ({ params, request }) => {
             JSON.stringify({ error: 'Failed to update story' }),
             { status: 500, headers: { 'Content-Type': 'application/json' } }
         );
+    }
+};
+
+/**
+ * PATCH /api/stories/[id]
+ *
+ * Lightweight update for a single field — currently used for the is_public toggle.
+ * Expects JSON body: { author_id: string, is_public: boolean }
+ */
+export const PATCH: APIRoute = async ({ params, request }) => {
+    const id = params.id;
+    if (!id) {
+        return new Response(JSON.stringify({ error: 'Story id is required.' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    }
+
+    try {
+        const body = await request.json();
+        const { author_id, is_public } = body;
+
+        if (!author_id) {
+            return new Response(JSON.stringify({ error: 'author_id is required.' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+        if (typeof is_public !== 'boolean') {
+            return new Response(JSON.stringify({ error: 'is_public must be a boolean.' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        // Ownership check
+        const { data: existing } = await supabase
+            .from('stories')
+            .select('author_id')
+            .eq('id', id)
+            .maybeSingle();
+
+        if (!existing) {
+            return new Response(JSON.stringify({ error: 'Story not found.' }), {
+                status: 404,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+        if (existing.author_id !== author_id) {
+            return new Response(JSON.stringify({ error: 'Unauthorized.' }), {
+                status: 403,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        const { error: updateError } = await supabase
+            .from('stories')
+            .update({ is_public, updated_at: new Date().toISOString() })
+            .eq('id', id);
+
+        if (updateError) {
+            return new Response(JSON.stringify({ error: updateError.message }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        return new Response(JSON.stringify({ success: true, is_public }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    } catch (err) {
+        console.error('Unexpected error in story PATCH:', err);
+        return new Response(JSON.stringify({ error: 'Failed to update story.' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+        });
     }
 };
 

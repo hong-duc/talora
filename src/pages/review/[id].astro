@@ -99,6 +99,7 @@ type StoryRecord = {
 	pacing: "slow" | "medium" | "fast";
 	emotional_intensity: number;
 	auto_style: boolean;
+	is_public: boolean;
 };
 
 // ── Fetch story data ───────────────────────────────────────────────────────
@@ -117,6 +118,7 @@ const storyError = storyResult.ok
 const authorName = story?.author?.username || "Unknown Seeker";
 const authorId = story?.author_id || "";
 const coverImage = story?.cover_image_url || "/hero-library.png";
+const initialIsPublic = story?.is_public ?? true;
 
 // Description is HTML — render it with set:html
 const descriptionHtml =
@@ -275,13 +277,43 @@ const reviewErrorMessage = storyError;
 								className="bg-slate-800 text-slate-100 border border-primary/30"
 								>Add to Library</ArcaneButton
 							>
-							<!-- Author-only: Edit & Delete (revealed by JS after auth check) -->
+							<!-- Author-only: Edit, Public toggle & Delete (revealed by JS after auth check) -->
 							<span
 								id="author-actions"
 								class="hidden contents"
 								data-author-id={authorId}
 								data-story-id={story?.id || ""}
 							>
+								<!-- Public / Private toggle -->
+								<label
+									id="public-toggle-wrap"
+									class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-primary/30 bg-slate-800 px-4 py-3 text-sm font-bold text-slate-100 transition-all hover:border-primary/60 active:scale-95"
+									title="Toggle story visibility"
+								>
+									<input
+										id="public-toggle"
+										type="checkbox"
+										class="sr-only"
+										checked={initialIsPublic}
+									/>
+									<!-- track -->
+									<span
+										id="public-toggle-track"
+										class={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${initialIsPublic ? "bg-green-500" : "bg-slate-600"}`}
+									>
+										<span
+											id="public-toggle-thumb"
+											class={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${initialIsPublic ? "translate-x-4" : "translate-x-1"}`}
+										></span>
+									</span>
+									<span id="public-toggle-label"
+										>{
+											initialIsPublic
+												? "Public"
+												: "Private"
+										}</span
+									>
+								</label>
 								<ArcaneButton
 									href={story
 										? `/create-story?edit=${story.id}`
@@ -659,6 +691,87 @@ const reviewErrorMessage = storyError;
 
 				// Reveal Edit + Delete buttons
 				authorActions.classList.remove("hidden");
+
+				// Wire up public toggle
+				const toggleInput = document.getElementById(
+					"public-toggle",
+				) as HTMLInputElement | null;
+				const toggleTrack = document.getElementById(
+					"public-toggle-track",
+				);
+				const toggleThumb = document.getElementById(
+					"public-toggle-thumb",
+				);
+				const toggleLabel = document.getElementById(
+					"public-toggle-label",
+				);
+				toggleInput?.addEventListener("change", async () => {
+					const newValue = toggleInput.checked;
+					// Update UI immediately (optimistic)
+					if (toggleTrack) {
+						toggleTrack.className = toggleTrack.className.replace(
+							newValue ? "bg-slate-600" : "bg-green-500",
+							newValue ? "bg-green-500" : "bg-slate-600",
+						);
+					}
+					if (toggleThumb) {
+						toggleThumb.className = toggleThumb.className.replace(
+							newValue ? "translate-x-1" : "translate-x-4",
+							newValue ? "translate-x-4" : "translate-x-1",
+						);
+					}
+					if (toggleLabel)
+						toggleLabel.textContent = newValue
+							? "Public"
+							: "Private";
+
+					try {
+						const res = await fetch(`/api/stories/${storyId}`, {
+							method: "PATCH",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({
+								author_id: authorId,
+								is_public: newValue,
+							}),
+						});
+						if (!res.ok) {
+							// Revert on failure
+							toggleInput.checked = !newValue;
+							if (toggleTrack) {
+								toggleTrack.className =
+									toggleTrack.className.replace(
+										!newValue
+											? "bg-slate-600"
+											: "bg-green-500",
+										!newValue
+											? "bg-green-500"
+											: "bg-slate-600",
+									);
+							}
+							if (toggleThumb) {
+								toggleThumb.className =
+									toggleThumb.className.replace(
+										!newValue
+											? "translate-x-1"
+											: "translate-x-4",
+										!newValue
+											? "translate-x-4"
+											: "translate-x-1",
+									);
+							}
+							if (toggleLabel)
+								toggleLabel.textContent = !newValue
+									? "Public"
+									: "Private";
+							alert(
+								"Failed to update visibility. Please try again.",
+							);
+						}
+					} catch {
+						toggleInput.checked = !newValue;
+						alert("Network error. Please try again.");
+					}
+				});
 
 				// Wire up delete button only once
 				if (deleteWired) return;

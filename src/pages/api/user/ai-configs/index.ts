@@ -30,7 +30,7 @@ export const GET: APIRoute = async ({ request }) => {
 
     const { data, error } = await db
         .from('ai_configs')
-        .select('id, name, provider, model, base_url, is_default, created_at, updated_at, api_key_enc')
+        .select('id, name, provider, model, base_url, is_default, created_at, updated_at, api_key_enc, generation_params')
         .eq('user_id', auth.userId)
         .order('created_at', { ascending: true });
 
@@ -77,6 +77,9 @@ export const POST: APIRoute = async ({ request }) => {
     // Encrypt api_key before storage — plaintext never touches the DB
     const api_key_enc = await encryptApiKey(body.api_key ?? '');
 
+    // generation_params — only include keys with valid values
+    const generation_params = buildGenerationParams(body);
+
     const { data, error } = await db
         .from('ai_configs')
         .insert({
@@ -87,6 +90,7 @@ export const POST: APIRoute = async ({ request }) => {
             api_key_enc,
             base_url: body.base_url?.trim() || null,
             is_default: body.is_default ?? false,
+            generation_params,
         })
         .select()
         .single();
@@ -133,4 +137,18 @@ async function clearDefaults(db: SupabaseClient, userId: string): Promise<void> 
         .from('ai_configs')
         .update({ is_default: false })
         .eq('user_id', userId);
+}
+
+/**
+ * Build a JSONB generation_params object from the request body.
+ * Only includes keys where a valid number was provided.
+ */
+function buildGenerationParams(body: Record<string, any>): Record<string, number> {
+    const params: Record<string, number> = {};
+    const toNum = (v: unknown) => (typeof v === 'number' && isFinite(v) ? v : null);
+    const mt = toNum(body.max_tokens); if (mt !== null) params.max_tokens = mt;
+    const tp = toNum(body.temperature); if (tp !== null) params.temperature = tp;
+    const pp = toNum(body.top_p); if (pp !== null) params.top_p = pp;
+    const tk = toNum(body.top_k); if (tk !== null) params.top_k = tk;
+    return params;
 }

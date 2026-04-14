@@ -13,6 +13,7 @@ export interface Story {
     id?: string;
     author_id: string;
     title: string;
+    tagline?: string;         // Short one-liner displayed below the title
     description?: string;
     cover_image_url?: string;
     status?: 'draft' | 'public' | 'private' | 'deleted';
@@ -134,6 +135,14 @@ export interface Message {
 
 // ─── AI Configuration models ──────────────────────────────────────────────────
 
+/** Optional generation-parameter overrides stored per ai_config row (JSONB) */
+export interface AiGenerationParams {
+    max_tokens?: number;    // max reply length
+    temperature?: number;   // 0–2, higher = more creative
+    top_p?: number;         // nucleus-sampling probability
+    top_k?: number;         // top-k sampling
+}
+
 // A user's saved AI backend config (stored in ai_configs table)
 export interface AiConfig {
     id?: string;
@@ -145,6 +154,7 @@ export interface AiConfig {
     api_key_masked?: string;   // "••••••••" sent to client to confirm a key is saved
     base_url?: string;     // required for 'custom', optional override for others
     is_default: boolean;
+    generation_params?: AiGenerationParams;   // per-config AI overrides
     created_at?: string;
     updated_at?: string;
 }

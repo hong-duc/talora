@@ -24,6 +24,7 @@ type ParsedStoryData = {
     author_id?: string;
     authorId?: string;       // camelCase alias from the store
     title: string;
+    tagline?: string;
     description?: string;
     tags?: CreateStoryTag[];
     story_starts?: StoryStart[];
@@ -202,6 +203,7 @@ async function createStoryRecord(data: ParsedStoryData): Promise<{ story: Story 
     const storyData = {
         author_id: resolveAuthorId(data),
         title: data.title.trim(),
+        tagline: data.tagline?.trim() || undefined,
         description: data.description?.trim() || undefined,
         cover_image_url: '', // Empty string initially
         setting: data.setting?.trim() || undefined,

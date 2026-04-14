@@ -70,6 +70,18 @@ whenReady(() => {
         }
     };
 
+    // Collect all profile link anchors so we can update their href with ?id=
+    const profileLinkNodes = Array.from(document.querySelectorAll('[data-profile-link]'));
+
+    /** Set the profile avatar link href to /user?id=<userId> */
+    const applyProfileLink = (userId: string) => {
+        profileLinkNodes.forEach((node) => {
+            if (node instanceof HTMLAnchorElement) {
+                node.href = `/user?id=${encodeURIComponent(userId)}`;
+            }
+        });
+    };
+
     const fetchSessionProfile = async () => {
         try {
             // Use the client-side Supabase to get the current session.
@@ -82,6 +94,9 @@ whenReady(() => {
                 saveProfile(null);
                 return;
             }
+
+            // Update the profile link href to point to this user's profile page
+            applyProfileLink(session.user.id);
 
             // Session is valid. Try the locally stored profile first to avoid
             // an extra network round-trip on every page load.

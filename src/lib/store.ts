@@ -29,6 +29,7 @@ type Style = {
 export interface StoryFormData {
     // Core fields
     title: string;
+    tagline: string;          // short one-liner shown below the title
     description: string;
     coverImageUrl: string;
     authorId: string;
@@ -107,6 +108,7 @@ const storyFormSlice = createSlice({
             form: {
                 // Default values
                 title: '',
+                tagline: '',
                 description: '',
                 coverImageUrl: '',
                 authorId: '',
@@ -134,6 +136,13 @@ const storyFormSlice = createSlice({
         updateTitle: (state, action: PayloadAction<string>) => {
             if (state.form) {
                 state.form.title = action.payload;
+                state.form.dirty = true;
+            }
+        },
+
+        updateTagline: (state, action: PayloadAction<string>) => {
+            if (state.form) {
+                state.form.tagline = action.payload;
                 state.form.dirty = true;
             }
         },
@@ -241,6 +250,7 @@ export const { setStoryId, clearStoryId } = storySlice.actions;
 export const {
     initializeForm,
     updateTitle,
+    updateTagline,
     updateDescription,
     updateCoverImageUrl,
     updateAuthorId,

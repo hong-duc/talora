@@ -231,7 +231,7 @@ async function insertMessage(
 async function loadAiConfig(db: SupabaseClient, userId: string): Promise<ResolvedAiConfig | null> {
     const { data, error } = await db
         .from('ai_configs')
-        .select('provider, model, api_key_enc, base_url, is_default')
+        .select('provider, model, api_key_enc, base_url, is_default, generation_params')
         .eq('user_id', userId)
         .order('is_default', { ascending: false })
         .order('created_at', { ascending: false })
@@ -262,11 +262,18 @@ async function loadAiConfig(db: SupabaseClient, userId: string): Promise<Resolve
         return null;
     }
 
+    // Map optional generation_params JSONB → typed ResolvedAiConfig fields
+    const gp = (data.generation_params ?? {}) as Record<string, unknown>;
+
     return {
         provider: data.provider as AiProvider,
         model: data.model,
         apiKey,
         baseUrl: data.base_url ?? undefined,
+        maxTokens: typeof gp.max_tokens === 'number' ? gp.max_tokens : undefined,
+        temperature: typeof gp.temperature === 'number' ? gp.temperature : undefined,
+        topP: typeof gp.top_p === 'number' ? gp.top_p : undefined,
+        topK: typeof gp.top_k === 'number' ? gp.top_k : undefined,
     };
 }
 

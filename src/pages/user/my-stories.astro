@@ -1,0 +1,483 @@
+---
+/**
+ * My Stories page — shows all stories created by the currently logged-in user.
+ *
+ * How it works:
+ *   1. Page renders the shell on the server with loading skeletons.
+ *   2. On the client, we check the Supabase session.
+ *   3. If not signed in we redirect to /signin.
+ *   4. If signed in we fetch /api/stories?author_id=<uid>&all_statuses=true
+ *      so the user can see their own private stories too.
+ *   5. Story cards are rendered into the grid via JS.
+ */
+import "../../styles/global.css";
+import SiteHeader from "../../components/SiteHeader.astro";
+import SiteFooter from "../../components/SiteFooter.astro";
+import LibrarySectionNav from "../../components/LibrarySectionNav.astro";
+---
+
+<html class="dark" lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="icon" href="/favicon.ico" />
+        <meta name="generator" content={Astro.generator} />
+        <title>The Whispering Library – My Stories</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap"
+            rel="stylesheet"
+        />
+    </head>
+
+    <body class="min-h-screen bg-background-dark font-display text-slate-100">
+        <div
+            class="relative flex min-h-screen w-full flex-col overflow-x-hidden"
+        >
+            <div class="layout-container flex h-full grow flex-col">
+                <SiteHeader activeSection={undefined} />
+
+                <div class="mx-auto w-full max-w-5xl px-6 pt-6 lg:px-20">
+                    <LibrarySectionNav active="my-stories" />
+                </div>
+
+                <main class="mx-auto w-full max-w-[1200px] flex-1 px-6 py-8">
+                    <!-- Page header -->
+                    <div
+                        class="mb-10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                        <div>
+                            <h1
+                                class="text-3xl font-bold tracking-tight text-slate-100 md:text-4xl"
+                            >
+                                <span
+                                    class="material-symbols-outlined align-middle text-primary"
+                                    >auto_stories</span
+                                >
+                                My Stories
+                            </h1>
+                            <p class="mt-1 text-sm text-slate-400">
+                                All the tales you have woven into existence.
+                            </p>
+                        </div>
+                        <!-- Story count badge written by JS -->
+                        <div class="flex items-center gap-3">
+                            <span
+                                class="rounded-xl border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary"
+                                id="story-count-badge"></span>
+                            <a
+                                class="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary/90 active:scale-95"
+                                href="/create-story"
+                            >
+                                <span
+                                    class="material-symbols-outlined text-base"
+                                    >add_circle</span
+                                >
+                                Write New Story
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Filter tabs -->
+                    <div
+                        class="no-scrollbar mb-8 flex gap-1 overflow-x-auto border-b border-primary/10 pb-0"
+                        id="filter-tabs"
+                    >
+                        <button
+                            class="tab-btn whitespace-nowrap border-b-2 border-primary px-5 py-3 text-sm font-bold text-primary transition-colors"
+                            data-filter="all"
+                            type="button">All</button
+                        >
+                        <button
+                            class="tab-btn whitespace-nowrap border-b-2 border-transparent px-5 py-3 text-sm font-medium text-slate-400 transition-colors hover:text-primary"
+                            data-filter="public"
+                            type="button">Public</button
+                        >
+                        <button
+                            class="tab-btn whitespace-nowrap border-b-2 border-transparent px-5 py-3 text-sm font-medium text-slate-400 transition-colors hover:text-primary"
+                            data-filter="private"
+                            type="button">Private / Draft</button
+                        >
+                    </div>
+
+                    <!-- Stories grid — populated by JS -->
+                    <div
+                        class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
+                        id="my-stories-grid"
+                    >
+                        <!-- Loading skeletons shown while JS fetches data -->
+                        {
+                            [1, 2, 3, 4, 5, 6].map(() => (
+                                <div class="animate-pulse overflow-hidden rounded-xl border border-primary/10 bg-primary/5">
+                                    <div class="h-44 bg-primary/10" />
+                                    <div class="space-y-3 p-5">
+                                        <div class="h-4 w-3/4 rounded bg-primary/10" />
+                                        <div class="h-3 w-full rounded bg-primary/10" />
+                                        <div class="h-3 w-5/6 rounded bg-primary/10" />
+                                    </div>
+                                </div>
+                            ))
+                        }
+                    </div>
+
+                    <!-- Empty state — hidden by default, shown by JS if no stories -->
+                    <div
+                        class="hidden flex-col items-center gap-4 py-24 text-center"
+                        id="empty-state"
+                    >
+                        <span
+                            class="material-symbols-outlined text-7xl text-primary/20"
+                            >ink_pen</span
+                        >
+                        <h2 class="text-2xl font-bold text-slate-300">
+                            No stories yet
+                        </h2>
+                        <p class="max-w-sm text-slate-400">
+                            Your library is empty. Begin weaving your first tale
+                            and let it echo through the halls.
+                        </p>
+                        <a
+                            class="mt-2 inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-bold text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary/90"
+                            href="/create-story"
+                        >
+                            <span class="material-symbols-outlined"
+                                >add_circle</span
+                            >
+                            Write Your First Story
+                        </a>
+                    </div>
+
+                    <!-- Not signed-in notice — hidden by default, shown by JS if no session -->
+                    <div
+                        class="hidden flex-col items-center gap-4 py-24 text-center"
+                        id="unauthenticated-state"
+                    >
+                        <span
+                            class="material-symbols-outlined text-7xl text-primary/20"
+                            >lock</span
+                        >
+                        <h2 class="text-2xl font-bold text-slate-300">
+                            Sign in to view your stories
+                        </h2>
+                        <a
+                            class="mt-2 inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-bold text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary/90"
+                            href="/signin"
+                        >
+                            <span class="material-symbols-outlined">login</span>
+                            Sign In
+                        </a>
+                    </div>
+                </main>
+
+                <SiteFooter />
+            </div>
+        </div>
+
+        <!-- Client-side: auth check + fetch + render -->
+        <script is:inline>
+            (function () {
+                /**
+                 * Escape HTML special characters to prevent XSS when building
+                 * markup from API data.
+                 */
+                function escapeHtml(str) {
+                    const div = document.createElement("div");
+                    div.appendChild(document.createTextNode(String(str ?? "")));
+                    return div.innerHTML;
+                }
+
+                /**
+                 * Format an ISO date string to a human-readable short form
+                 * e.g. "14 Apr 2026"
+                 */
+                function formatDate(iso) {
+                    if (!iso) return "";
+                    return new Date(iso).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                    });
+                }
+
+                /**
+                 * Build the HTML for a single story card.
+                 * Shows: cover image, title, description, tags, public/private badge,
+                 * and action links (view + edit).
+                 */
+                function buildCard(story) {
+                    const isPublic = story.is_public !== false; // treat missing as public
+                    const badgeHtml = isPublic
+                        ? `<span class="rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white" style="background:#7311d4">Public</span>`
+                        : `<span class="rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white" style="background:#475569">Draft</span>`;
+
+                    const coverHtml = story.cover_image_url
+                        ? `<img
+								alt="${escapeHtml(story.title)}"
+								class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+								loading="lazy"
+								src="${escapeHtml(story.cover_image_url)}"
+							/>`
+                        : `<div class="flex h-full w-full items-center justify-center bg-linear-to-br from-primary/10 to-transparent">
+								<span class="material-symbols-outlined text-5xl text-primary/20">book_2</span>
+							</div>`;
+
+                    const tagsHtml = (story.tags ?? [])
+                        .slice(0, 3)
+                        .map(
+                            (tag) =>
+                                `<span class="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">${escapeHtml(tag.name)}</span>`,
+                        )
+                        .join("");
+
+                    return `
+						<article class="group flex flex-col overflow-hidden rounded-xl border border-primary/10 bg-slate-800/50 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10">
+							<!-- Cover image -->
+							<div class="relative h-44 overflow-hidden bg-slate-800">
+								${coverHtml}
+								<div class="absolute inset-0 bg-linear-to-t from-black/70 to-transparent"></div>
+								<!-- Public / draft badge -->
+								<div class="absolute bottom-3 left-3 flex gap-2">
+									${badgeHtml}
+								</div>
+							</div>
+
+							<!-- Card body -->
+							<div class="flex flex-1 flex-col gap-2 p-5">
+								<h3 class="line-clamp-1 text-lg font-bold text-slate-100 transition-colors group-hover:text-primary">
+									${escapeHtml(story.title)}
+								</h3>
+								<p class="line-clamp-2 min-h-[2.5rem] text-sm leading-relaxed text-slate-400">
+									${escapeHtml(story.description || story.world_prompt || "No description provided.")}
+								</p>
+
+								<!-- Tags row -->
+								${tagsHtml ? `<div class="flex flex-wrap gap-1">${tagsHtml}</div>` : ""}
+
+								<!-- Meta row: date -->
+								<p class="mt-auto pt-2 text-[11px] uppercase tracking-widest text-slate-500">
+									<span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle">calendar_today</span>
+									${formatDate(story.created_at)}
+								</p>
+
+								<!-- Action buttons -->
+								<div class="mt-2 flex gap-2">
+									<a
+										class="flex flex-1 items-center justify-center gap-1 rounded-lg border border-primary/20 bg-primary/10 py-2 text-xs font-bold text-primary transition-colors hover:bg-primary/20"
+										href="/review/${escapeHtml(story.id)}"
+									>
+										<span class="material-symbols-outlined" style="font-size:15px">visibility</span>
+										View
+									</a>
+									<a
+										class="flex flex-1 items-center justify-center gap-1 rounded-lg border border-slate-600/50 bg-slate-700/50 py-2 text-xs font-bold text-slate-300 transition-colors hover:border-primary/30 hover:text-primary"
+										href="/create-story?id=${escapeHtml(story.id)}"
+									>
+										<span class="material-symbols-outlined" style="font-size:15px">edit</span>
+										Edit
+									</a>
+								</div>
+							</div>
+						</article>`;
+                }
+
+                // ── State ────────────────────────────────────────────────────────────
+                let allStories = []; // all stories fetched from the API
+                let activeFilter = "all"; // "all" | "public" | "private"
+
+                /**
+                 * Render cards for the current activeFilter into the grid.
+                 * Also updates the count badge.
+                 */
+                function renderGrid() {
+                    const grid = document.getElementById("my-stories-grid");
+                    const emptyState = document.getElementById("empty-state");
+                    const countBadge =
+                        document.getElementById("story-count-badge");
+                    if (!grid) return;
+
+                    // Filter stories based on active tab
+                    const filtered = allStories.filter((story) => {
+                        if (activeFilter === "public")
+                            return story.is_public !== false;
+                        if (activeFilter === "private")
+                            return story.is_public === false;
+                        return true; // "all"
+                    });
+
+                    // Update count badge
+                    if (countBadge) {
+                        countBadge.textContent = `${allStories.length} ${allStories.length === 1 ? "story" : "stories"}`;
+                    }
+
+                    if (filtered.length === 0) {
+                        grid.innerHTML = "";
+                        // If we have stories but none match the filter show a small message
+                        if (allStories.length > 0) {
+                            grid.innerHTML = `
+								<div class="col-span-full py-16 text-center text-slate-500">
+									No stories in this category yet.
+								</div>`;
+                        } else {
+                            emptyState?.classList.remove("hidden");
+                            emptyState?.classList.add("flex");
+                        }
+                        return;
+                    }
+
+                    emptyState?.classList.add("hidden");
+                    emptyState?.classList.remove("flex");
+                    grid.innerHTML = filtered.map(buildCard).join("");
+                }
+
+                /**
+                 * Show a full-page error message inside the grid area.
+                 */
+                function showError(message) {
+                    const grid = document.getElementById("my-stories-grid");
+                    if (grid) {
+                        grid.innerHTML = `
+							<div class="col-span-full flex flex-col items-center gap-3 py-20 text-center">
+								<span class="material-symbols-outlined text-5xl text-red-400/40">error</span>
+								<p class="text-slate-400">${escapeHtml(message)}</p>
+							</div>`;
+                    }
+                }
+
+                /**
+                 * Show the unauthenticated state and hide the grid.
+                 */
+                function showUnauthenticated() {
+                    const grid = document.getElementById("my-stories-grid");
+                    const unauth = document.getElementById(
+                        "unauthenticated-state",
+                    );
+                    const countBadge =
+                        document.getElementById("story-count-badge");
+                    if (grid) grid.innerHTML = "";
+                    if (countBadge) countBadge.textContent = "";
+                    unauth?.classList.remove("hidden");
+                    unauth?.classList.add("flex");
+                }
+
+                /**
+                 * Wire up the filter tab buttons so they highlight the active
+                 * tab and re-render the grid without a new network request.
+                 */
+                function initFilterTabs() {
+                    document.querySelectorAll(".tab-btn").forEach((btn) => {
+                        btn.addEventListener("click", () => {
+                            activeFilter = btn.dataset.filter || "all";
+
+                            // Update tab visual state
+                            document
+                                .querySelectorAll(".tab-btn")
+                                .forEach((b) => {
+                                    const isActive = b === btn;
+                                    b.classList.toggle(
+                                        "border-primary",
+                                        isActive,
+                                    );
+                                    b.classList.toggle(
+                                        "text-primary",
+                                        isActive,
+                                    );
+                                    b.classList.toggle("font-bold", isActive);
+                                    b.classList.toggle(
+                                        "border-transparent",
+                                        !isActive,
+                                    );
+                                    b.classList.toggle(
+                                        "text-slate-400",
+                                        !isActive,
+                                    );
+                                    b.classList.toggle(
+                                        "font-medium",
+                                        !isActive,
+                                    );
+                                });
+
+                            renderGrid();
+                        });
+                    });
+                }
+
+                /**
+                 * Main entry point:
+                 *   1. Get the Supabase session from localStorage.
+                 *   2. If signed in, fetch the user's stories.
+                 *   3. Render them (or appropriate empty / error states).
+                 */
+                async function init() {
+                    // Supabase stores the session in localStorage under a key that
+                    // begins with "sb-" and ends with "-auth-token".
+                    const sessionKey = Object.keys(localStorage).find(
+                        (k) => k.startsWith("sb-") && k.endsWith("-auth-token"),
+                    );
+                    const rawSession = sessionKey
+                        ? localStorage.getItem(sessionKey)
+                        : null;
+
+                    let session = null;
+                    try {
+                        session = rawSession ? JSON.parse(rawSession) : null;
+                    } catch {
+                        session = null;
+                    }
+
+                    const userId = session?.user?.id;
+                    const token = session?.access_token;
+
+                    if (!userId) {
+                        showUnauthenticated();
+                        return;
+                    }
+
+                    try {
+                        // Fetch all stories for the user (including private ones)
+                        const url = `/api/stories?author_id=${encodeURIComponent(userId)}&all_statuses=true&limit=100`;
+                        const res = await fetch(url, {
+                            headers: token
+                                ? { Authorization: `Bearer ${token}` }
+                                : {},
+                        });
+
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                        const json = await res.json();
+                        // API wraps data in { success, data: { stories, pagination } }
+                        allStories = json?.data?.stories ?? json?.stories ?? [];
+
+                        initFilterTabs();
+                        renderGrid();
+                    } catch (err) {
+                        showError(
+                            "Could not load your stories. Please try again later.",
+                        );
+                    }
+                }
+
+                // Run after DOM is ready
+                if (document.readyState === "loading") {
+                    document.addEventListener("DOMContentLoaded", init);
+                } else {
+                    init();
+                }
+            })();
+        </script>
+    </body>
+</html>
+
+<style>
+    /* Hide browser scrollbars on the filter tab row */
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+</style>

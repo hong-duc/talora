@@ -80,3 +80,46 @@ export const GET: APIRoute = async ({ request, params }) => {
         storyStart: storyStartResult.data ?? null,
     });
 };
+
+// ─── DELETE /api/sessions/[id] ────────────────────────────────────────────────
+
+/**
+ * Delete a session and all its messages (cascade handled by FK in DB).
+ * Only the session owner can delete it.
+ */
+export const DELETE: APIRoute = async ({ request, params }) => {
+    const auth = await requireAuth(request);
+    if (auth.error) return auth.error;
+
+    const sessionId = params.id;
+    if (!sessionId) return jsonResponse({ error: 'Session ID is required' }, 400);
+
+    const db = createAuthedClient(auth.token);
+
+    // Verify ownership
+    const { data: sessionRow } = await db
+        .from('story_sessions')
+        .select('id')
+        .eq('id', sessionId)
+        .eq('user_id', auth.userId)
+        .single();
+
+    if (!sessionRow) return jsonResponse({ error: 'Session not found' }, 404);
+
+    // Delete all messages first (safety — should cascade but be explicit)
+    await db.from('messages').delete().eq('session_id', sessionId);
+
+    // Delete the session itself
+    const { error: deleteErr } = await db
+        .from('story_sessions')
+        .delete()
+        .eq('id', sessionId)
+        .eq('user_id', auth.userId);
+
+    if (deleteErr) {
+        console.error('[DELETE /api/sessions/id] delete error:', deleteErr.message);
+        return jsonResponse({ error: deleteErr.message }, 500);
+    }
+
+    return jsonResponse({ success: true });
+};

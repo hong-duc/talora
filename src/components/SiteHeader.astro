@@ -3,7 +3,7 @@ interface Props {
 	variant?: "default" | "chat";
 	className?: string;
 	showNav?: boolean;
-	activeSection?: "archive" | "social";
+	activeSection?: "archive" | "social" | "my-stories";
 }
 
 const {
@@ -20,9 +20,11 @@ const resolvedActive =
 		? "archive"
 		: pathname.startsWith("/social")
 			? "social"
-			: undefined);
+			: pathname.startsWith("/user/my-stories")
+				? "my-stories"
+				: undefined);
 
-const navItemClass = (key: "archive" | "social") =>
+const navItemClass = (key: "archive" | "social" | "my-stories") =>
 	`magic-glow flex items-center gap-2 text-base font-medium transition-colors ${
 		resolvedActive === key
 			? "text-primary"
@@ -70,6 +72,17 @@ const headerBgClass =
 								forum
 							</span>
 							The Hall of Echoes
+						</a>
+						<!-- "My Stories" only visible when signed in — toggled by profile-sync.ts -->
+						<a
+							class={`${navItemClass("my-stories")} hidden`}
+							data-auth="signed-in"
+							href="/user/my-stories"
+						>
+							<span class="material-symbols-outlined text-lg">
+								auto_stories
+							</span>
+							My Stories
 						</a>
 					</nav>
 				)
@@ -210,7 +223,11 @@ const headerBgClass =
 						data-profile-name>Elena Vance</span
 					>
 				</button>
-				<a class="group relative cursor-pointer" href="/user">
+				<a
+					class="group relative cursor-pointer"
+					href="/user"
+					data-profile-link
+				>
 					<div
 						class="size-10 overflow-hidden rounded-full border-2 border-primary/30 bg-primary/10 p-0.5 transition-all group-hover:border-primary"
 					>

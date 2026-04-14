@@ -38,6 +38,7 @@
     let isAuthReady = $state(false);
     let isNotSignedIn = $state(false);
     let isLoadingSessions = $state(true);
+    let sidebarCollapsed = $state(false);
 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
 
@@ -87,6 +88,37 @@
         const url = new URL(window.location.href);
         url.searchParams.set("session", id);
         window.location.href = url.toString();
+    }
+
+    async function deleteSession(id: string, e: MouseEvent) {
+        e.stopPropagation(); // Don't navigate into the session
+        if (!accessToken) return;
+        if (
+            !confirm(
+                "Delete this session and all its messages? This cannot be undone.",
+            )
+        )
+            return;
+
+        try {
+            const res = await fetch(`/api/sessions/${id}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            if (!res.ok) return;
+
+            // Remove from local list
+            sessions = sessions.filter((s) => s.id !== id);
+
+            // If we just deleted the active session, navigate to picker
+            if (id === sessionId) {
+                const url = new URL(window.location.href);
+                url.searchParams.delete("session");
+                window.location.href = url.toString();
+            }
+        } catch {
+            // Silently ignore network errors
+        }
     }
 
     function relativeTime(iso: string): string {
@@ -155,59 +187,75 @@
                 <!-- Session grid -->
                 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {#each sessions as s (s.id)}
-                        <button
-                            type="button"
-                            onclick={() => selectSession(s.id)}
-                            class="session-card group flex flex-col overflow-hidden rounded-2xl border border-primary/20 bg-primary/5 text-left transition-all hover:border-primary hover:bg-primary/10 hover:shadow-xl hover:shadow-primary/10 active:scale-[0.98]"
-                        >
-                            <!-- Cover image -->
-                            <div
-                                class="aspect-video w-full overflow-hidden bg-slate-800"
+                        <div class="group/card relative">
+                            <button
+                                type="button"
+                                onclick={() => selectSession(s.id)}
+                                class="session-card group flex w-full flex-col overflow-hidden rounded-2xl border border-primary/20 bg-primary/5 text-left transition-all hover:border-primary hover:bg-primary/10 hover:shadow-xl hover:shadow-primary/10 active:scale-[0.98]"
                             >
-                                {#if s.stories?.cover_image_url}
-                                    <img
-                                        src={s.stories.cover_image_url}
-                                        alt=""
-                                        class="h-full w-full object-cover opacity-80 transition-opacity group-hover:opacity-100"
-                                        loading="lazy"
-                                    />
-                                {:else}
-                                    <div
-                                        class="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 to-transparent"
+                                <!-- Cover image -->
+                                <div
+                                    class="aspect-video w-full overflow-hidden bg-slate-800"
+                                >
+                                    {#if s.stories?.cover_image_url}
+                                        <img
+                                            src={s.stories.cover_image_url}
+                                            alt=""
+                                            class="h-full w-full object-cover opacity-80 transition-opacity group-hover:opacity-100"
+                                            loading="lazy"
+                                        />
+                                    {:else}
+                                        <div
+                                            class="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 to-transparent"
+                                        >
+                                            <span
+                                                class="material-symbols-outlined text-5xl text-primary/30"
+                                                >book_2</span
+                                            >
+                                        </div>
+                                    {/if}
+                                </div>
+
+                                <!-- Info -->
+                                <div class="flex flex-1 flex-col gap-1 p-4">
+                                    <p
+                                        class="truncate font-bold text-slate-100 group-hover:text-primary"
+                                    >
+                                        {s.stories?.title ??
+                                            s.title ??
+                                            "Untitled Story"}
+                                    </p>
+                                    {#if s.title && s.title !== s.stories?.title}
+                                        <p
+                                            class="truncate text-xs text-slate-400"
+                                        >
+                                            {s.title}
+                                        </p>
+                                    {/if}
+                                    <p
+                                        class="mt-auto pt-2 text-[11px] text-primary/50"
                                     >
                                         <span
-                                            class="material-symbols-outlined text-5xl text-primary/30"
-                                            >book_2</span
+                                            class="material-symbols-outlined align-middle text-[13px]"
+                                            >schedule</span
                                         >
-                                    </div>
-                                {/if}
-                            </div>
-
-                            <!-- Info -->
-                            <div class="flex flex-1 flex-col gap-1 p-4">
-                                <p
-                                    class="truncate font-bold text-slate-100 group-hover:text-primary"
-                                >
-                                    {s.stories?.title ??
-                                        s.title ??
-                                        "Untitled Story"}
-                                </p>
-                                {#if s.title && s.title !== s.stories?.title}
-                                    <p class="truncate text-xs text-slate-400">
-                                        {s.title}
+                                        {relativeTime(s.updated_at)}
                                     </p>
-                                {/if}
-                                <p
-                                    class="mt-auto pt-2 text-[11px] text-primary/50"
+                                </div>
+                            </button>
+                            <!-- Delete session button (top-right corner on hover) -->
+                            <button
+                                class="absolute right-2 top-2 rounded-lg bg-black/60 p-1.5 text-slate-400 opacity-0 transition-all hover:bg-red-500/80 hover:text-white group-hover/card:opacity-100"
+                                type="button"
+                                title="Delete this session"
+                                onclick={(e) => deleteSession(s.id, e)}
+                            >
+                                <span
+                                    class="material-symbols-outlined text-sm leading-none"
+                                    >delete</span
                                 >
-                                    <span
-                                        class="material-symbols-outlined align-middle text-[13px]"
-                                        >schedule</span
-                                    >
-                                    {relativeTime(s.updated_at)}
-                                </p>
-                            </div>
-                        </button>
+                            </button>
+                        </div>
                     {/each}
                 </div>
             {:else}
@@ -245,7 +293,7 @@
     <!-- ─── Normal chat layout: sidebar + window ─────────────────────── -->
     <aside
         id="chat-sidebar"
-        class="absolute inset-y-0 left-0 z-20 flex w-80 min-h-0 flex-col border-r border-primary/10 bg-background-dark transition-transform duration-300 ease-in-out"
+        class={`absolute inset-y-0 left-0 z-20 flex w-80 min-h-0 flex-col border-r border-primary/10 bg-background-dark transition-transform duration-300 ease-in-out ${sidebarCollapsed ? "-translate-x-full" : "translate-x-0"}`}
     >
         <div class="flex min-h-0 flex-1 flex-col p-6">
             <div class="mb-6 flex items-center justify-between">
@@ -274,43 +322,57 @@
                     </div>
                 {:else}
                     {#each sessions as s (s.id)}
-                        <button
-                            class={`group flex w-full cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition-all ${s.id === sessionId ? "mystical-glow border-primary/30 bg-primary/10 text-primary" : "border-transparent text-slate-400 hover:bg-white/5"}`}
-                            onclick={() => selectSession(s.id)}
-                            type="button"
-                        >
-                            <div
-                                class="size-10 shrink-0 overflow-hidden rounded-full border border-slate-700"
+                        <div class="group/item relative flex items-center">
+                            <button
+                                class={`flex flex-1 cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition-all ${s.id === sessionId ? "mystical-glow border-primary/30 bg-primary/10 text-primary" : "border-transparent text-slate-400 hover:bg-white/5"}`}
+                                onclick={() => selectSession(s.id)}
+                                type="button"
                             >
-                                {#if s.stories?.cover_image_url}
-                                    <img
-                                        src={s.stories.cover_image_url}
-                                        alt=""
-                                        class="h-full w-full object-cover"
-                                        loading="lazy"
-                                    />
-                                {:else}
-                                    <div
-                                        class="flex h-full w-full items-center justify-center bg-primary/20"
-                                    >
-                                        <span
-                                            class="material-symbols-outlined text-sm text-primary"
-                                            >auto_stories</span
+                                <div
+                                    class="size-10 shrink-0 overflow-hidden rounded-full border border-slate-700"
+                                >
+                                    {#if s.stories?.cover_image_url}
+                                        <img
+                                            src={`https://wsrv.nl/?url=${encodeURIComponent(s.stories.cover_image_url)}&w=40&h=40&fit=cover&output=webp`}
+                                            alt=""
+                                            class="h-full w-full object-cover"
+                                            loading="lazy"
+                                        />
+                                    {:else}
+                                        <div
+                                            class="flex h-full w-full items-center justify-center bg-primary/20"
                                         >
-                                    </div>
-                                {/if}
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <p class="truncate text-sm font-bold">
-                                    {s.stories?.title ??
-                                        s.title ??
-                                        "Untitled Story"}
-                                </p>
-                                <p class="text-[10px] font-medium">
-                                    {relativeTime(s.updated_at)}
-                                </p>
-                            </div>
-                        </button>
+                                            <span
+                                                class="material-symbols-outlined text-sm text-primary"
+                                                >auto_stories</span
+                                            >
+                                        </div>
+                                    {/if}
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate text-sm font-bold">
+                                        {s.stories?.title ??
+                                            s.title ??
+                                            "Untitled Story"}
+                                    </p>
+                                    <p class="text-[10px] font-medium">
+                                        {relativeTime(s.updated_at)}
+                                    </p>
+                                </div>
+                            </button>
+                            <!-- Delete session button (visible on hover) -->
+                            <button
+                                class="absolute right-1 rounded p-1 text-slate-600 opacity-0 transition-all hover:text-red-400 group-hover/item:opacity-100"
+                                type="button"
+                                title="Delete session"
+                                onclick={(e) => deleteSession(s.id, e)}
+                            >
+                                <span
+                                    class="material-symbols-outlined text-base leading-none"
+                                    >delete</span
+                                >
+                            </button>
+                        </div>
                     {/each}
 
                     {#if sessions.length === 0}
@@ -338,26 +400,29 @@
 
     <!-- Sidebar toggle button -->
     <button
-        aria-expanded="true"
+        aria-expanded={!sidebarCollapsed}
         aria-label="Toggle session sidebar"
         id="sidebar-toggle"
-        class="absolute left-80 top-1/2 z-30 -translate-y-1/2 rounded-r-xl border border-primary/30 bg-background-dark/90 p-2 text-primary shadow-lg transition-all duration-300 hover:bg-primary/10"
+        class={`absolute top-1/2 z-30 -translate-y-1/2 rounded-r-xl border border-primary/30 bg-background-dark/90 p-2 text-primary shadow-lg transition-all duration-300 hover:bg-primary/10 ${sidebarCollapsed ? "left-0" : "left-80"}`}
         type="button"
+        onclick={() => (sidebarCollapsed = !sidebarCollapsed)}
     >
-        <span class="material-symbols-outlined" id="sidebar-toggle-icon"
-            >chevron_left</span
-        >
+        <span class="material-symbols-outlined">
+            {sidebarCollapsed ? "chevron_right" : "chevron_left"}
+        </span>
     </button>
 
     <!-- Chat window area -->
     <div
-        class="flex min-h-0 flex-1 bg-[#1a1625] pl-80 transition-[padding] duration-300"
+        class={`flex min-h-0 flex-1 bg-[#1a1625] transition-[padding] duration-300 ${sidebarCollapsed ? "pl-0" : "pl-80"}`}
         id="chat-content-wrap"
     >
         <ChatWindow
             {sessionId}
             storyTitle={sessions.find((s) => s.id === sessionId)?.stories
                 ?.title ?? "The Story"}
+            storyCoverImageUrl={sessions.find((s) => s.id === sessionId)
+                ?.stories?.cover_image_url ?? null}
             accessToken={accessToken!}
         />
     </div>

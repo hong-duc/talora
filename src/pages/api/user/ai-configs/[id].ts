@@ -65,6 +65,12 @@ export const PUT: APIRoute = async ({ request, params }) => {
         updates.api_key_enc = await encryptApiKey(body.api_key);
     }
 
+    // generation_params — merge with empty object so we only update provided fields
+    if (body.generation_params !== undefined || body.max_tokens !== undefined ||
+        body.temperature !== undefined || body.top_p !== undefined || body.top_k !== undefined) {
+        updates.generation_params = buildGenerationParams(body);
+    }
+
     // Handle default switching: if setting to default, clear others first
     if (body.is_default === true) {
         await clearDefaults(db, auth.userId);
@@ -137,4 +143,15 @@ async function clearDefaults(db: SupabaseClient, userId: string): Promise<void> 
         .from('ai_configs')
         .update({ is_default: false })
         .eq('user_id', userId);
+}
+
+/** Build a JSONB generation_params object from the request body. */
+function buildGenerationParams(body: Record<string, any>): Record<string, number> {
+    const params: Record<string, number> = {};
+    const toNum = (v: unknown) => (typeof v === 'number' && isFinite(v) ? v : null);
+    const mt = toNum(body.max_tokens); if (mt !== null) params.max_tokens = mt;
+    const tp = toNum(body.temperature); if (tp !== null) params.temperature = tp;
+    const pp = toNum(body.top_p); if (pp !== null) params.top_p = pp;
+    const tk = toNum(body.top_k); if (tk !== null) params.top_k = tk;
+    return params;
 }

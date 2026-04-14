@@ -17,6 +17,7 @@ import {
     updateDescription,
     initializeForm,
     updateTitle,
+    updateTagline,
     updateCharacters,
     updateStyle,
     type StoryFormData,
@@ -44,6 +45,7 @@ let fileUpload: File | undefined;
 interface FormElements {
     form: HTMLFormElement | null;
     titleInput: HTMLInputElement | null;
+    taglineInput: HTMLInputElement | null;
     descriptionInput: HTMLInputElement | null;
     coverImageUrlInput: HTMLElement | null;
     submitButton: HTMLButtonElement | null;
@@ -63,6 +65,7 @@ function getFormElements(): FormElements {
     return {
         form: document.getElementById("create-story-form") as HTMLFormElement | null,
         titleInput: document.getElementById("title") as HTMLInputElement | null,
+        taglineInput: document.getElementById("tagline") as HTMLInputElement | null,
         descriptionInput: document.getElementById("description-editor-data") as HTMLInputElement | null,
         coverImageUrlInput: document.getElementById("cover-image-url"),
         submitButton: document.getElementById("submit-button") as HTMLButtonElement | null,
@@ -109,6 +112,7 @@ function initializeEditMode(editId: string, data: any): void {
     store.dispatch(setStoryId(editId));
     store.dispatch(initializeForm({
         title: data.title || "",
+        tagline: data.tagline || "",
         description: data.description || "",
         coverImageUrl: data.cover_image_url || "",
         authorId: data.author_id || "",
@@ -190,6 +194,7 @@ async function submitUpdate(editId: string, data: StoryFormData): Promise<{ stor
     // Build the update body — maps store field names to API field names
     const body = {
         title: payload.title,
+        tagline: payload.tagline || undefined,
         description: payload.description,
         cover_image_url: payload.coverImageUrl || undefined,
         author_id: authorId,
@@ -267,6 +272,11 @@ function setupEventListeners(elements: FormElements): void {
     // Title input
     elements.titleInput?.addEventListener("input", (e) => {
         store.dispatch(updateTitle((e.currentTarget as HTMLInputElement).value));
+    });
+
+    // Tagline input
+    elements.taglineInput?.addEventListener("input", (e) => {
+        store.dispatch(updateTagline((e.currentTarget as HTMLInputElement).value));
     });
 
     // Cover image file selection
