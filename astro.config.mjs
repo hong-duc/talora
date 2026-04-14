@@ -12,7 +12,11 @@ import vercel from '@astrojs/vercel';
 // https://astro.build/config
 export default defineConfig({
   output: "server",
-  adapter: vercel(),
+  // Enable Vercel Web Analytics so page views are tracked automatically.
+  // The adapter injects the @vercel/analytics script into every page.
+  adapter: vercel({
+    webAnalytics: { enabled: true },
+  }),
   integrations: [svelte()],
 
   vite: {
