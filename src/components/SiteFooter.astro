@@ -1,42 +1,99 @@
-<footer class="mt-auto w-full border-t border-primary/20 bg-background-dark px-6 pb-12 pt-16">
-	<div class="mx-auto flex max-w-6xl flex-col items-center gap-12 rounded-lg border-4 border-double border-[#D4AF37] p-8 shadow-[0_0_30px_rgba(212,175,55,0.15)] md:p-12 relative">
-		<div class="absolute -top-3 -left-3 h-6 w-6 rounded-tl-sm border-l-2 border-t-2 border-[#D4AF37] opacity-80"></div>
-		<div class="absolute -top-3 -right-3 h-6 w-6 rounded-tr-sm border-r-2 border-t-2 border-[#D4AF37] opacity-80"></div>
-		<div class="absolute -bottom-3 -left-3 h-6 w-6 rounded-bl-sm border-b-2 border-l-2 border-[#D4AF37] opacity-80"></div>
-		<div class="absolute -bottom-3 -right-3 h-6 w-6 rounded-br-sm border-b-2 border-r-2 border-[#D4AF37] opacity-80"></div>
+---
+import SpeedInsights from "@vercel/speed-insights/astro";
+---
+
+<SpeedInsights />
+
+<footer
+	class="mt-auto w-full border-t border-primary/20 bg-background-dark px-6 pb-12 pt-16"
+>
+	<div
+		class="mx-auto flex max-w-6xl flex-col items-center gap-12 rounded-lg border-4 border-double border-[#D4AF37] p-8 shadow-[0_0_30px_rgba(212,175,55,0.15)] md:p-12 relative"
+	>
+		<div
+			class="absolute -top-3 -left-3 h-6 w-6 rounded-tl-sm border-l-2 border-t-2 border-[#D4AF37] opacity-80"
+		>
+		</div>
+		<div
+			class="absolute -top-3 -right-3 h-6 w-6 rounded-tr-sm border-r-2 border-t-2 border-[#D4AF37] opacity-80"
+		>
+		</div>
+		<div
+			class="absolute -bottom-3 -left-3 h-6 w-6 rounded-bl-sm border-b-2 border-l-2 border-[#D4AF37] opacity-80"
+		>
+		</div>
+		<div
+			class="absolute -bottom-3 -right-3 h-6 w-6 rounded-br-sm border-b-2 border-r-2 border-[#D4AF37] opacity-80"
+		>
+		</div>
 
 		<div class="flex flex-col items-center gap-4">
 			<div class="flex items-center gap-2">
-				<span class="material-symbols-outlined text-primary">menu_book</span>
-				<span class="text-xl font-semibold uppercase tracking-wider text-primary/80">The Archive</span>
+				<span class="material-symbols-outlined text-primary"
+					>menu_book</span
+				>
+				<span
+					class="text-xl font-semibold uppercase tracking-wider text-primary/80"
+					>The Archive</span
+				>
 			</div>
-			<div class="h-px w-24 bg-linear-to-r from-transparent via-primary/50 to-transparent"></div>
+			<div
+				class="h-px w-24 bg-linear-to-r from-transparent via-primary/50 to-transparent"
+			>
+			</div>
 		</div>
 
 		<nav class="w-full">
-			<ul class="flex flex-wrap justify-center gap-x-12 gap-y-6 text-center">
+			<ul
+				class="flex flex-wrap justify-center gap-x-12 gap-y-6 text-center"
+			>
 				<li>
-					<a class="group flex flex-col items-center gap-1 text-slate-200 transition-colors hover:text-primary" href="#">
-						<span class="text-lg font-medium">About the Archive</span>
-						<span class="h-0.5 w-0 bg-primary transition-all group-hover:w-full"></span>
+					<a
+						class="group flex flex-col items-center gap-1 text-slate-200 transition-colors hover:text-primary"
+						href="#"
+					>
+						<span class="text-lg font-medium"
+							>About the Archive</span
+						>
+						<span
+							class="h-0.5 w-0 bg-primary transition-all group-hover:w-full"
+						></span>
 					</a>
 				</li>
 				<li>
-					<a class="group flex flex-col items-center gap-1 text-slate-200 transition-colors hover:text-primary" href="#">
-						<span class="text-lg font-medium">Contact the High Archivist</span>
-						<span class="h-0.5 w-0 bg-primary transition-all group-hover:w-full"></span>
+					<a
+						class="group flex flex-col items-center gap-1 text-slate-200 transition-colors hover:text-primary"
+						href="#"
+					>
+						<span class="text-lg font-medium"
+							>Contact the High Archivist</span
+						>
+						<span
+							class="h-0.5 w-0 bg-primary transition-all group-hover:w-full"
+						></span>
 					</a>
 				</li>
 				<li>
-					<a class="group flex flex-col items-center gap-1 text-slate-200 transition-colors hover:text-primary" href="#">
+					<a
+						class="group flex flex-col items-center gap-1 text-slate-200 transition-colors hover:text-primary"
+						href="#"
+					>
 						<span class="text-lg font-medium">Privacy Sigils</span>
-						<span class="h-0.5 w-0 bg-primary transition-all group-hover:w-full"></span>
+						<span
+							class="h-0.5 w-0 bg-primary transition-all group-hover:w-full"
+						></span>
 					</a>
 				</li>
 				<li>
-					<a class="group flex flex-col items-center gap-1 text-slate-200 transition-colors hover:text-primary" href="#">
-						<span class="text-lg font-medium">Terms of Binding</span>
-						<span class="h-0.5 w-0 bg-primary transition-all group-hover:w-full"></span>
+					<a
+						class="group flex flex-col items-center gap-1 text-slate-200 transition-colors hover:text-primary"
+						href="#"
+					>
+						<span class="text-lg font-medium">Terms of Binding</span
+						>
+						<span
+							class="h-0.5 w-0 bg-primary transition-all group-hover:w-full"
+						></span>
 					</a>
 				</li>
 			</ul>
@@ -44,28 +101,53 @@
 
 		<div class="flex w-full flex-col items-center gap-8">
 			<div class="flex gap-6">
-				<a class="flex h-10 w-10 items-center justify-center rounded-full border border-primary/30 transition-colors hover:bg-primary/10" href="#">
-					<span class="material-symbols-outlined text-xl text-primary/70">history_edu</span>
+				<a
+					class="flex h-10 w-10 items-center justify-center rounded-full border border-primary/30 transition-colors hover:bg-primary/10"
+					href="#"
+				>
+					<span
+						class="material-symbols-outlined text-xl text-primary/70"
+						>history_edu</span
+					>
 				</a>
-				<a class="flex h-10 w-10 items-center justify-center rounded-full border border-primary/30 transition-colors hover:bg-primary/10" href="#">
-					<span class="material-symbols-outlined text-xl text-primary/70">storm</span>
+				<a
+					class="flex h-10 w-10 items-center justify-center rounded-full border border-primary/30 transition-colors hover:bg-primary/10"
+					href="#"
+				>
+					<span
+						class="material-symbols-outlined text-xl text-primary/70"
+						>storm</span
+					>
 				</a>
-				<a class="flex h-10 w-10 items-center justify-center rounded-full border border-primary/30 transition-colors hover:bg-primary/10" href="#">
-					<span class="material-symbols-outlined text-xl text-primary/70">auto_awesome</span>
+				<a
+					class="flex h-10 w-10 items-center justify-center rounded-full border border-primary/30 transition-colors hover:bg-primary/10"
+					href="#"
+				>
+					<span
+						class="material-symbols-outlined text-xl text-primary/70"
+						>auto_awesome</span
+					>
 				</a>
 			</div>
 			<div class="space-y-2 text-center">
 				<p class="text-sm uppercase tracking-widest text-primary/40">
-					Property of the High Archivist • Est. Before the First Silence
+					Property of the High Archivist • Est. Before the First
+					Silence
 				</p>
-				<p class="text-xs italic text-slate-500">All scrolls are protected by ancient resonance.</p>
+				<p class="text-xs italic text-slate-500">
+					All scrolls are protected by ancient resonance.
+				</p>
 			</div>
 		</div>
 	</div>
 
 	<div class="mt-12 text-center">
-		<div class="inline-block rounded-full border border-primary/10 bg-primary/5 px-4 py-1">
-			<span class="text-[10px] uppercase tracking-[0.2em] text-primary/50">V. 0.0.1 - The Dawn Era</span>
+		<div
+			class="inline-block rounded-full border border-primary/10 bg-primary/5 px-4 py-1"
+		>
+			<span class="text-[10px] uppercase tracking-[0.2em] text-primary/50"
+				>V. 0.0.1 - The Dawn Era</span
+			>
 		</div>
 	</div>
 </footer>

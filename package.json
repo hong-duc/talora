@@ -40,6 +40,7 @@
     "@tiptap/pm": "^3.20.4",
     "@tiptap/starter-kit": "^3.20.4",
     "@tiptap/suggestion": "^3.20.4",
+    "@vercel/speed-insights": "^2.0.0",
     "astro": "^6.1.5",
     "bits-ui": "^2.16.5",
     "core": "link:@types/@tiptap/core",
