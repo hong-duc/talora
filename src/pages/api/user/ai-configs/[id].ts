@@ -6,10 +6,11 @@
  */
 
 import type { APIRoute } from 'astro';
-import { supabase } from '../../../../lib/supabase';
+import { createAuthedClient } from '../../../../lib/supabase';
 import { requireAuth, jsonResponse } from '../../../../lib/api-auth';
 import { encryptApiKey, maskApiKey } from '../../../../lib/ai-crypto';
 import type { AiProvider } from '../../../../lib/types';
+import type { SupabaseClient } from '../../../../lib/supabase';
 
 export const prerender = false;
 
@@ -27,8 +28,11 @@ export const PUT: APIRoute = async ({ request, params }) => {
     const configId = params.id;
     if (!configId) return jsonResponse({ error: 'Config ID is required' }, 400);
 
+    // Authenticated client required — ai_configs RLS: `auth.uid() = user_id`
+    const db = createAuthedClient(auth.token);
+
     // Confirm ownership before update
-    const existing = await fetchOwnedConfig(configId, auth.userId);
+    const existing = await fetchOwnedConfig(db, configId, auth.userId);
     if (!existing) return jsonResponse({ error: 'Config not found' }, 404);
 
     const body = await parseBody(request);
@@ -63,13 +67,13 @@ export const PUT: APIRoute = async ({ request, params }) => {
 
     // Handle default switching: if setting to default, clear others first
     if (body.is_default === true) {
-        await clearDefaults(auth.userId);
+        await clearDefaults(db, auth.userId);
         updates.is_default = true;
     } else if (body.is_default === false) {
         updates.is_default = false;
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
         .from('ai_configs')
         .update(updates)
         .eq('id', configId)
@@ -94,7 +98,10 @@ export const DELETE: APIRoute = async ({ request, params }) => {
     const configId = params.id;
     if (!configId) return jsonResponse({ error: 'Config ID is required' }, 400);
 
-    const { error } = await supabase
+    // Authenticated client required — ai_configs RLS: `auth.uid() = user_id`
+    const db = createAuthedClient(auth.token);
+
+    const { error } = await db
         .from('ai_configs')
         .delete()
         .eq('id', configId)
@@ -108,8 +115,8 @@ export const DELETE: APIRoute = async ({ request, params }) => {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Fetch a config row and confirm it belongs to the user */
-async function fetchOwnedConfig(configId: string, userId: string) {
-    const { data } = await supabase
+async function fetchOwnedConfig(db: SupabaseClient, configId: string, userId: string) {
+    const { data } = await db
         .from('ai_configs')
         .select('id, api_key_enc, base_url')
         .eq('id', configId)
@@ -125,8 +132,8 @@ async function parseBody(request: Request): Promise<Record<string, any> | null> 
 }
 
 /** Clear all default flags for a user before promoting a new default */
-async function clearDefaults(userId: string): Promise<void> {
-    await supabase
+async function clearDefaults(db: SupabaseClient, userId: string): Promise<void> {
+    await db
         .from('ai_configs')
         .update({ is_default: false })
         .eq('user_id', userId);

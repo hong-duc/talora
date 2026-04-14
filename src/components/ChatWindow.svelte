@@ -4,10 +4,17 @@
 	 *
 	 * Wired to the real API:
 	 *  - On mount: loads existing messages from GET /api/sessions/[sessionId]
+	 *    The response includes `storyStart` — if messages is empty the opening
+	 *    line is rendered as a virtual AI message so the story always begins.
 	 *  - sendMessage: POST to /api/sessions/[sessionId]/messages
-	 *    → server saves user message, calls AI, returns assistant reply
+	 *    → server builds the system prompt, calls the user's AI backend,
+	 *      saves the reply, and returns it.
 	 *
+	 * Errors → shown as dismissible floating toast (title + full message).
 	 * The ⚙️ button opens ChatSettings for AI backend configuration.
+	 *
+	 * Debug: set localStorage.debug = 'chat' or window.chatDebug = true to
+	 * enable verbose client-side logging.
 	 */
 	import { onDestroy, onMount } from "svelte";
 	import { store } from "../lib/store";
@@ -21,6 +28,12 @@
 		sender: "assistant" | "user";
 		text: string;
 		meta?: string;
+	};
+
+	type Toast = {
+		id: string;
+		title: string;
+		description: string;
 	};
 
 	// ─── Props ─────────────────────────────────────────────────────────────────
@@ -56,6 +69,11 @@
 	let loadError = $state<string | null>(null);
 	let showSettings = $state(false);
 
+	/** Active floating error toasts */
+	let toasts = $state<Toast[]>([]);
+	/** Per-toast auto-dismiss timer IDs */
+	let toastTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+
 	let userAvatar = $state(
 		toAvatarUrl(store.getState().auth.profile?.avatar_url),
 	);
@@ -69,10 +87,17 @@
 		userAvatar = toAvatarUrl(store.getState().auth.profile?.avatar_url);
 	});
 	onDestroy(unsubscribe);
+	onDestroy(() => {
+		// Clear any pending toast timers on unmount
+		for (const id of Object.keys(toastTimers)) {
+			clearTimeout(toastTimers[id]);
+		}
+	});
 
 	// ─── Lifecycle ─────────────────────────────────────────────────────────────
 
 	onMount(async () => {
+		debug("ChatWindow mounted", { sessionId });
 		await loadSession();
 		scrollToBottom("auto");
 	});
@@ -81,12 +106,17 @@
 
 	/**
 	 * Load the session's existing messages from the API.
-	 * Converts DB message shape → internal ChatMessage shape.
+	 *
+	 * The server now returns `storyStart` alongside messages.
+	 * If the DB has no messages yet but the session was started with a story_start
+	 * entry, we render the opening line as the first virtual AI message so the
+	 * story always begins with narrative context.
 	 */
 	async function loadSession() {
 		isLoading = true;
 		loadError = null;
 		try {
+			debug("loadSession →", `/api/sessions/${sessionId}`);
 			const res = await fetch(`/api/sessions/${sessionId}`, {
 				headers: { Authorization: `Bearer ${accessToken}` },
 			});
@@ -96,11 +126,37 @@
 				throw new Error(json.error ?? `HTTP ${res.status}`);
 			}
 
-			const { messages: dbMessages } = await res.json();
-			messages = (dbMessages ?? []).map(dbToChat);
+			const { messages: dbMessages, storyStart } = await res.json();
+			const mapped: ChatMessage[] = (dbMessages ?? []).map(dbToChat);
+
+			debug("loadSession ←", {
+				messageCount: mapped.length,
+				hasStoryStart: !!storyStart?.first_message,
+			});
+
+			if (mapped.length === 0 && storyStart?.first_message) {
+				// No DB messages yet — show the story-start opening line as a virtual
+				// AI message so the chat always starts with narrative flavour.
+				debug(
+					"loadSession: using virtual opening message from storyStart",
+				);
+				messages = [
+					{
+						id: "story-start-virtual",
+						session_id: sessionId,
+						sender: "assistant",
+						text: storyStart.first_message,
+						meta: "The story begins…",
+					},
+				];
+			} else {
+				messages = mapped;
+			}
 		} catch (err) {
-			loadError =
+			const msg =
 				err instanceof Error ? err.message : "Failed to load messages";
+			loadError = msg;
+			console.error("[ChatWindow] loadSession error:", msg);
 		} finally {
 			isLoading = false;
 		}
@@ -111,18 +167,24 @@
 	/**
 	 * Send the user's draft message:
 	 *  1. Optimistically add it to the local list
-	 *  2. POST to the API, which calls the AI and returns the assistant reply
+	 *  2. POST to /api/sessions/[id]/messages
+	 *     Server builds the full system prompt, calls the user's AI backend,
+	 *     saves both messages, and returns the assistant reply.
 	 *  3. Append the assistant reply
+	 *  4. On any error → show a dismissible floating toast with the full message
 	 */
 	async function sendMessage() {
 		const text = draft.trim();
 		if (!text || isReplying) return;
 
+		debug("sendMessage →", { charLen: text.length });
+
 		// Optimistic UI — show the user's message immediately
+		const optimisticId = crypto.randomUUID();
 		messages = [
 			...messages,
 			{
-				id: crypto.randomUUID(),
+				id: optimisticId,
 				session_id: sessionId,
 				sender: "user",
 				text,
@@ -145,45 +207,80 @@
 				body: JSON.stringify({ content: text }),
 			});
 
-			const json = await res.json();
+			const json = await res.json().catch(() => ({}));
 
 			if (!res.ok) {
-				// Surface the error as an assistant message so the user sees it
-				messages = [
-					...messages,
-					{
-						id: crypto.randomUUID(),
-						session_id: sessionId,
-						sender: "assistant",
-						text:
-							json.error ===
-							"No AI configuration found. Please set one up in Settings."
-								? "⚠️ No AI configured yet — click the ⚙️ Settings button to add one."
-								: `⚠️ ${json.error ?? "Something went wrong. Please try again."}`,
-					},
-				];
+				const errMsg =
+					json.error ?? `Server error (HTTP ${res.status})`;
+
+				debug("sendMessage ✗ API error", {
+					status: res.status,
+					error: errMsg,
+				});
+				console.error("[ChatWindow] sendMessage API error:", errMsg, {
+					status: res.status,
+					sessionId,
+				});
+
+				// 422 = AI config issue (missing config or decryption failure)
+				// Show the server's exact error message — it contains actionable guidance
+				if (res.status === 422) {
+					showToast("AI Configuration Error", errMsg, 10_000);
+				} else {
+					showToast("Story Interrupted", errMsg, 9_000);
+				}
 				return;
 			}
 
 			// Append the real assistant reply from the server
 			if (json.message) {
+				debug("sendMessage ← assistant reply", {
+					msgId: json.message.id,
+					replyLen: json.message.content?.length,
+				});
 				messages = [...messages, dbToChat(json.message)];
 			}
-		} catch {
-			messages = [
-				...messages,
-				{
-					id: crypto.randomUUID(),
-					session_id: sessionId,
-					sender: "assistant",
-					text: "⚠️ Network error — please check your connection and try again.",
-				},
-			];
+		} catch (err) {
+			const errMsg =
+				err instanceof Error ? err.message : "Unknown network error";
+			debug("sendMessage ✗ network error", errMsg);
+			console.error("[ChatWindow] sendMessage network error:", errMsg);
+			showToast(
+				"Connection Lost",
+				`Network error — please check your connection and try again. (${errMsg})`,
+				9_000,
+			);
 		} finally {
 			isReplying = false;
 			await tick();
 			scrollToBottom();
 		}
+	}
+
+	// ─── Toast helpers ─────────────────────────────────────────────────────────
+
+	/**
+	 * Show a dismissible floating error toast with full error details.
+	 * Auto-dismisses after `duration` ms (default 8 s).
+	 */
+	function showToast(
+		title: string,
+		description: string,
+		duration = 8_000,
+	): void {
+		const id = crypto.randomUUID();
+		toasts = [...toasts, { id, title, description }];
+		debug("toast shown", { title, description });
+
+		// Auto-dismiss
+		toastTimers[id] = setTimeout(() => dismissToast(id), duration);
+	}
+
+	/** Remove a toast from the list and cancel its timer. */
+	function dismissToast(id: string): void {
+		toasts = toasts.filter((t) => t.id !== id);
+		clearTimeout(toastTimers[id]);
+		delete toastTimers[id];
 	}
 
 	// ─── Helpers ───────────────────────────────────────────────────────────────
@@ -236,7 +333,72 @@
 	function handleInput(event: Event) {
 		draft = (event.currentTarget as HTMLTextAreaElement).value;
 	}
+
+	// ─── Debug ─────────────────────────────────────────────────────────────────
+
+	/** Client-side debug logger — enabled when localStorage.debug === 'chat' */
+	function debug(label: string, ...args: unknown[]): void {
+		try {
+			const enabled =
+				typeof window !== "undefined" &&
+				(localStorage.getItem("debug") === "chat" ||
+					(window as unknown as Record<string, unknown>)[
+						"chatDebug"
+					] === true);
+			if (enabled) {
+				console.debug(`[ChatWindow] ${label}`, ...args);
+			}
+		} catch {
+			// localStorage may not be available in some contexts
+		}
+	}
 </script>
+
+<!-- ─── Floating error toasts ─────────────────────────────────────────────── -->
+{#if toasts.length > 0}
+	<div
+		class="pointer-events-none fixed left-1/2 top-6 z-[100] flex w-[min(92vw,32rem)] -translate-x-1/2 flex-col gap-3"
+		aria-live="assertive"
+		aria-atomic="false"
+	>
+		{#each toasts as toast (toast.id)}
+			<div
+				class="pointer-events-auto flex items-start gap-4 rounded-xl border border-red-500/40 bg-[#3b0d1e]/95 px-5 py-4 shadow-2xl backdrop-blur-md transition-all duration-300"
+				role="alert"
+			>
+				<!-- Icon -->
+				<span
+					class="material-symbols-outlined mt-0.5 shrink-0 text-2xl text-red-400"
+					style="font-variation-settings:'FILL' 1"
+				>
+					error
+				</span>
+
+				<!-- Content -->
+				<div class="flex min-w-0 flex-1 flex-col gap-1">
+					<p class="text-sm font-bold text-red-300">{toast.title}</p>
+					<p
+						class="break-words text-sm leading-relaxed text-red-200/80"
+					>
+						{toast.description}
+					</p>
+				</div>
+
+				<!-- Dismiss button -->
+				<button
+					class="shrink-0 text-red-400/60 transition-colors hover:text-red-300"
+					onclick={() => dismissToast(toast.id)}
+					type="button"
+					aria-label="Dismiss notification"
+				>
+					<span class="material-symbols-outlined text-base"
+						>close</span
+					>
+				</button>
+			</div>
+		{/each}
+	</div>
+{/if}
 
 <!-- ─── Settings panel (conditionally rendered) ──────────────────────────── -->
 {#if showSettings}
@@ -306,12 +468,18 @@
 				>
 			</div>
 
-			<!-- Error state -->
+			<!-- Error state (load failure — not per-send errors, those use toasts) -->
 		{:else if loadError}
 			<div
 				class="rounded-xl border border-red-500/20 bg-red-500/10 p-6 text-center text-red-400"
 			>
-				<p class="font-medium">Failed to load messages</p>
+				<span
+					class="material-symbols-outlined mb-2 text-3xl"
+					style="font-variation-settings:'FILL' 1"
+				>
+					error
+				</span>
+				<p class="font-bold">Failed to load the story session</p>
 				<p class="mt-1 text-sm opacity-70">{loadError}</p>
 				<button
 					class="mt-4 rounded-lg border border-red-500/30 px-4 py-2 text-sm transition-colors hover:bg-red-500/10"
@@ -324,7 +492,7 @@
 		{:else}
 			{#each messages as message (message.id)}
 				{#if message.sender === "assistant"}
-					<!-- Assistant message (left-aligned) -->
+					<!-- ── Assistant message (left-aligned) ── -->
 					<div class="flex max-w-2xl gap-4">
 						<div
 							class="mt-2 size-8 shrink-0 overflow-hidden rounded-full border border-primary"
@@ -356,7 +524,7 @@
 						</div>
 					</div>
 				{:else}
-					<!-- User message (right-aligned) -->
+					<!-- ── User message (right-aligned) ── -->
 					<div class="ml-auto flex max-w-2xl flex-row-reverse gap-4">
 						<div
 							class="mt-2 size-8 shrink-0 overflow-hidden rounded-full border border-slate-700"
@@ -389,7 +557,7 @@
 			{/each}
 		{/if}
 
-		<!-- Typing indicator -->
+		<!-- Typing indicator (shown while waiting for the AI reply) -->
 		{#if isReplying}
 			<div class="flex max-w-2xl gap-4">
 				<div

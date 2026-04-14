@@ -7,6 +7,7 @@ import ReviewStarRating from "../../components/ReviewStarRating.svelte";
 import ReviewThoughtsThread from "../../components/ReviewThoughtsThread.svelte";
 import ArcaneButton from "../../components/ArcaneButton.svelte";
 import ArcaneToast from "../../components/ArcaneToast.astro";
+import ReadNowButton from "../../components/ReadNowButton.svelte";
 
 const { id } = Astro.params;
 
@@ -265,7 +266,11 @@ const reviewErrorMessage = storyError;
 						<div
 							class="flex flex-wrap justify-center gap-4 md:justify-start"
 						>
-							<ArcaneButton>Read Now</ArcaneButton>
+							<ReadNowButton
+								storyId={story?.id ?? ""}
+								storyStarts={storyStarts}
+								client:load
+							/>
 							<ArcaneButton
 								className="bg-slate-800 text-slate-100 border border-primary/30"
 								>Add to Library</ArcaneButton
@@ -608,104 +613,6 @@ const reviewErrorMessage = storyError;
 		<ArcaneToast id="story-toast" variant="information" />
 
 		<script is:inline define:vars={{ reviewErrorMessage }}>
-			// ─── Author-only actions: reveal Edit/Delete if the viewer is the author ───
-			(() => {
-				const authorActions = document.getElementById("author-actions");
-				if (!(authorActions instanceof HTMLElement)) return;
-				const authorId = authorActions.dataset.authorId;
-				const storyId = authorActions.dataset.storyId;
-				if (!authorId) return;
-
-				fetch("/api/auth/session", {
-					headers: { Accept: "application/json" },
-				})
-					.then((res) => (res.ok ? res.json() : null))
-					.then((data) => {
-						if (data?.profile?.id && data.profile.id === authorId) {
-							// Show Edit + Delete buttons
-							authorActions.classList.remove("hidden");
-
-							// Wire up delete button
-							const deleteBtn = document.getElementById(
-								"delete-story-button",
-							);
-							if (deleteBtn) {
-								deleteBtn.addEventListener(
-									"click",
-									async () => {
-										const confirmed = window.confirm(
-											"Are you sure you want to permanently delete this story? This action cannot be undone.",
-										);
-										if (!confirmed) return;
-
-										deleteBtn.disabled = true;
-										deleteBtn.textContent = "Deleting...";
-
-										try {
-											const response = await fetch(
-												`/api/stories/${storyId}`,
-												{
-													method: "DELETE",
-													headers: {
-														"Content-Type":
-															"application/json",
-													},
-													body: JSON.stringify({
-														author_id:
-															data.profile.id,
-													}),
-												},
-											);
-
-											const result = await response
-												.json()
-												.catch(() => ({}));
-
-											if (response.ok) {
-												window.dispatchEvent(
-													new CustomEvent(
-														"arcane-toast:show",
-														{
-															detail: {
-																id: "story-toast",
-																title: "Story Deleted",
-																description:
-																	"The chronicle has been erased from the archives.",
-																icon: "check_circle",
-																duration: 3000,
-															},
-														},
-													),
-												);
-												setTimeout(() => {
-													window.location.href =
-														"/archive";
-												}, 1500);
-											} else {
-												alert(
-													result.error ||
-														"Failed to delete story.",
-												);
-												deleteBtn.disabled = false;
-												deleteBtn.innerHTML =
-													'<span class="material-symbols-outlined text-base">delete</span> Delete Story';
-											}
-										} catch (err) {
-											alert(
-												"Network error. Please try again.",
-											);
-											deleteBtn.disabled = false;
-											deleteBtn.innerHTML =
-												'<span class="material-symbols-outlined text-base">delete</span> Delete Story';
-										}
-									},
-								);
-							}
-						}
-					})
-					.catch(() => {});
-			})();
-
 			// ─── Show error toast if story failed to load ───
 			(() => {
 				if (!reviewErrorMessage) return;
@@ -721,6 +628,130 @@ const reviewErrorMessage = storyError;
 					}),
 				);
 			})();
+		</script>
+
+		<!--
+			Author-only actions: uses the shared Supabase singleton (same as
+			profile-sync.ts) so the session is always in sync.
+			Author ID is read from data-author-id on #author-actions.
+		-->
+		<script>
+			import { supabase } from "../../lib/supabase";
+
+			let deleteWired = false;
+
+			function checkAndReveal(
+				session: {
+					user: { id: string };
+					access_token: string;
+				} | null,
+			) {
+				const authorActions = document.getElementById("author-actions");
+				if (!(authorActions instanceof HTMLElement)) return;
+
+				const authorId = authorActions.dataset.authorId;
+				const storyId = authorActions.dataset.storyId;
+
+				if (!authorId || !session || session.user.id !== authorId) {
+					authorActions.classList.add("hidden");
+					return;
+				}
+
+				// Reveal Edit + Delete buttons
+				authorActions.classList.remove("hidden");
+
+				// Wire up delete button only once
+				if (deleteWired) return;
+				deleteWired = true;
+
+				const deleteBtn = document.getElementById(
+					"delete-story-button",
+				) as HTMLButtonElement | null;
+
+				deleteBtn?.addEventListener("click", async () => {
+					const confirmed = window.confirm(
+						"Are you sure you want to permanently delete this story? This action cannot be undone.",
+					);
+					if (!confirmed) return;
+
+					deleteBtn.disabled = true;
+					deleteBtn.textContent = "Deleting...";
+
+					// Re-fetch session at action time for a fresh token
+					const {
+						data: { session: currentSession },
+					} = await supabase.auth.getSession();
+
+					if (!currentSession) {
+						alert(
+							"Your session has expired. Please sign in again.",
+						);
+						deleteBtn.disabled = false;
+						deleteBtn.innerHTML =
+							'<span class="material-symbols-outlined text-base">delete</span> Delete Story';
+						return;
+					}
+
+					try {
+						const response = await fetch(
+							`/api/stories/${storyId}`,
+							{
+								method: "DELETE",
+								headers: {
+									"Content-Type": "application/json",
+									Authorization: `Bearer ${currentSession.access_token}`,
+								},
+								body: JSON.stringify({
+									author_id: authorId,
+								}),
+							},
+						);
+
+						const result = await response.json().catch(() => ({}));
+
+						if (response.ok) {
+							window.dispatchEvent(
+								new CustomEvent("arcane-toast:show", {
+									detail: {
+										id: "story-toast",
+										title: "Story Deleted",
+										description:
+											"The chronicle has been erased from the archives.",
+										icon: "check_circle",
+										duration: 3000,
+									},
+								}),
+							);
+							setTimeout(() => {
+								window.location.href = "/archive";
+							}, 1500);
+						} else {
+							alert(result.error || "Failed to delete story.");
+							deleteBtn.disabled = false;
+							deleteBtn.innerHTML =
+								'<span class="material-symbols-outlined text-base">delete</span> Delete Story';
+						}
+					} catch {
+						alert("Network error. Please try again.");
+						deleteBtn.disabled = false;
+						deleteBtn.innerHTML =
+							'<span class="material-symbols-outlined text-base">delete</span> Delete Story';
+					}
+				});
+			}
+
+			// ── 1. Immediate check (session is likely already in localStorage) ──
+			(async () => {
+				const {
+					data: { session },
+				} = await supabase.auth.getSession();
+				checkAndReveal(session);
+			})();
+
+			// ── 2. Auth-state listener (handles INITIAL_SESSION / SIGNED_IN) ────
+			supabase.auth.onAuthStateChange((_event, session) => {
+				checkAndReveal(session);
+			});
 		</script>
 	</body>
 </html>

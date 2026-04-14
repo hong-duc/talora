@@ -1388,6 +1388,74 @@ ALTER TABLE public.story_starts
     ADD COLUMN IF NOT EXISTS description text;
 
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Missing FK: story_sessions.story_id → stories.id
+--
+-- This FK is required for PostgREST to resolve the `stories ( ... )` join
+-- syntax used by API routes.  Without it every join query fails with PGRST200
+-- "Could not find a relationship", causing:
+--   • GET /api/sessions        → 500 Internal Server Error
+--   • GET /api/sessions/[id]   → 404 Session not found (error treated as null)
+--
+-- Run this migration once in your Supabase SQL editor (or via supabase db push).
+-- ─────────────────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.story_sessions
+    ADD CONSTRAINT story_sessions_story_id_fkey
+    FOREIGN KEY (story_id) REFERENCES public.stories(id) ON DELETE CASCADE;
+
+-- Also add RLS policies for story_sessions, messages, and scene_states.
+-- Without these, authenticated DB clients can still be blocked by the implicit
+-- DENY that applies when RLS is enabled but no policy matches the request.
+
+-- story_sessions: owner-only access
+CREATE POLICY "Users manage own story_sessions"
+    ON public.story_sessions
+    FOR ALL
+    TO authenticated
+    USING  (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
+-- messages: accessible via their parent session (session owner = message owner)
+CREATE POLICY "Users access messages via their session"
+    ON public.messages
+    FOR ALL
+    TO authenticated
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.story_sessions ss
+            WHERE ss.id = messages.session_id
+              AND ss.user_id = auth.uid()
+        )
+    )
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.story_sessions ss
+            WHERE ss.id = messages.session_id
+              AND ss.user_id = auth.uid()
+        )
+    );
+
+-- scene_states: accessible via their parent session
+CREATE POLICY "Users access scene_states via their session"
+    ON public.scene_states
+    FOR ALL
+    TO authenticated
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.story_sessions ss
+            WHERE ss.id = scene_states.session_id
+              AND ss.user_id = auth.uid()
+        )
+    )
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.story_sessions ss
+            WHERE ss.id = scene_states.session_id
+              AND ss.user_id = auth.uid()
+        )
+    );
+
 --
 -- PostgreSQL database dump complete
 --

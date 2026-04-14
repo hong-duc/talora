@@ -6,10 +6,11 @@
  */
 
 import type { APIRoute } from 'astro';
-import { supabase } from '../../../../lib/supabase';
+import { createAuthedClient } from '../../../../lib/supabase';
 import { requireAuth, jsonResponse } from '../../../../lib/api-auth';
 import { encryptApiKey, maskApiKey } from '../../../../lib/ai-crypto';
 import type { AiProvider } from '../../../../lib/types';
+import type { SupabaseClient } from '../../../../lib/supabase';
 
 export const prerender = false;
 
@@ -24,7 +25,10 @@ export const GET: APIRoute = async ({ request }) => {
     const auth = await requireAuth(request);
     if (auth.error) return auth.error;
 
-    const { data, error } = await supabase
+    // Authenticated client required — ai_configs RLS: `auth.uid() = user_id`
+    const db = createAuthedClient(auth.token);
+
+    const { data, error } = await db
         .from('ai_configs')
         .select('id, name, provider, model, base_url, is_default, created_at, updated_at, api_key_enc')
         .eq('user_id', auth.userId)
@@ -51,24 +55,29 @@ export const GET: APIRoute = async ({ request }) => {
  *  4. Return the new config (masked)
  */
 export const POST: APIRoute = async ({ request }) => {
-    const auth = await requireAuth(request);
-    if (auth.error) return auth.error;
+    const [auth, body] = await Promise.all([
+        requireAuth(request),
+        parseBody(request),
+    ]);
 
-    const body = await parseBody(request);
+    if (auth.error) return auth.error;
     if (!body) return jsonResponse({ error: 'Invalid JSON body' }, 400);
 
     const validation = validateConfigBody(body);
     if (validation.error) return jsonResponse({ error: validation.error }, 400);
 
+    // Authenticated client required — ai_configs RLS: `auth.uid() = user_id`
+    const db = createAuthedClient(auth.token);
+
     // If this config is being set as default, clear other defaults first
     if (body.is_default) {
-        await clearDefaults(auth.userId);
+        await clearDefaults(db, auth.userId);
     }
 
     // Encrypt api_key before storage — plaintext never touches the DB
     const api_key_enc = await encryptApiKey(body.api_key ?? '');
 
-    const { data, error } = await supabase
+    const { data, error } = await db
         .from('ai_configs')
         .insert({
             user_id: auth.userId,
@@ -119,8 +128,8 @@ function validateConfigBody(body: Record<string, any>): { error?: string } {
 }
 
 /** Set all configs for this user to is_default=false before marking a new default */
-async function clearDefaults(userId: string): Promise<void> {
-    await supabase
+async function clearDefaults(db: SupabaseClient, userId: string): Promise<void> {
+    await db
         .from('ai_configs')
         .update({ is_default: false })
         .eq('user_id', userId);

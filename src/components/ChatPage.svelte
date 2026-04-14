@@ -2,12 +2,11 @@
     /**
      * ChatPage — client-side wrapper for the full chat UI.
      *
-     * Why: The access token lives in the browser (Supabase localStorage).
-     * We need it before rendering ChatWindow, so this component handles
-     * auth bootstrapping and sidebar session loading, then delegates to
-     * ChatWindow once the token is ready.
-     *
      * Props come from chat.astro (parsed from URL on the server).
+     *
+     * Modes:
+     *  • sessionId set   → sidebar + ChatWindow (normal chat)
+     *  • sessionId null  → session picker (choose a story to continue)
      */
     import { onMount } from "svelte";
     import { supabase } from "../lib/supabase";
@@ -16,29 +15,29 @@
     // ─── Props ────────────────────────────────────────────────────────────────
 
     interface Props {
-        /** Session ID from URL ?session=<id> — null = show empty state */
+        /** Session ID from URL ?session=<id> — null = show session picker */
         sessionId: string | null;
     }
 
     let { sessionId }: Props = $props();
 
+    // ─── Types ────────────────────────────────────────────────────────────────
+
+    type SessionItem = {
+        id: string;
+        title: string | null;
+        updated_at: string;
+        story_id: string;
+        stories: { title: string; cover_image_url: string | null } | null;
+    };
+
     // ─── State ────────────────────────────────────────────────────────────────
 
-    /** Access token from Supabase — resolved on mount */
     let accessToken = $state<string | null>(null);
-
-    /** List of the user's sessions for the sidebar */
-    let sessions = $state<
-        Array<{
-            id: string;
-            title: string | null;
-            updated_at: string;
-            stories: { title: string; cover_image_url: string | null } | null;
-        }>
-    >([]);
-
+    let sessions = $state<SessionItem[]>([]);
     let isAuthReady = $state(false);
     let isNotSignedIn = $state(false);
+    let isLoadingSessions = $state(true);
 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
 
@@ -48,7 +47,6 @@
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
-    /** Get the Supabase access token and load the sidebar sessions */
     async function bootstrapAuth() {
         const {
             data: { session },
@@ -57,19 +55,20 @@
         if (!session) {
             isNotSignedIn = true;
             isAuthReady = true;
+            isLoadingSessions = false;
             return;
         }
 
         accessToken = session.access_token;
         isAuthReady = true;
 
-        // Kick off session sidebar load in background
-        void loadSessions();
+        // Load sessions (needed for both sidebar and picker)
+        await loadSessions();
     }
 
-    /** Load the user's active story sessions for the sidebar */
     async function loadSessions() {
         if (!accessToken) return;
+        isLoadingSessions = true;
         try {
             const res = await fetch("/api/sessions", {
                 headers: { Authorization: `Bearer ${accessToken}` },
@@ -78,18 +77,18 @@
             const json = await res.json();
             sessions = json.sessions ?? [];
         } catch {
-            // Sidebar is non-critical — silently ignore errors
+            // Non-critical — silently ignore
+        } finally {
+            isLoadingSessions = false;
         }
     }
 
-    /** Navigate to a different session without a full page reload */
     function selectSession(id: string) {
         const url = new URL(window.location.href);
         url.searchParams.set("session", id);
         window.location.href = url.toString();
     }
 
-    /** Format relative time for sidebar items (e.g. "2 hours ago") */
     function relativeTime(iso: string): string {
         const diff = Date.now() - new Date(iso).getTime();
         const mins = Math.floor(diff / 60_000);
@@ -128,28 +127,122 @@
         </a>
     </div>
 {:else if !sessionId}
-    <!-- No session selected — prompt to pick a story -->
-    <div
-        class="flex flex-1 flex-col items-center justify-center gap-6 text-center"
-    >
-        <span class="material-symbols-outlined text-6xl text-primary/30"
-            >auto_stories</span
-        >
-        <div>
-            <p class="text-2xl font-bold text-slate-200">No story selected</p>
-            <p class="mt-2 text-slate-400">
-                Browse the library and jump into a story to begin.
-            </p>
+    <!-- ─── Session picker ────────────────────────────────────────────── -->
+    <div class="flex flex-1 flex-col overflow-y-auto">
+        <div class="mx-auto w-full max-w-4xl px-6 py-12">
+            <!-- Header -->
+            <div class="mb-10 text-center">
+                <span class="material-symbols-outlined text-5xl text-primary/40"
+                    >auto_stories</span
+                >
+                <h2 class="mt-4 text-3xl font-black text-slate-100">
+                    Your Stories
+                </h2>
+                <p class="mt-2 text-slate-400">
+                    Pick up where you left off, or start a new adventure.
+                </p>
+            </div>
+
+            {#if isLoadingSessions}
+                <!-- Loading sessions -->
+                <div class="flex justify-center py-16">
+                    <span
+                        class="material-symbols-outlined animate-spin text-3xl text-primary/40"
+                        >autorenew</span
+                    >
+                </div>
+            {:else if sessions.length > 0}
+                <!-- Session grid -->
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {#each sessions as s (s.id)}
+                        <button
+                            type="button"
+                            onclick={() => selectSession(s.id)}
+                            class="session-card group flex flex-col overflow-hidden rounded-2xl border border-primary/20 bg-primary/5 text-left transition-all hover:border-primary hover:bg-primary/10 hover:shadow-xl hover:shadow-primary/10 active:scale-[0.98]"
+                        >
+                            <!-- Cover image -->
+                            <div
+                                class="aspect-video w-full overflow-hidden bg-slate-800"
+                            >
+                                {#if s.stories?.cover_image_url}
+                                    <img
+                                        src={s.stories.cover_image_url}
+                                        alt=""
+                                        class="h-full w-full object-cover opacity-80 transition-opacity group-hover:opacity-100"
+                                        loading="lazy"
+                                    />
+                                {:else}
+                                    <div
+                                        class="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 to-transparent"
+                                    >
+                                        <span
+                                            class="material-symbols-outlined text-5xl text-primary/30"
+                                            >book_2</span
+                                        >
+                                    </div>
+                                {/if}
+                            </div>
+
+                            <!-- Info -->
+                            <div class="flex flex-1 flex-col gap-1 p-4">
+                                <p
+                                    class="truncate font-bold text-slate-100 group-hover:text-primary"
+                                >
+                                    {s.stories?.title ??
+                                        s.title ??
+                                        "Untitled Story"}
+                                </p>
+                                {#if s.title && s.title !== s.stories?.title}
+                                    <p class="truncate text-xs text-slate-400">
+                                        {s.title}
+                                    </p>
+                                {/if}
+                                <p
+                                    class="mt-auto pt-2 text-[11px] text-primary/50"
+                                >
+                                    <span
+                                        class="material-symbols-outlined align-middle text-[13px]"
+                                        >schedule</span
+                                    >
+                                    {relativeTime(s.updated_at)}
+                                </p>
+                            </div>
+                        </button>
+                    {/each}
+                </div>
+            {:else}
+                <!-- No sessions yet -->
+                <div class="flex flex-col items-center gap-4 py-16 text-center">
+                    <span
+                        class="material-symbols-outlined text-6xl text-primary/20"
+                        >ink_pen</span
+                    >
+                    <p class="text-lg font-medium text-slate-300">
+                        No active stories yet
+                    </p>
+                    <p class="text-sm text-slate-500">
+                        Browse the library and start your first interactive
+                        story.
+                    </p>
+                </div>
+            {/if}
+
+            <!-- CTA -->
+            <div class="mt-10 flex justify-center">
+                <a
+                    href="/"
+                    class="flex items-center gap-2 rounded-xl bg-primary px-7 py-3 font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/80"
+                >
+                    <span class="material-symbols-outlined text-base"
+                        >add_circle</span
+                    >
+                    Browse Stories
+                </a>
+            </div>
         </div>
-        <a
-            href="/"
-            class="rounded-xl bg-primary px-6 py-3 font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/80"
-        >
-            Browse Stories
-        </a>
     </div>
 {:else}
-    <!-- Main chat layout: sidebar + window -->
+    <!-- ─── Normal chat layout: sidebar + window ─────────────────────── -->
     <aside
         id="chat-sidebar"
         class="absolute inset-y-0 left-0 z-20 flex w-80 min-h-0 flex-col border-r border-primary/10 bg-background-dark transition-transform duration-300 ease-in-out"
@@ -172,50 +265,60 @@
             </div>
 
             <div class="custom-scrollbar flex-1 space-y-3 overflow-y-auto">
-                {#each sessions as s (s.id)}
-                    <button
-                        class={`group flex w-full cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition-all ${s.id === sessionId ? "mystical-glow border-primary/30 bg-primary/10 text-primary" : "border-transparent text-slate-400 hover:bg-white/5"}`}
-                        onclick={() => selectSession(s.id)}
-                        type="button"
-                    >
-                        <div
-                            class="size-10 shrink-0 overflow-hidden rounded-full border border-slate-700"
+                {#if isLoadingSessions}
+                    <div class="flex justify-center py-6">
+                        <span
+                            class="material-symbols-outlined animate-spin text-xl text-primary/30"
+                            >autorenew</span
                         >
-                            {#if s.stories?.cover_image_url}
-                                <img
-                                    src={s.stories.cover_image_url}
-                                    alt=""
-                                    class="h-full w-full object-cover"
-                                    loading="lazy"
-                                />
-                            {:else}
-                                <div
-                                    class="flex h-full w-full items-center justify-center bg-primary/20"
-                                >
-                                    <span
-                                        class="material-symbols-outlined text-sm text-primary"
-                                        >auto_stories</span
+                    </div>
+                {:else}
+                    {#each sessions as s (s.id)}
+                        <button
+                            class={`group flex w-full cursor-pointer items-center gap-3 rounded-xl border p-3 text-left transition-all ${s.id === sessionId ? "mystical-glow border-primary/30 bg-primary/10 text-primary" : "border-transparent text-slate-400 hover:bg-white/5"}`}
+                            onclick={() => selectSession(s.id)}
+                            type="button"
+                        >
+                            <div
+                                class="size-10 shrink-0 overflow-hidden rounded-full border border-slate-700"
+                            >
+                                {#if s.stories?.cover_image_url}
+                                    <img
+                                        src={s.stories.cover_image_url}
+                                        alt=""
+                                        class="h-full w-full object-cover"
+                                        loading="lazy"
+                                    />
+                                {:else}
+                                    <div
+                                        class="flex h-full w-full items-center justify-center bg-primary/20"
                                     >
-                                </div>
-                            {/if}
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <p class="truncate text-sm font-bold">
-                                {s.stories?.title ??
-                                    s.title ??
-                                    "Untitled Story"}
-                            </p>
-                            <p class="text-[10px] font-medium">
-                                {relativeTime(s.updated_at)}
-                            </p>
-                        </div>
-                    </button>
-                {/each}
+                                        <span
+                                            class="material-symbols-outlined text-sm text-primary"
+                                            >auto_stories</span
+                                        >
+                                    </div>
+                                {/if}
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-sm font-bold">
+                                    {s.stories?.title ??
+                                        s.title ??
+                                        "Untitled Story"}
+                                </p>
+                                <p class="text-[10px] font-medium">
+                                    {relativeTime(s.updated_at)}
+                                </p>
+                            </div>
+                        </button>
+                    {/each}
 
-                {#if sessions.length === 0}
-                    <p class="px-2 text-xs text-slate-600">
-                        No active sessions yet. Jump into a story to start one.
-                    </p>
+                    {#if sessions.length === 0}
+                        <p class="px-2 text-xs text-slate-600">
+                            No active sessions yet. Jump into a story to start
+                            one.
+                        </p>
+                    {/if}
                 {/if}
 
                 <div class="border-t border-primary/10 pt-4">
@@ -273,5 +376,14 @@
     }
     .mystical-glow {
         box-shadow: 0 0 15px rgb(115 17 212 / 30%);
+    }
+
+    .session-card {
+        box-shadow: 0 0 0 1px rgb(115 17 212 / 10%);
+    }
+    .session-card:hover {
+        box-shadow:
+            0 0 20px rgb(115 17 212 / 15%),
+            0 4px 24px rgb(0 0 0 / 40%);
     }
 </style>

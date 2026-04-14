@@ -37,52 +37,131 @@ interface OaiMessage {
 
 /**
  * Build the system prompt that shapes the AI's persona and story context.
- * Injects story setting, tone, characters, world rules, and lore.
+ *
+ * Injects: setting, tone, world rules, lore, characters and scene state.
+ *
+ * Style section branches on story.auto_style:
+ *  – true  (default) → tell the AI to infer style from tone + setting
+ *  – false           → provide explicit numeric style parameters
  */
 function buildSystemPrompt(story: Story, sceneState?: SceneState): string {
     const lines: string[] = [
-        'You are an interactive storytelling AI. Stay in character and advance the story.',
+        'You are an interactive storytelling AI.',
+        'Your role is to narrate and advance an immersive story.',
+        'Stay in character at all times. Respond only with story content — never break the fourth wall or explain your reasoning.',
         '',
-        `Story: "${story.title}"`,
+        `━━ STORY: "${story.title}" ━━`,
     ];
 
-    if (story.description) lines.push(`Synopsis: ${story.description}`);
-    if (story.setting) lines.push(`Setting: ${story.setting}`);
-    if (story.tone?.length) lines.push(`Tone: ${story.tone.join(', ')}`);
-    if (story.world_rules) lines.push(`World rules: ${story.world_rules}`);
-    if (story.lore) lines.push(`Lore: ${story.lore}`);
+    if (story.description) {
+        lines.push('', `Synopsis: ${story.description}`);
+    }
+
+    if (story.setting) {
+        lines.push('', '━━ SETTING ━━', story.setting);
+    }
+
+    if (story.tone?.length) {
+        lines.push('', `Tone: ${story.tone.join(', ')}`);
+    }
+
+    if (story.world_rules) {
+        lines.push('', '━━ WORLD RULES ━━', story.world_rules);
+    }
+
+    if (story.lore) {
+        lines.push('', '━━ LORE ━━', story.lore);
+    }
 
     // Characters
     if (story.characters?.length) {
-        lines.push('', 'Characters:');
+        lines.push('', '━━ CHARACTERS ━━');
         for (const c of story.characters) {
-            const parts = [c.name];
-            if (c.description) parts.push(c.description);
-            if (c.personality) parts.push(`Personality: ${c.personality}`);
-            lines.push(`- ${parts.join(' — ')}`);
+            lines.push(`• ${c.name}`);
+            if (c.description) lines.push(`  Description: ${c.description}`);
+            if (c.personality) lines.push(`  Personality: ${c.personality}`);
         }
     }
 
-    // Inject current scene context if available
+    // Current scene context injected from scene_states table
     if (sceneState) {
-        lines.push('', 'Current scene context:');
+        lines.push('', '━━ CURRENT SCENE ━━');
         if (sceneState.current_location) lines.push(`Location: ${sceneState.current_location}`);
         if (sceneState.current_situation) lines.push(`Situation: ${sceneState.current_situation}`);
         if (sceneState.summary) lines.push(`Story so far: ${sceneState.summary}`);
     }
 
-    // Style guidance derived from story settings
-    const desc = story.descriptiveness ?? 3;
-    const pacing = story.pacing ?? 'medium';
-    const intensity = story.emotional_intensity ?? 3;
+    // ── Style section ────────────────────────────────────────────────────────
+    lines.push('', '━━ WRITING STYLE ━━');
 
-    lines.push(
-        '',
-        `Style: descriptiveness ${desc}/5, pacing ${pacing}, emotional intensity ${intensity}/5.`,
-        'Keep responses concise unless drama warrants longer prose.',
-    );
+    if (story.auto_style !== false) {
+        // auto_style = true (or not explicitly set): let the AI infer the style
+        lines.push(
+            'Automatically infer the appropriate writing style — descriptiveness, pacing,',
+            'dialogue density, and emotional intensity — from the tone and setting described above.',
+            'Adapt dynamically as each scene evolves:',
+            '  • Slow and atmospheric during exploration or introspection',
+            '  • Terse and punchy during action or conflict',
+            '  • Warm and flowing during emotional or intimate moments',
+        );
+    } else {
+        // auto_style = false: honour the author-specified numeric parameters
+        const desc = story.descriptiveness ?? 3;
+        const dialogueRatio = story.dialogue_ratio ?? 3;
+        const pacing = story.pacing ?? 'medium';
+        const intensity = story.emotional_intensity ?? 3;
+
+        lines.push(
+            'Follow these author-specified parameters consistently:',
+            `• Descriptiveness:    ${desc}/5  — ${descHint(desc)}`,
+            `• Dialogue ratio:     ${dialogueRatio}/5  — ${dialogueHint(dialogueRatio)}`,
+            `• Pacing:             ${pacing}  — ${pacingHint(pacing)}`,
+            `• Emotional intensity:${intensity}/5  — ${intensityHint(intensity)}`,
+        );
+    }
 
     return lines.join('\n');
+}
+
+// ─── Style hint helpers ───────────────────────────────────────────────────────
+
+function descHint(v: number): string {
+    const hints = [
+        'very sparse, minimal prose',
+        'light description',
+        'moderate, balanced description',
+        'rich and detailed prose',
+        'highly immersive, lush and expansive prose',
+    ];
+    return hints[Math.min(Math.max(Math.round(v) - 1, 0), 4)];
+}
+
+function dialogueHint(v: number): string {
+    const hints = [
+        'almost no dialogue — pure narration',
+        'sparse dialogue',
+        'balanced narration and dialogue',
+        'dialogue-heavy',
+        'dialogue-dominant, rapid back-and-forth',
+    ];
+    return hints[Math.min(Math.max(Math.round(v) - 1, 0), 4)];
+}
+
+function pacingHint(p: string): string {
+    if (p === 'slow') return 'linger on details, build atmosphere gradually';
+    if (p === 'fast') return 'keep momentum, cut quickly to the next beat';
+    return 'balanced flow between action and reflection';
+}
+
+function intensityHint(v: number): string {
+    const hints = [
+        'calm and subdued',
+        'mild emotional undertones',
+        'moderate emotional depth',
+        'emotionally charged and vivid',
+        'highly dramatic, intense, passionate',
+    ];
+    return hints[Math.min(Math.max(Math.round(v) - 1, 0), 4)];
 }
 
 /**

@@ -83,10 +83,11 @@
             const json = await res.json();
             configs = json.configs ?? [];
 
-            // Pre-select the default config if one exists
+            // Pre-select the default config if one exists; fall back to new-config mode
             const def = configs.find((c) => c.is_default);
             if (def) selectConfig(def.id!);
             else if (configs.length > 0) selectConfig(configs[0].id!);
+            else startNewConfig(); // no saved configs — start in create mode
         } catch {
             setFeedback("error", "Failed to load configurations");
         } finally {

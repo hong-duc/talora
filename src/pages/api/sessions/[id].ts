@@ -3,10 +3,15 @@
  *
  * GET → return a single session with all its messages, ordered by created_at.
  *       Used by ChatWindow on mount to load the conversation history.
+ *
+ * NOTE — story_sessions.story_id has no FK to stories.id in the current
+ * schema, so PostgREST auto-join syntax `stories ( ... )` returns PGRST200.
+ * We fetch the session row first (ownership check), then load the story and
+ * messages in a parallel second round-trip.
  */
 
 import type { APIRoute } from 'astro';
-import { supabase } from '../../../lib/supabase';
+import { createAuthedClient } from '../../../lib/supabase';
 import { requireAuth, jsonResponse } from '../../../lib/api-auth';
 
 export const prerender = false;
@@ -18,63 +23,60 @@ export const GET: APIRoute = async ({ request, params }) => {
     const sessionId = params.id;
     if (!sessionId) return jsonResponse({ error: 'Session ID is required' }, 400);
 
-    // Fetch the session — enforcing ownership via user_id
-    const session = await fetchSession(sessionId, auth.userId);
-    if (!session) return jsonResponse({ error: 'Session not found' }, 404);
+    const db = createAuthedClient(auth.token);
 
-    // Fetch all messages for this session in chronological order
-    const messages = await fetchMessages(sessionId);
-
-    return jsonResponse({ session, messages });
-};
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * Fetch a session row, ensuring it belongs to the requesting user.
- * Joins the story so ChatWindow can display the story title in the header.
- */
-async function fetchSession(sessionId: string, userId: string) {
-    const { data, error } = await supabase
+    // Step 1 — verify ownership (no join — avoids the missing FK issue)
+    const { data: sessionRow, error: sessionErr } = await db
         .from('story_sessions')
-        .select(`
-            id,
-            title,
-            story_id,
-            start_id,
-            created_at,
-            updated_at,
-            stories (
-                id,
-                title,
-                description,
-                setting,
-                tone,
-                world_rules,
-                lore,
-                characters,
-                descriptiveness,
-                dialogue_ratio,
-                pacing,
-                emotional_intensity,
-                cover_image_url
-            )
-        `)
+        .select('id, title, story_id, start_id, created_at, updated_at')
         .eq('id', sessionId)
-        .eq('user_id', userId)
+        .eq('user_id', auth.userId)
         .single();
 
-    if (error || !data) return null;
-    return data;
-}
+    if (sessionErr || !sessionRow) {
+        console.error('[GET /api/sessions/id] session query error:', sessionErr?.message, sessionErr?.code);
+        return jsonResponse({ error: 'Session not found' }, 404);
+    }
 
-/** Fetch all messages for the session, oldest first */
-async function fetchMessages(sessionId: string) {
-    const { data } = await supabase
-        .from('messages')
-        .select('id, session_id, role, content, created_at')
-        .eq('session_id', sessionId)
-        .order('created_at', { ascending: true });
+    // Step 2 — load story metadata, messages, and story_start in parallel
+    const [storyResult, messagesResult, storyStartResult] = await Promise.all([
+        db
+            .from('stories')
+            .select(
+                'id, title, description, setting, tone, world_rules, lore, characters, ' +
+                'descriptiveness, dialogue_ratio, pacing, emotional_intensity, auto_style, cover_image_url',
+            )
+            .eq('id', sessionRow.story_id)
+            .single(),
+        db
+            .from('messages')
+            .select('id, session_id, role, content, created_at')
+            .eq('session_id', sessionId)
+            .order('created_at', { ascending: true }),
+        // Fetch story_start opening message when the session was started with one
+        sessionRow.start_id
+            ? db
+                .from('story_starts')
+                .select('id, title, first_message')
+                .eq('id', sessionRow.start_id)
+                .single()
+            : Promise.resolve({ data: null, error: null }),
+    ]);
 
-    return data ?? [];
-}
+    if (storyResult.error) {
+        console.error('[GET /api/sessions/id] story query error:', storyResult.error.message);
+    }
+
+    const session = {
+        ...sessionRow,
+        stories: storyResult.data ?? null,
+    };
+
+    return jsonResponse({
+        session,
+        messages: messagesResult.data ?? [],
+        // Provides the opening message so the client can display it even if the
+        // DB insert failed or the session was loaded before the message was committed
+        storyStart: storyStartResult.data ?? null,
+    });
+};
