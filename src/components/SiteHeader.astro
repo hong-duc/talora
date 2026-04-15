@@ -61,19 +61,13 @@ const headerBgClass =
 			{
 				showNav && (
 					<nav class="hidden items-center gap-8 md:flex">
-						<a class={navItemClass("archive")} href="/archive">
-							<span class="material-symbols-outlined text-lg">
-								castle
-							</span>
-							The Great Archive
-						</a>
-						<a class={navItemClass("social")} href="/social">
-							<span class="material-symbols-outlined text-lg">
-								forum
-							</span>
-							The Hall of Echoes
-						</a>
-						<!-- "My Stories" only visible when signed in — toggled by profile-sync.ts -->
+					<a class={navItemClass("archive")} href="/archive">
+						<span class="material-symbols-outlined text-lg">
+							castle
+						</span>
+						The Great Archive
+					</a>
+					<!-- "My Stories" only visible when signed in — toggled by profile-sync.ts -->
 						<a
 							class={`${navItemClass("my-stories")} hidden`}
 							data-auth="signed-in"

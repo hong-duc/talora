@@ -10,17 +10,10 @@ import CharacterRegistry from "../components/CharacterRegistry.svelte";
 import StyleParameters from "../components/StyleParameters.svelte";
 import RichTextEditor from "../components/RichTextEditor.svelte";
 import Upload from "@components/Upload.svelte";
-import { getUser } from "@lib/auth";
 import { supabase } from "@lib/supabase";
 import StoryTone from "@components/StoryTone.svelte";
 
 export const prerender = false;
-
-// ─── Auth guard ────────────────────────────────────────────────────────
-const result = await getUser();
-if (result.data == null) {
-    return Astro.redirect("/signin");
-}
 
 // ─── Edit mode: fetch existing story if ?edit=ID is present ────────────
 const editId = Astro.url.searchParams.get("edit");
@@ -462,6 +455,32 @@ const editDataJson = editStory
                 <SiteFooter />
             </div>
         </div>
+
+        <!-- Client-side auth guard: redirect to /signin if no session in localStorage -->
+        <script is:inline>
+            (function () {
+                const sessionKey = Object.keys(localStorage).find(
+                    (k) => k.startsWith("sb-") && k.endsWith("-auth-token"),
+                );
+                const raw = sessionKey
+                    ? localStorage.getItem(sessionKey)
+                    : null;
+                let session = null;
+                try {
+                    session = raw ? JSON.parse(raw) : null;
+                } catch {}
+                if (!session?.user?.id) {
+                    // Preserve the intended destination so /signin can redirect back
+                    window.location.replace(
+                        "/signin?redirectTo=" +
+                            encodeURIComponent(
+                                window.location.pathname +
+                                    window.location.search,
+                            ),
+                    );
+                }
+            })();
+        </script>
 
         <script>
             import "../scripts/create-story";
