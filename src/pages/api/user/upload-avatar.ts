@@ -45,7 +45,7 @@ export const POST: APIRoute = async ({ request }) => {
         const filePath = `avatars/${auth.userId}.${ext}`;
 
         const { error: uploadError } = await supabase.storage
-            .from('images')
+            .from('images_2')
             .upload(filePath, file, {
                 cacheControl: 'public, max-age=3600',
                 upsert: true,
@@ -59,7 +59,7 @@ export const POST: APIRoute = async ({ request }) => {
 
         // Get public URL
         const { data: urlData } = supabase.storage
-            .from('images')
+            .from('images_2')
             .getPublicUrl(filePath);
 
         const avatarUrl = urlData.publicUrl;

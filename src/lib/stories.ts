@@ -45,18 +45,23 @@ export async function uploadCoverImage(
         // Use the authenticated client if provided (required when bucket RLS restricts anon writes)
         const storageClient = client ?? supabase;
 
+        // Delete any existing file first (ignore error — file may not exist yet).
+        // This avoids the UPDATE/SELECT RLS check triggered by upsert: true,
+        // which fails when bucket policies only allow INSERT.
+        await storageClient.storage.from('images_2').remove([fileName]);
+
         const { error } = await storageClient.storage
-            .from('images')
+            .from('images_2')
             .upload(fileName, file, {
                 cacheControl: 'public, max-age=31536000, immutable',
-                upsert: true,
+                upsert: false,
             });
 
         if (error) throw error;
 
         // Get public URL (always use the same base client — public URL is deterministic)
         const { data: urlData } = storageClient.storage
-            .from('images')
+            .from('images_2')
             .getPublicUrl(fileName);
 
         return { url: urlData.publicUrl, error: null };

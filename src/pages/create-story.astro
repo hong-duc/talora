@@ -4,6 +4,7 @@ import "../styles/editor-design.css";
 import SiteHeader from "../components/SiteHeader.astro";
 import SiteFooter from "../components/SiteFooter.astro";
 import LibrarySectionNav from "../components/LibrarySectionNav.astro";
+import ArcaneToast from "../components/ArcaneToast.astro";
 import TagInput from "../components/TagInput.svelte";
 import FirstMessagesInput from "../components/FirstMessagesInput.svelte";
 import CharacterRegistry from "../components/CharacterRegistry.svelte";
@@ -481,6 +482,18 @@ const editDataJson = editStory
                 }
             })();
         </script>
+
+        <!-- Error toast for form submission failures -->
+        <ArcaneToast
+            id="create-story-error-toast"
+            variant="information"
+            eyebrow="Error"
+            title="Something went wrong"
+            description="An unexpected error occurred."
+            icon="error"
+            duration={6000}
+            floating={true}
+        />
 
         <script>
             import "../scripts/create-story";

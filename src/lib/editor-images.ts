@@ -38,7 +38,7 @@ export async function uploadEditorImage(
         const filePath = `editor-images/${storyId}/${fileName}.${fileExt}`;
 
         const { error } = await supabase.storage
-            .from('images')
+            .from('images_2')
             .upload(filePath, file, {
                 cacheControl: 'public, max-age=31536000, immutable',
                 upsert: false, // Don't overwrite existing files
@@ -48,7 +48,7 @@ export async function uploadEditorImage(
 
         // Get public URL
         const { data: urlData } = supabase.storage
-            .from('images')
+            .from('images_2')
             .getPublicUrl(filePath);
 
         return { url: urlData.publicUrl, error: null };
@@ -68,7 +68,7 @@ export async function deleteEditorImage(
 ): Promise<{ success: boolean; error: Error | null }> {
     try {
         const { error } = await supabase.storage
-            .from('images')
+            .from('images_2')
             .remove([filePath]);
 
         if (error) throw error;
@@ -90,7 +90,7 @@ export async function listEditorImages(
 ): Promise<{ data: Array<{ url: string; path: string }> | null; error: Error | null }> {
     try {
         const { data, error } = await supabase.storage
-            .from('images')
+            .from('images_2')
             .list(`editor-images/${storyId}`);
 
         if (error) throw error;
@@ -98,7 +98,7 @@ export async function listEditorImages(
         const images = (data || []).map(item => {
             const path = `editor-images/${storyId}/${item.name}`;
             const { data: urlData } = supabase.storage
-                .from('images')
+                .from('images_2')
                 .getPublicUrl(path);
             return {
                 url: urlData.publicUrl,

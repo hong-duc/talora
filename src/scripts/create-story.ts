@@ -226,22 +226,18 @@ async function submitUpdate(editId: string, data: StoryFormData): Promise<{ stor
         imgFormData.append("storyId", editId);
         imgFormData.append("title", payload.title);
 
-        try {
-            const uploadResponse = await fetch("/api/upload-image", {
-                method: "POST",
-                headers: { Authorization: `Bearer ${accessToken}` },
-                body: imgFormData,
-            });
-            const uploadResult = await parseResponse(uploadResponse);
-            if (uploadResponse.ok && uploadResult.url) {
-                // Always use the freshly returned URL — it is valid even when
-                // the previous cover_image_url was null, empty, or broken.
-                resolvedCoverImageUrl = uploadResult.url;
-            } else {
-                console.warn("Cover image upload failed during edit:", uploadResult.error || "unknown error");
-            }
-        } catch (err) {
-            console.warn("Cover image upload request failed during edit:", err);
+        const uploadResponse = await fetch("/api/upload-image", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${accessToken}` },
+            body: imgFormData,
+        });
+        const uploadResult = await parseResponse(uploadResponse);
+        if (uploadResponse.ok && uploadResult.url) {
+            // Always use the freshly returned URL — it is valid even when
+            // the previous cover_image_url was null, empty, or broken.
+            resolvedCoverImageUrl = uploadResult.url;
+        } else {
+            throw new Error(uploadResult.error || "Cover image upload failed. Please try again.");
         }
     }
 
@@ -416,8 +412,16 @@ function setupFormSubmission(elements: FormElements, editId: string | null): voi
         } catch (error) {
             console.error("Submit error:", error);
             const message = error instanceof Error ? error.message : "Failed to save story.";
-            // Could show a toast here — for now log it
-            alert(message);
+            window.dispatchEvent(new CustomEvent("arcane-toast:show", {
+                detail: {
+                    id: "create-story-error-toast",
+                    icon: "error",
+                    eyebrow: "Error",
+                    title: "Something went wrong",
+                    description: message,
+                    duration: 6000,
+                },
+            }));
         } finally {
             // Re-enable submit button
             if (elements.submitButton) {
