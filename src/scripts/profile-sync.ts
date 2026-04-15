@@ -12,7 +12,11 @@ const whenReady = (fn: () => void) => {
     fn();
 };
 
-const toAvatarUrl = (url?: string | null) => (url?.trim() ? url.trim() : '/default_user_profile.png');
+const AVATAR_FALLBACK = '/default_user_profile.png';
+const toAvatarUrl = (url?: string | null): string => {
+    if (!url?.trim()) return AVATAR_FALLBACK;
+    return `https://wsrv.nl/?url=${encodeURIComponent(url.trim())}&w=64&h=64&fit=cover&a=attention&output=webp&q=85`;
+};
 
 const applyProfileToNode = (
     profile: Profile,

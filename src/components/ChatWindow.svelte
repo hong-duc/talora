@@ -84,9 +84,12 @@
 
 	const userAvatarFallback = "/default_user_profile.png";
 
-	/** Pick the user avatar, falling back to the default if URL is empty */
-	const toAvatarUrl = (url?: string | null) =>
-		url?.trim() ? url.trim() : userAvatarFallback;
+	/** Pick the user avatar, resizing on-the-fly via wsrv.nl (same approach as the
+	 *  assistant avatar), falling back to the default if URL is empty. */
+	const toAvatarUrl = (url?: string | null): string => {
+		if (!url?.trim()) return userAvatarFallback;
+		return `https://wsrv.nl/?url=${encodeURIComponent(url.trim())}&w=64&h=64&fit=cover&a=attention&output=webp&q=85`;
+	};
 
 	// ─── Derived ───────────────────────────────────────────────────────────────
 

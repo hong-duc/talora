@@ -3,6 +3,50 @@ import "../styles/global.css";
 import SiteHeader from "../components/SiteHeader.astro";
 import SiteFooter from "../components/SiteFooter.astro";
 import LibrarySectionNav from "../components/LibrarySectionNav.astro";
+import { supabase } from "../lib/supabase";
+
+export const prerender = false;
+
+// ── Server-side: fetch the profile by ?id ────────────────────────────────────
+const profileId = Astro.url.searchParams.get("id");
+
+type ProfileRow = {
+	id: string;
+	username: string | null;
+	avatar_url: string | null;
+	bio: string | null;
+	created_at: string | null;
+};
+
+let profile: ProfileRow | null = null;
+let fetchError = false;
+
+if (profileId) {
+	const { data, error } = await supabase
+		.from("profiles")
+		.select("id, username, avatar_url, bio, created_at")
+		.eq("id", profileId)
+		.single();
+
+	if (error || !data) {
+		fetchError = true;
+	} else {
+		profile = data as ProfileRow;
+	}
+}
+
+const displayName = profile?.username?.trim() || "Seeker";
+const avatarUrl = profile?.avatar_url?.trim() || "/default_user_profile.png";
+const bio = profile?.bio?.trim() || "";
+const profileUserId = profile?.id ?? profileId ?? "";
+
+// Pass Supabase public credentials to client scripts
+const supabaseUrl =
+	import.meta.env.PUBLIC_SUPABASE_URL || import.meta.env.SUPABASE_URL || "";
+const supabaseAnonKey =
+	import.meta.env.PUBLIC_SUPABASE_ANON_KEY ||
+	import.meta.env.SUPABASE_ANON_KEY ||
+	"";
 ---
 
 <html class="dark" lang="en">
@@ -12,7 +56,7 @@ import LibrarySectionNav from "../components/LibrarySectionNav.astro";
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<link rel="icon" href="/favicon.ico" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Character Chronicle - Elara Vox</title>
+		<title>Character Chronicle – {displayName}</title>
 		<link
 			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
 			rel="stylesheet"
@@ -35,332 +79,278 @@ import LibrarySectionNav from "../components/LibrarySectionNav.astro";
 				<main
 					class="mx-auto w-full max-w-5xl flex-1 px-6 py-8 lg:px-20"
 				>
-					<div class="grid grid-cols-1 gap-8 md:grid-cols-12">
-						<aside class="space-y-2 md:col-span-3">
-							<div>
-								<div
-									class="rounded-xl border border-primary/20 bg-linear-to-br from-primary/10 to-transparent p-4"
+					{
+						fetchError || (!profile && profileId) ? (
+							<div class="flex flex-col items-center gap-4 py-24 text-center">
+								<span class="material-symbols-outlined text-6xl text-primary/30">
+									person_off
+								</span>
+								<p class="text-xl font-bold">User not found</p>
+								<p class="text-slate-400">
+									This profile does not exist or is
+									unavailable.
+								</p>
+								<a
+									href="/"
+									class="mt-2 rounded-full border border-primary/30 px-5 py-2 text-sm transition hover:border-primary/60"
 								>
-									<p
-										class="mb-2 text-xs font-bold uppercase tracking-widest text-primary"
-									>
-										Current Quest
-									</p>
-									<p class="text-sm italic leading-relaxed">
-										"The Whisper of the Frozen Spire remains
-										unheard. Journey north to the Silent
-										Peaks."
-									</p>
-								</div>
+									Return home
+								</a>
 							</div>
-						</aside>
-
-						<div class="space-y-8 md:col-span-9">
-							<div
-								class="relative flex flex-col items-center gap-8 overflow-hidden rounded-xl border border-primary/10 bg-primary/5 p-8 md:flex-row"
-							>
-								<div
-									class="absolute right-0 top-0 p-4 opacity-10"
-								>
-									<span
-										class="material-symbols-outlined text-9xl"
-										>flare</span
-									>
-								</div>
-								<div class="relative">
-									<div
-										class="size-40 rounded-full border-4 border-primary/40 p-1"
-									>
-										<div
-											class="h-full w-full rounded-full bg-cover bg-center shadow-2xl shadow-primary/20"
-											data-profile-avatar
-											style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDmUMYj1C_8z8v-8ztxeKutnJlWZakKBxrIuSs9o7sfbQyi0ZEaLPEkX07tMoxBXpmg-xuIifP_rBTPr2-_8EavTCGyzS5EyZTLkN9aZUEvuf249p2zCdZp6WX0K0VJFhzC0YErOvMhRB6d_1nHSyrdDCQjfO61IA-DLrJ23x6y1siPkB7giwm0zHzOB5JI25i_4w_EfjH3ljrL5FeqwgxupMmXxHYuNmuz9sv08jjeGHXbwIOzvKEsWiEHBE2cxCZdQZKLwKmviLA')"
-										>
-										</div>
-									</div>
-									<div
-										class="absolute -bottom-2 -right-2 rounded-full bg-primary px-3 py-1 text-xs font-bold text-white shadow-lg"
-									>
-										Master Seeker
-									</div>
-								</div>
-								<div class="text-center md:text-left">
-									<h1
-										class="mb-1 text-4xl font-extrabold tracking-tight"
-										data-profile-name
-									>
-										Elara Vox
-									</h1>
-									<p
-										class="text-xl font-medium italic text-primary opacity-80"
-									>
-										The Silent Seeker
-									</p>
-									<div
-										class="mt-4 flex flex-wrap justify-center gap-4 md:justify-start"
-									>
-										<div
-											class="flex items-center gap-2 rounded-full border border-slate-700/50 bg-slate-800/50 px-3 py-1"
-										>
-											<span
-												class="material-symbols-outlined text-sm text-primary"
-												>verified</span
-											>
-											<span class="text-sm"
-												>Initiate of the Echoes</span
-											>
-										</div>
-										<div
-											class="flex items-center gap-2 rounded-full border border-slate-700/50 bg-slate-800/50 px-3 py-1"
-										>
-											<span
-												class="material-symbols-outlined text-sm text-primary"
-												>auto_awesome</span
-											>
-											<span class="text-sm"
-												>Star-Touched</span
-											>
-										</div>
-									</div>
-								</div>
+						) : !profileId ? (
+							<div class="flex flex-col items-center gap-4 py-24 text-center">
+								<span class="material-symbols-outlined text-6xl text-primary/30">
+									person_search
+								</span>
+								<p class="text-xl font-bold">
+									No profile specified
+								</p>
+								<p class="text-slate-400">
+									Add <code class="text-primary">?id=</code>
+									to the URL to view a profile.
+								</p>
 							</div>
+						) : (
+							<div class="space-y-8">
+								{/* ── Profile header card ── */}
+								<div class="relative flex flex-col items-center gap-8 overflow-hidden rounded-xl border border-primary/10 bg-primary/5 p-8 md:flex-row">
+									<div class="absolute right-0 top-0 p-4 opacity-10">
+										<span class="material-symbols-outlined text-9xl">
+											flare
+										</span>
+									</div>
 
-							<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-								<div
-									class="flex flex-col items-center justify-center rounded-xl border border-primary/20 bg-primary/5 p-6 text-center"
-								>
-									<p class="text-3xl font-bold text-primary">
-										24
-									</p>
-									<p
-										class="mt-1 text-sm uppercase tracking-widest opacity-60"
-									>
-										Level
-									</p>
-									<div
-										class="mt-4 h-1 w-full overflow-hidden rounded-full bg-primary/10"
-									>
-										<div
-											class="h-full w-3/4 bg-primary shadow-[0_0_8px_rgba(115,17,212,0.6)]"
-										>
+									{/* Avatar with upload overlay */}
+									<div class="relative" id="avatar-wrapper">
+										<div class="size-40 rounded-full border-4 border-primary/40 p-1">
+											<div
+												id="profile-avatar-display"
+												class="h-full w-full rounded-full bg-cover bg-center shadow-2xl shadow-primary/20"
+												style={`background-image: url('${avatarUrl}')`}
+											/>
 										</div>
+
+										{/* Upload overlay — shown only to profile owner via JS */}
+										<button
+											id="avatar-upload-btn"
+											class="absolute inset-0 hidden items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity hover:opacity-100"
+											title="Change avatar"
+											aria-label="Upload new avatar"
+										>
+											<span class="material-symbols-outlined text-3xl text-white">
+												photo_camera
+											</span>
+										</button>
+										<input
+											type="file"
+											id="avatar-file-input"
+											accept="image/jpeg,image/png,image/webp,image/gif"
+											class="hidden"
+										/>
+									</div>
+
+									<div class="text-center md:text-left">
+										<h1 class="mb-1 text-4xl font-extrabold tracking-tight">
+											{displayName}
+										</h1>
+										<p class="text-sm mt-1 text-slate-400">
+											Joined{" "}
+											{profile!.created_at
+												? new Date(
+														profile!.created_at,
+													).toLocaleDateString(
+														"en-US",
+														{
+															month: "long",
+															year: "numeric",
+														},
+													)
+												: "recently"}
+										</p>
 									</div>
 								</div>
-								<div
-									class="flex flex-col items-center justify-center rounded-xl border border-primary/20 bg-primary/5 p-6 text-center"
+
+								{/* ── Personal Legend (bio) ── */}
+								<section class="space-y-4">
+									<div class="flex items-center justify-between gap-2">
+										<div class="flex items-center gap-2">
+											<span class="material-symbols-outlined text-primary">
+												ink_pen
+											</span>
+											<h3 class="text-2xl font-bold tracking-tight">
+												Personal Legend
+											</h3>
+										</div>
+										{/* Edit button — shown only to owner via JS */}
+										<button
+											id="bio-edit-btn"
+											class="hidden items-center gap-1 rounded-full border border-primary/30 px-3 py-1 text-xs text-primary transition hover:border-primary/60 hover:bg-primary/10"
+											aria-label="Edit bio"
+										>
+											<span class="material-symbols-outlined text-xs">
+												edit
+											</span>
+											Edit
+										</button>
+									</div>
+
+									{/* Bio display */}
+									<div
+										id="bio-display"
+										class="relative rounded-xl border border-primary/10 bg-primary/5 p-8 text-lg italic leading-relaxed"
+									>
+										<span class="absolute left-4 top-4 font-serif text-6xl text-primary/10">
+											"
+										</span>
+										<p id="bio-text" data-raw-bio={bio}>
+											{bio || "No legend written yet…"}
+										</p>
+										<span class="absolute bottom-4 right-4 font-serif text-6xl text-primary/10">
+											"
+										</span>
+									</div>
+
+									{/* Bio edit form — hidden by default */}
+									<div
+										id="bio-edit-form"
+										class="hidden space-y-3"
+									>
+										<textarea
+											id="bio-textarea"
+											rows="5"
+											maxlength="1000"
+											class="w-full rounded-xl border border-primary/30 bg-primary/5 p-4 text-base leading-relaxed text-slate-100 placeholder-slate-500 outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/30"
+											placeholder="Write your personal legend…"
+										/>
+										<div class="flex gap-2">
+											<button
+												id="bio-save-btn"
+												class="rounded-full bg-primary px-5 py-2 text-sm font-bold text-white transition hover:bg-primary/80 disabled:opacity-50"
+											>
+												Save
+											</button>
+											<button
+												id="bio-cancel-btn"
+												class="rounded-full border border-slate-700 px-5 py-2 text-sm transition hover:border-slate-500"
+											>
+												Cancel
+											</button>
+										</div>
+										<p
+											id="bio-error"
+											class="hidden text-sm text-red-400"
+										/>
+									</div>
+								</section>
+
+								{/* ── Created Stories ── */}
+								<section
+									class="space-y-4"
+									id="user-stories-section"
 								>
-									<p class="text-3xl font-bold text-primary">
-										1,250
-									</p>
-									<p
-										class="mt-1 text-sm uppercase tracking-widest opacity-60"
+									<div class="flex items-center gap-2">
+										<span class="material-symbols-outlined text-primary">
+											menu_book
+										</span>
+										<h3 class="text-2xl font-bold tracking-tight">
+											Created Stories
+										</h3>
+									</div>
+									<div
+										id="user-stories-grid"
+										class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3"
 									>
-										Essence
-									</p>
-									<span
-										class="material-symbols-outlined mt-3 text-primary/40"
-										>storm</span
-									>
-								</div>
-								<div
-									class="flex flex-col items-center justify-center rounded-xl border border-primary/20 bg-primary/5 p-6 text-center"
-								>
-									<p class="text-3xl font-bold text-primary">
-										42
-									</p>
-									<p
-										class="mt-1 text-sm uppercase tracking-widest opacity-60"
-									>
-										Stories Discovered
-									</p>
-									<span
-										class="material-symbols-outlined mt-3 text-primary/40"
-										>book_2</span
-									>
-								</div>
+										<div
+											class="animate-pulse rounded-xl border border-primary/10 bg-primary/5"
+											style="height:176px"
+										/>
+										<div
+											class="animate-pulse rounded-xl border border-primary/10 bg-primary/5"
+											style="height:176px"
+										/>
+										<div
+											class="animate-pulse rounded-xl border border-primary/10 bg-primary/5"
+											style="height:176px"
+										/>
+									</div>
+								</section>
 							</div>
-
-							<section class="space-y-4">
-								<div class="flex items-center gap-2">
-									<span
-										class="material-symbols-outlined text-primary"
-										>ink_pen</span
-									>
-									<h3
-										class="text-2xl font-bold tracking-tight"
-									>
-										Personal Legend
-									</h3>
-								</div>
-								<div
-									class="relative rounded-xl border border-primary/10 bg-primary/5 p-8 text-lg italic leading-relaxed"
-								>
-									<span
-										class="absolute left-4 top-4 text-6xl font-serif text-primary/10"
-										>"</span
-									>
-									Born in the city of whispers, Elara discovered
-									the ability to hear the echoes of forgotten history
-									within ancient stone. She walks the thin line
-									between reality and the stories that once were,
-									seeking the Ultimate Chronos, a tome said to rewrite
-									the future of the dying sun. Her silence is not
-									a lack of voice, but a choice to listen to the
-									world's fading memories.
-									<span
-										class="absolute bottom-4 right-4 text-6xl font-serif text-primary/10"
-										>"</span
-									>
-								</div>
-							</section>
-
-							<section
-								class="space-y-4"
-								id="user-stories-section"
-							>
-								<div class="flex items-center gap-2">
-									<span
-										class="material-symbols-outlined text-primary"
-										>menu_book</span
-									>
-									<h3
-										class="text-2xl font-bold tracking-tight"
-									>
-										Created Stories
-									</h3>
-								</div>
-								<!-- Story cards injected by script below -->
-								<div
-									id="user-stories-grid"
-									class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3"
-								>
-									<!-- Loading skeletons -->
-									<div
-										class="animate-pulse rounded-xl border border-primary/10 bg-primary/5"
-										style="height:176px"
-									>
-									</div>
-									<div
-										class="animate-pulse rounded-xl border border-primary/10 bg-primary/5"
-										style="height:176px"
-									>
-									</div>
-									<div
-										class="animate-pulse rounded-xl border border-primary/10 bg-primary/5"
-										style="height:176px"
-									>
-									</div>
-								</div>
-							</section>
-
-							<section class="space-y-4">
-								<div class="flex items-center gap-2">
-									<span
-										class="material-symbols-outlined text-primary"
-										>group</span
-									>
-									<h3
-										class="text-2xl font-bold tracking-tight"
-									>
-										Known Companions
-									</h3>
-								</div>
-								<div class="flex flex-wrap gap-4">
-									<div
-										class="flex cursor-pointer items-center gap-3 rounded-xl border border-primary/10 bg-primary/5 p-3 pr-6 transition-all hover:border-primary/30"
-									>
-										<div
-											class="size-10 rounded-full bg-cover bg-center"
-											style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCh4RbyITRjRtAvrAkZGWgytKN3h_Jrsy4NSi_o6TU_ZCyjLzZAPsANuHPT7u8oZN0H6tPdjtsBeq0DrZIFlhHPz5RHOw6VBfHEBtrKOkWAl1Y2NMU7gTviFYtelYFtherQKhgNXDgdHxQUn7m1e0_C_CycOGbz2134eVxxDZ-rB7s2TRdKUM6N86uMnxNkI1N-KA-tLH0ID1zL4fgGj3kOxRdVVg-WLx0y2q5tP9piVSlwe6U8oMBF-Hx7EqiUswc2F7VJ1BfYXwU')"
-										>
-										</div>
-										<div>
-											<p class="text-sm font-bold">
-												Kaelen
-											</p>
-											<p class="text-xs opacity-60">
-												The Wise Librarian
-											</p>
-										</div>
-									</div>
-									<div
-										class="flex cursor-pointer items-center gap-3 rounded-xl border border-primary/10 bg-primary/5 p-3 pr-6 transition-all hover:border-primary/30"
-									>
-										<div
-											class="size-10 rounded-full bg-cover bg-center"
-											style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAvQrT80rztgEV3g-eGNZbOzbGbIRiBbqdu3H6guZOGdHsV3Nghn9s-N20ZBdJW_Rge71SfQebr9HKB_RRQm-znzwQ4305WVyyWEr3zazdSyd1f7cqxzmgcRhfBkSVB1TalRH6uVLDPUQzF-GBBSbwUpHfnSKt2POuKyStjSXznE_0FuAkJFiWw6nNv440Sa3X4ljNmtjeIUggfHvf_B4HiI3ejhvLOOEq8cpgZZEJuK9FgMoWrLQskMEllHbV2Ks1HxvQaliCTnMM')"
-										>
-										</div>
-										<div>
-											<p class="text-sm font-bold">
-												Thorne
-											</p>
-											<p class="text-xs opacity-60">
-												Shadow Weaver
-											</p>
-										</div>
-									</div>
-									<div
-										class="flex cursor-pointer items-center gap-3 rounded-xl border border-primary/10 bg-primary/5 p-3 pr-6 transition-all hover:border-primary/30"
-									>
-										<div
-											class="size-10 rounded-full bg-cover bg-center"
-											style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAyVpWL6pxj7F042Eiu9MT_vvP150msHpOPqwh9weqq4ON09xbIJ0srKieRMpzoBaiEfmKg0yCycP8OTLjIvRe0ARjRJrhTjumOmt4UJBAOVXYPTUbVlAGxWM6EI-e1v3bRGn3gK0iTxYpMLG44jdfhc-4N8aK-e-8nrzelpgVnRpYkBHXCelkJhQLiKurw-GPXSD2q6gTLJiaoQ0zwBrxcUy7m2IuVmQ0PcRp7i1FHi3L5bKfnaAUsWdb3Wx45CbQSDdBZGWmXSqo')"
-										>
-										</div>
-										<div>
-											<p class="text-sm font-bold">
-												Lyra
-											</p>
-											<p class="text-xs opacity-60">
-												Silent Arrow
-											</p>
-										</div>
-									</div>
-								</div>
-							</section>
-						</div>
-					</div>
+						)
+					}
 				</main>
 
 				<SiteFooter />
 			</div>
 		</div>
-		<script is:inline>
+
+		{/* ── Avatar upload status toast ── */}
+		<div
+			id="avatar-toast"
+			class="fixed bottom-6 right-6 hidden items-center gap-2 rounded-lg border border-primary/30 bg-slate-900 px-4 py-3 text-sm shadow-lg"
+		>
+			<span
+				id="avatar-toast-icon"
+				class="material-symbols-outlined text-primary"
+			>
+				check_circle
+			</span>
+			<span id="avatar-toast-msg">Avatar updated!</span>
+		</div>
+
+		<script
+			define:vars={{
+				profileUserId,
+				bio,
+				avatarUrl,
+				supabaseUrl,
+				supabaseAnonKey,
+			}}
+		>
 			(function () {
+				// ── Helpers ─────────────────────────────────────────────────
 				function escapeHtml(str) {
-					const div = document.createElement("div");
-					div.appendChild(document.createTextNode(str));
-					return div.innerHTML;
+					const d = document.createElement("div");
+					d.appendChild(document.createTextNode(str));
+					return d.innerHTML;
 				}
 
+				function showToast(msg, isError) {
+					const toast = document.getElementById("avatar-toast");
+					const icon = document.getElementById("avatar-toast-icon");
+					const msgEl = document.getElementById("avatar-toast-msg");
+					if (!toast || !icon || !msgEl) return;
+					msgEl.textContent = msg;
+					icon.textContent = isError ? "error" : "check_circle";
+					icon.className =
+						"material-symbols-outlined " +
+						(isError ? "text-red-400" : "text-primary");
+					toast.classList.remove("hidden");
+					toast.classList.add("flex");
+					clearTimeout(toast._timer);
+					toast._timer = setTimeout(() => {
+						toast.classList.add("hidden");
+						toast.classList.remove("flex");
+					}, 3000);
+				}
+
+				// ── Load stories ────────────────────────────────────────────
 				async function loadUserStories() {
 					const grid = document.getElementById("user-stories-grid");
 					if (!grid) return;
-
-					// Get the profile owner's ID from the URL (?id=<uuid>)
-					const profileUserId = new URLSearchParams(
-						window.location.search,
-					).get("id");
-
 					if (!profileUserId) {
-						// No user ID in URL — hide the section entirely
 						const section = document.getElementById(
 							"user-stories-section",
 						);
 						if (section) section.style.display = "none";
 						return;
 					}
-
 					try {
-						// Fetch only PUBLIC stories — no auth header needed
 						const res = await fetch(
 							`/api/stories?author_id=${encodeURIComponent(profileUserId)}&limit=9`,
 						);
 						if (!res.ok) throw new Error("fetch failed");
 						const json = await res.json();
 						const stories = json.data?.stories ?? [];
-
 						if (stories.length === 0) {
 							grid.innerHTML = `
 								<div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;gap:12px;padding:40px 0;text-align:center">
@@ -369,7 +359,6 @@ import LibrarySectionNav from "../components/LibrarySectionNav.astro";
 								</div>`;
 							return;
 						}
-
 						grid.innerHTML = stories
 							.map(
 								(story) => `
@@ -401,7 +390,230 @@ import LibrarySectionNav from "../components/LibrarySectionNav.astro";
 					}
 				}
 
+				// ── Owner-only UI (bio edit + avatar upload) ─────────────────
+				async function initOwnerUI() {
+					// Dynamically import supabase client to check current session
+					try {
+						const { createClient } =
+							await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm");
+
+						// supabaseUrl and supabaseAnonKey are injected via define:vars
+						const _sb = createClient(supabaseUrl, supabaseAnonKey);
+						const {
+							data: { session },
+						} = await _sb.auth.getSession();
+						if (!session || session.user.id !== profileUserId)
+							return;
+
+						const accessToken = session.access_token;
+
+						// Show avatar upload overlay
+						const uploadBtn =
+							document.getElementById("avatar-upload-btn");
+						if (uploadBtn) {
+							uploadBtn.classList.remove("hidden");
+							uploadBtn.classList.add("flex");
+						}
+
+						// Show bio edit button
+						const bioEditBtn =
+							document.getElementById("bio-edit-btn");
+						if (bioEditBtn) {
+							bioEditBtn.classList.remove("hidden");
+							bioEditBtn.classList.add("flex");
+						}
+
+						setupBioEdit(accessToken);
+						setupAvatarUpload(accessToken);
+					} catch {
+						// Non-owner or session unavailable — owner UI stays hidden
+					}
+				}
+
+				// ── Bio editing ──────────────────────────────────────────────
+				function setupBioEdit(accessToken) {
+					const editBtn = document.getElementById("bio-edit-btn");
+					const bioDisplay = document.getElementById("bio-display");
+					const bioEditForm =
+						document.getElementById("bio-edit-form");
+					const bioTextarea = document.getElementById("bio-textarea");
+					const bioSaveBtn = document.getElementById("bio-save-btn");
+					const bioCancelBtn =
+						document.getElementById("bio-cancel-btn");
+					const bioText = document.getElementById("bio-text");
+					const bioError = document.getElementById("bio-error");
+
+					if (
+						!editBtn ||
+						!bioDisplay ||
+						!bioEditForm ||
+						!bioTextarea ||
+						!bioSaveBtn ||
+						!bioCancelBtn ||
+						!bioText ||
+						!bioError
+					)
+						return;
+
+					editBtn.addEventListener("click", () => {
+						bioTextarea.value = bioText.dataset.rawBio || bio || "";
+						bioDisplay.classList.add("hidden");
+						bioEditForm.classList.remove("hidden");
+						editBtn.classList.add("hidden");
+						editBtn.classList.remove("flex");
+						bioError.classList.add("hidden");
+						bioTextarea.focus();
+					});
+
+					bioCancelBtn.addEventListener("click", () => {
+						bioEditForm.classList.add("hidden");
+						bioDisplay.classList.remove("hidden");
+						editBtn.classList.remove("hidden");
+						editBtn.classList.add("flex");
+					});
+
+					bioSaveBtn.addEventListener("click", async () => {
+						const newBio = bioTextarea.value;
+						bioSaveBtn.disabled = true;
+						bioSaveBtn.textContent = "Saving…";
+						bioError.classList.add("hidden");
+
+						try {
+							const res = await fetch(
+								"/api/user/update-profile",
+								{
+									method: "PATCH",
+									headers: {
+										"Content-Type": "application/json",
+										Authorization: `Bearer ${accessToken}`,
+									},
+									body: JSON.stringify({ bio: newBio }),
+								},
+							);
+							const json = await res.json();
+							if (!res.ok || !json.success) {
+								throw new Error(json.error || "Save failed");
+							}
+
+							// Update display
+							const updatedBio = json.profile?.bio?.trim() || "";
+							bioText.textContent =
+								updatedBio || "No legend written yet…";
+							bioText.dataset.rawBio = updatedBio;
+
+							// Sync to localStorage profile cache
+							try {
+								const stored =
+									localStorage.getItem("talora.profile");
+								if (stored) {
+									const p = JSON.parse(stored);
+									p.bio = updatedBio;
+									localStorage.setItem(
+										"talora.profile",
+										JSON.stringify(p),
+									);
+								}
+							} catch {}
+
+							bioEditForm.classList.add("hidden");
+							bioDisplay.classList.remove("hidden");
+							editBtn.classList.remove("hidden");
+							editBtn.classList.add("flex");
+						} catch (err) {
+							bioError.textContent =
+								err.message || "Could not save bio.";
+							bioError.classList.remove("hidden");
+						} finally {
+							bioSaveBtn.disabled = false;
+							bioSaveBtn.textContent = "Save";
+						}
+					});
+				}
+
+				// ── Avatar upload ────────────────────────────────────────────
+				function setupAvatarUpload(accessToken) {
+					const uploadBtn =
+						document.getElementById("avatar-upload-btn");
+					const fileInput =
+						document.getElementById("avatar-file-input");
+					const avatarDisplay = document.getElementById(
+						"profile-avatar-display",
+					);
+
+					if (!uploadBtn || !fileInput || !avatarDisplay) return;
+
+					uploadBtn.addEventListener("click", () =>
+						fileInput.click(),
+					);
+
+					fileInput.addEventListener("change", async () => {
+						const file = fileInput.files?.[0];
+						if (!file) return;
+
+						uploadBtn.disabled = true;
+						uploadBtn.innerHTML =
+							'<span class="material-symbols-outlined animate-spin text-2xl text-white">progress_activity</span>';
+
+						const formData = new FormData();
+						formData.append("file", file);
+
+						try {
+							const res = await fetch("/api/user/upload-avatar", {
+								method: "POST",
+								headers: {
+									Authorization: `Bearer ${accessToken}`,
+								},
+								body: formData,
+							});
+							const json = await res.json();
+							if (!res.ok || !json.success) {
+								throw new Error(json.error || "Upload failed");
+							}
+
+							// Update avatar display immediately
+							const newUrl = json.url;
+							avatarDisplay.style.backgroundImage = `url("${newUrl}")`;
+
+							// Also update header avatar if present
+							document
+								.querySelectorAll("[data-profile-avatar]")
+								.forEach((node) => {
+									if (node instanceof HTMLImageElement) {
+										node.src = newUrl;
+									} else if (node instanceof HTMLElement) {
+										node.style.backgroundImage = `url("${newUrl}")`;
+									}
+								});
+
+							// Sync localStorage cache
+							try {
+								const stored =
+									localStorage.getItem("talora.profile");
+								if (stored) {
+									const p = JSON.parse(stored);
+									p.avatar_url = newUrl;
+									localStorage.setItem(
+										"talora.profile",
+										JSON.stringify(p),
+									);
+								}
+							} catch {}
+
+							showToast("Avatar updated!", false);
+						} catch (err) {
+							showToast(err.message || "Upload failed", true);
+						} finally {
+							uploadBtn.disabled = false;
+							uploadBtn.innerHTML =
+								'<span class="material-symbols-outlined text-3xl text-white">photo_camera</span>';
+							fileInput.value = "";
+						}
+					});
+				}
+
+				// ── Boot ─────────────────────────────────────────────────────
 				loadUserStories();
+				initOwnerUI();
 			})();
 		</script>
 	</body>

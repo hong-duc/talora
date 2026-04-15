@@ -128,10 +128,8 @@ export async function updateProfile(user_id: string, username?: string, avatar_u
             username?: string;
             avatar_url?: string;
             bio?: string;
-            updated_at?: string;
         } = {
             id: user_id,
-            updated_at: new Date().toISOString()
         };
 
         // Only add fields if they are provided and not empty

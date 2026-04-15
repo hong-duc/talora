@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict CtRLarju42Y8ahCf8Bj9P3CvnXUaNkHWupXteayyV8NONqbpSxrTcmQ1KC8aUWw
+\restrict 80MFuVh3O8GfDbQUS0XNBr0vOl3ryXbYVP4SuEacRBMsF9cEa43YgXaEUqlmFeR
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 18.3 (Homebrew)
@@ -1113,6 +1113,13 @@ CREATE POLICY "Enable upfate for authenticated users only" ON public.story_ratin
 
 
 --
+-- Name: profiles Users can update own profile; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING ((auth.uid() = id)) WITH CHECK ((auth.uid() = id));
+
+
+--
 -- Name: ai_configs; Type: ROW SECURITY; Schema: public; Owner: postgres
 --
 
@@ -1509,5 +1516,5 @@ ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON T
 -- PostgreSQL database dump complete
 --
 
-\unrestrict CtRLarju42Y8ahCf8Bj9P3CvnXUaNkHWupXteayyV8NONqbpSxrTcmQ1KC8aUWw
+\unrestrict 80MFuVh3O8GfDbQUS0XNBr0vOl3ryXbYVP4SuEacRBMsF9cEa43YgXaEUqlmFeR
 
