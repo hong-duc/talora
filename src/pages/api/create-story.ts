@@ -229,7 +229,8 @@ async function createStoryRecord(data: ParsedStoryData, db: SupabaseClient): Pro
  */
 async function uploadCoverImageIfProvided(
     file: File | null,
-    story: Story
+    story: Story,
+    db: SupabaseClient
 ): Promise<{ success: boolean; error?: string; coverImageUrl?: string }> {
     if (!file || file.size === 0) {
         return { success: true }; // No file to upload
@@ -245,8 +246,8 @@ async function uploadCoverImageIfProvided(
             };
         }
 
-        // Update story with cover image URL
-        const { error: updateError } = await updateStory(story.id!, { cover_image_url: url });
+        // Update story with cover image URL using the authenticated client (required for RLS)
+        const { error: updateError } = await updateStory(story.id!, { cover_image_url: url }, db);
 
         if (updateError) {
             return {
@@ -488,7 +489,7 @@ export const POST: APIRoute = async ({ request }) => {
         }
 
         // 5. Upload cover image if provided
-        const uploadResult = await uploadCoverImageIfProvided(coverImageFile, story);
+        const uploadResult = await uploadCoverImageIfProvided(coverImageFile, story, db);
 
         // 6. Process tags
         const tagsResult = await processTags(

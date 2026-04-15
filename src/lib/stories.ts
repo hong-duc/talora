@@ -137,11 +137,13 @@ export async function getUserStories(userId: string): Promise<{ data: Story[] | 
  */
 export async function updateStory(
     id: string,
-    storyData: Partial<Story>
+    storyData: Partial<Story>,
+    client?: SupabaseClient
 ): Promise<{ data: Story | null; error: Error | null }> {
 
     try {
-        const { data, error } = await supabase
+        const db = client ?? supabase;
+        const { data, error } = await db
             .from('stories')
             .update(storyData)
             .eq('id', id)
