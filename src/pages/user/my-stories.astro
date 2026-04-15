@@ -100,7 +100,12 @@ import LibrarySectionNav from "../../components/LibrarySectionNav.astro";
                         <button
                             class="tab-btn whitespace-nowrap border-b-2 border-transparent px-5 py-3 text-sm font-medium text-slate-400 transition-colors hover:text-primary"
                             data-filter="private"
-                            type="button">Private / Draft</button
+                            type="button">Private</button
+                        >
+                        <button
+                            class="tab-btn whitespace-nowrap border-b-2 border-transparent px-5 py-3 text-sm font-medium text-slate-400 transition-colors hover:text-primary"
+                            data-filter="draft"
+                            type="button">Draft</button
                         >
                     </div>
 
@@ -203,16 +208,48 @@ import LibrarySectionNav from "../../components/LibrarySectionNav.astro";
                     });
                 }
 
+                // ── Status helpers ───────────────────────────────────────────────────
+                /**
+                 * Returns display metadata for a story status value.
+                 * status: 'draft' | 'public' | 'private'
+                 */
+                function statusMeta(status) {
+                    switch (status) {
+                        case "public":
+                            return {
+                                label: "Public",
+                                color: "#7311d4",
+                                icon: "public",
+                                next: "private",
+                            };
+                        case "private":
+                            return {
+                                label: "Private",
+                                color: "#475569",
+                                icon: "lock",
+                                next: "draft",
+                            };
+                        default: // 'draft'
+                            return {
+                                label: "Draft",
+                                color: "#b45309",
+                                icon: "draft",
+                                next: "public",
+                            };
+                    }
+                }
+
                 /**
                  * Build the HTML for a single story card.
-                 * Shows: cover image, title, description, tags, public/private badge,
-                 * and action links (view + edit).
+                 * Shows: cover image, title, description, tags, status badge,
+                 * a 3-state status cycle button, and action links (view + edit).
                  */
                 function buildCard(story) {
-                    const isPublic = story.is_public !== false; // treat missing as public
-                    const badgeHtml = isPublic
-                        ? `<span class="rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white" style="background:#7311d4">Public</span>`
-                        : `<span class="rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white" style="background:#475569">Draft</span>`;
+                    const status = story.status ?? "draft";
+                    const meta = statusMeta(status);
+                    const nextMeta = statusMeta(meta.next);
+
+                    const badgeHtml = `<span class="story-visibility-badge rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white" style="background:${meta.color}">${meta.label}</span>`;
 
                     const coverHtml = story.cover_image_url
                         ? `<img
@@ -239,7 +276,7 @@ import LibrarySectionNav from "../../components/LibrarySectionNav.astro";
 							<div class="relative h-44 overflow-hidden bg-slate-800">
 								${coverHtml}
 								<div class="absolute inset-0 bg-linear-to-t from-black/70 to-transparent"></div>
-								<!-- Public / draft badge -->
+								<!-- Status badge -->
 								<div class="absolute bottom-3 left-3 flex gap-2">
 									${badgeHtml}
 								</div>
@@ -257,11 +294,27 @@ import LibrarySectionNav from "../../components/LibrarySectionNav.astro";
 								<!-- Tags row -->
 								${tagsHtml ? `<div class="flex flex-wrap gap-1">${tagsHtml}</div>` : ""}
 
-								<!-- Meta row: date -->
-								<p class="mt-auto pt-2 text-[11px] uppercase tracking-widest text-slate-500">
-									<span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle">calendar_today</span>
-									${formatDate(story.created_at)}
-								</p>
+								<!-- Meta row: date + status cycle button -->
+								<div class="mt-auto flex items-center justify-between pt-2">
+									<p class="text-[11px] uppercase tracking-widest text-slate-500">
+										<span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle">calendar_today</span>
+										${formatDate(story.created_at)}
+									</p>
+
+									<!-- Status cycle button — click to advance to next status -->
+									<button
+										class="status-cycle-btn flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-semibold transition-colors hover:opacity-80"
+										data-story-id="${escapeHtml(story.id)}"
+										data-status="${escapeHtml(status)}"
+										title="Change to ${nextMeta.label}"
+										type="button"
+										style="border-color:${meta.color}40; color:${meta.color}"
+									>
+										<span class="material-symbols-outlined" style="font-size:13px">${meta.icon}</span>
+										<span class="status-label">${meta.label}</span>
+										<span class="material-symbols-outlined" style="font-size:11px;opacity:0.6">chevron_right</span>
+									</button>
+								</div>
 
 								<!-- Action buttons -->
 								<div class="mt-2 flex gap-2">
@@ -286,7 +339,9 @@ import LibrarySectionNav from "../../components/LibrarySectionNav.astro";
 
                 // ── State ────────────────────────────────────────────────────────────
                 let allStories = []; // all stories fetched from the API
-                let activeFilter = "all"; // "all" | "public" | "private"
+                let activeFilter = "all"; // "all" | "public" | "private" | "draft"
+                let currentUserId = null;
+                let currentToken = null;
 
                 /**
                  * Render cards for the current activeFilter into the grid.
@@ -301,11 +356,8 @@ import LibrarySectionNav from "../../components/LibrarySectionNav.astro";
 
                     // Filter stories based on active tab
                     const filtered = allStories.filter((story) => {
-                        if (activeFilter === "public")
-                            return story.is_public !== false;
-                        if (activeFilter === "private")
-                            return story.is_public === false;
-                        return true; // "all"
+                        if (activeFilter === "all") return true;
+                        return (story.status ?? "draft") === activeFilter;
                     });
 
                     // Update count badge
@@ -436,6 +488,10 @@ import LibrarySectionNav from "../../components/LibrarySectionNav.astro";
                         return;
                     }
 
+                    // Store for use in toggle handler
+                    currentUserId = userId;
+                    currentToken = token;
+
                     try {
                         // Fetch all stories for the user (including private ones)
                         const url = `/api/stories?author_id=${encodeURIComponent(userId)}&all_statuses=true&limit=100`;
@@ -460,10 +516,96 @@ import LibrarySectionNav from "../../components/LibrarySectionNav.astro";
                     }
                 }
 
+                /** Status cycle order: draft → public → private → draft */
+                const STATUS_CYCLE = {
+                    draft: "public",
+                    public: "private",
+                    private: "draft",
+                };
+
+                /**
+                 * Cycle the story status to the next value.
+                 * Calls PATCH /api/stories/[id] with the new status.
+                 * Updates allStories in-place and re-renders the grid on success.
+                 */
+                async function cycleStatus(btn) {
+                    const storyId = btn.dataset.storyId;
+                    const curStatus = btn.dataset.status || "draft";
+                    const newStatus = STATUS_CYCLE[curStatus] || "public";
+
+                    if (!currentUserId) return;
+
+                    // Disable the button while the request is in-flight
+                    btn.disabled = true;
+                    btn.style.opacity = "0.5";
+
+                    try {
+                        const res = await fetch(`/api/stories/${storyId}`, {
+                            method: "PATCH",
+                            headers: {
+                                "Content-Type": "application/json",
+                                ...(currentToken
+                                    ? {
+                                          Authorization: `Bearer ${currentToken}`,
+                                      }
+                                    : {}),
+                            },
+                            body: JSON.stringify({
+                                author_id: currentUserId,
+                                status: newStatus,
+                            }),
+                        });
+
+                        if (!res.ok) {
+                            const err = await res.json().catch(() => ({}));
+                            console.error(
+                                "Failed to update status:",
+                                err?.error || res.status,
+                            );
+                            return;
+                        }
+
+                        // Update the story in allStories and re-render
+                        const idx = allStories.findIndex(
+                            (s) => s.id === storyId,
+                        );
+                        if (idx !== -1) {
+                            allStories[idx] = {
+                                ...allStories[idx],
+                                status: newStatus,
+                            };
+                        }
+                        renderGrid();
+                    } finally {
+                        // Re-enable (in case renderGrid didn't replace this btn)
+                        btn.disabled = false;
+                        btn.style.opacity = "";
+                    }
+                }
+
+                /**
+                 * Attach a single delegated click listener on the grid's parent
+                 * so status cycle buttons work even after renderGrid() replaces innerHTML.
+                 */
+                function initToggleDelegation() {
+                    const main = document.querySelector("main");
+                    if (!main) return;
+                    main.addEventListener("click", (e) => {
+                        const btn = e.target.closest(".status-cycle-btn");
+                        if (!btn) return;
+                        e.stopPropagation();
+                        cycleStatus(btn);
+                    });
+                }
+
                 // Run after DOM is ready
                 if (document.readyState === "loading") {
-                    document.addEventListener("DOMContentLoaded", init);
+                    document.addEventListener("DOMContentLoaded", () => {
+                        initToggleDelegation();
+                        init();
+                    });
                 } else {
+                    initToggleDelegation();
                     init();
                 }
             })();

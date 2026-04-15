@@ -8,6 +8,7 @@ import ReviewThoughtsThread from "../../components/ReviewThoughtsThread.svelte";
 import ArcaneButton from "../../components/ArcaneButton.svelte";
 import ArcaneToast from "../../components/ArcaneToast.astro";
 import ReadNowButton from "../../components/ReadNowButton.svelte";
+import { supabase } from "../../lib/supabase";
 
 const { id } = Astro.params;
 
@@ -15,118 +16,117 @@ if (!id) {
 	throw new Response("Not found", { status: 404 });
 }
 
-// ── Utility: fetch JSON with a fallback value ──────────────────────────────
-async function safeFetchJson<T>(url: URL, fallback: T) {
-	try {
-		const response = await fetch(url);
-		const responseText = await response.text();
-		let payload: T = fallback;
-		if (responseText) {
-			try {
-				payload = JSON.parse(responseText) as T;
-			} catch {
-				payload = fallback;
-			}
-		}
-		if (!response.ok) {
-			const message =
-				(responseText &&
-					(() => {
-						try {
-							const parsed = JSON.parse(responseText);
-							return parsed?.error;
-						} catch {
-							return null;
-						}
-					})()) ||
-				responseText ||
-				response.statusText ||
-				"Request failed.";
-			return { ok: false, data: fallback, error: message };
-		}
-		return { ok: true, data: payload, error: "" };
-	} catch (error) {
-		return {
-			ok: false,
-			data: fallback,
-			error: error instanceof Error ? error.message : "Request failed.",
-		};
+export const prerender = false;
+
+// ── All queries fire in parallel to minimise latency ──────────────────────
+const [
+	storyResult,
+	authorResult,
+	tagLinksResult,
+	storyStartsResult,
+	ratingsResult,
+] = await Promise.allSettled([
+	// 1. Story row
+	supabase.from("stories").select("*").eq("id", id).maybeSingle(),
+	// author fetched after we know author_id — placeholder; resolved below
+	Promise.resolve({ data: null, error: null }),
+	// 2. Tags
+	supabase.from("story_tags").select("tags(id, name)").eq("story_id", id),
+	// 3. Story starts
+	supabase
+		.from("story_starts")
+		.select("id, title, first_message, sort_order")
+		.eq("story_id", id)
+		.order("sort_order", { ascending: true }),
+	// 4. Ratings aggregate
+	supabase.from("story_ratings").select("rating").eq("story_id", id),
+]);
+
+// ── Extract story row ───────────────────────────────────────────────────────
+const storyData =
+	storyResult.status === "fulfilled" ? storyResult.value.data : null;
+const storyErr =
+	storyResult.status === "fulfilled"
+		? (storyResult.value.error?.message ?? "")
+		: ((storyResult as PromiseRejectedResult).reason?.message ??
+			"Failed to load story.");
+
+// ── Fetch author now that we have author_id ─────────────────────────────────
+let author: {
+	id: string;
+	username: string | null;
+	avatar_url: string | null;
+} | null = null;
+if (storyData?.author_id) {
+	const { data: authorData } = await supabase
+		.from("profiles")
+		.select("id, username, avatar_url")
+		.eq("id", storyData.author_id)
+		.maybeSingle();
+	if (authorData) author = authorData;
+}
+
+// ── Extract tags ────────────────────────────────────────────────────────────
+const tags: Array<{ id: string; name: string }> = [];
+if (tagLinksResult.status === "fulfilled" && tagLinksResult.value.data) {
+	for (const link of tagLinksResult.value.data) {
+		const tagItem = Array.isArray((link as any).tags)
+			? (link as any).tags[0]
+			: (link as any).tags;
+		if (tagItem?.id && tagItem?.name)
+			tags.push({ id: tagItem.id, name: tagItem.name });
 	}
 }
 
-// ── Full story record matching the API response ────────────────────────────
-type StoryCharacter = {
-	name: string;
-	description?: string;
-	personality?: string;
-	avatar_url?: string;
-};
-
+// ── Extract story starts ────────────────────────────────────────────────────
 type StoryStart = {
 	id?: string;
 	title: string;
 	content: string;
 	sort_order: number;
 };
+const storyStarts: StoryStart[] =
+	storyStartsResult.status === "fulfilled" && storyStartsResult.value.data
+		? storyStartsResult.value.data.map((s: any) => ({
+				id: s.id,
+				title: s.title,
+				content: s.first_message,
+				sort_order: s.sort_order,
+			}))
+		: [];
 
-type StoryRecord = {
-	id: string;
-	title: string;
-	description: string | null;
-	cover_image_url: string | null;
-	created_at: string | null;
-	world_prompt: string | null;
-	rating: number | null;
-	author_id: string | null;
-	author: {
-		id: string;
-		username: string | null;
-		avatar_url: string | null;
-	} | null;
-	tags?: Array<{ id: string; name: string }>;
-	// World-building fields
-	setting: string | null;
-	tone: string[];
-	world_rules: string | null;
-	lore: string | null;
-	// Characters
-	characters: StoryCharacter[];
-	// Story starts (opening scenarios)
-	story_starts: StoryStart[];
-	// Style parameters
-	descriptiveness: number;
-	dialogue_ratio: number;
-	pacing: "slow" | "medium" | "fast";
-	emotional_intensity: number;
-	auto_style: boolean;
-	is_public: boolean;
-};
+// ── Compute rating aggregate ─────────────────────────────────────────────────
+const ratingRows =
+	ratingsResult.status === "fulfilled"
+		? (ratingsResult.value.data ?? [])
+		: [];
+const ratingCount = ratingRows.length;
+const averageRating =
+	ratingCount > 0
+		? Math.round(
+				(ratingRows.reduce(
+					(sum: number, r: any) => sum + (r.rating ?? 0),
+					0,
+				) /
+					ratingCount) *
+					10,
+			) / 10
+		: 0;
 
-// ── Fetch story data ───────────────────────────────────────────────────────
-const storyResult = await safeFetchJson<{ story: StoryRecord | null }>(
-	new URL(`/api/stories/${id}`, Astro.url),
-	{ story: null },
-);
-const story = storyResult.ok ? (storyResult.data?.story ?? null) : null;
-const storyError = storyResult.ok
-	? story
-		? ""
-		: "Story not found."
-	: storyResult.error;
+// ── Build display values ────────────────────────────────────────────────────
+const story = storyData;
+const storyError = storyErr || (storyData ? "" : "Story not found.");
 
-// ── Derive display values ──────────────────────────────────────────────────
-const authorName = story?.author?.username || "Unknown Seeker";
-const authorId = story?.author_id || "";
-const coverImage = story?.cover_image_url || "/hero-library.png";
-const initialIsPublic = story?.is_public ?? true;
+const authorName = author?.username ?? "Unknown Seeker";
+const authorId = storyData?.author_id ?? "";
+const coverImage = storyData?.cover_image_url ?? "/hero-library.png";
+const initialIsPublic = storyData?.status === "public";
 
-// Description is HTML — render it with set:html
+// Description is HTML — rendered with set:html
 const descriptionHtml =
-	story?.description?.trim() || story?.world_prompt?.trim() || "";
+	storyData?.description?.trim() ?? storyData?.world_prompt?.trim() ?? "";
 
-const rating = typeof story?.rating === "number" ? story.rating : 0;
-
-const createdAtValue = story?.created_at ?? "";
+const createdAtValue = storyData?.created_at ?? "";
 const formattedDate = createdAtValue
 	? new Intl.DateTimeFormat("en-US", {
 			month: "long",
@@ -135,20 +135,18 @@ const formattedDate = createdAtValue
 		}).format(new Date(createdAtValue))
 	: "";
 
-const tags = story?.tags ?? [];
-const tone = story?.tone ?? [];
-const setting = story?.setting ?? "";
-const worldRules = story?.world_rules ?? "";
-const lore = story?.lore ?? "";
-const characters = story?.characters ?? [];
-const storyStarts = story?.story_starts ?? [];
-const autoStyle = story?.auto_style ?? true;
-const pacing = story?.pacing ?? "medium";
-const descriptiveness = story?.descriptiveness ?? 3;
-const dialogueRatio = story?.dialogue_ratio ?? 3;
-const emotionalIntensity = story?.emotional_intensity ?? 3;
+const tone: string[] = storyData?.tone ?? [];
+const setting: string = storyData?.setting ?? "";
+const worldRules: string = storyData?.world_rules ?? "";
+const lore: string = storyData?.lore ?? "";
+const characters: any[] = storyData?.characters ?? [];
+const autoStyle: boolean = storyData?.auto_style ?? true;
+const pacing: string = storyData?.pacing ?? "medium";
+const descriptiveness: number = storyData?.descriptiveness ?? 3;
+const dialogueRatio: number = storyData?.dialogue_ratio ?? 3;
+const emotionalIntensity: number = storyData?.emotional_intensity ?? 3;
 
-// ── Tone colour map (mirrors global.css tone variables) ──────────────────
+// ── Tone colour map ────────────────────────────────────────────────────────
 const toneColors: Record<string, string> = {
 	cozy: "bg-amber-500/20 text-amber-400 border-amber-500/40",
 	mysterious: "bg-indigo-500/20 text-indigo-400 border-indigo-500/40",
@@ -177,7 +175,7 @@ const reviewErrorMessage = storyError;
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<link rel="icon" href="/favicon.ico" />
 		<meta name="generator" content={Astro.generator} />
-		<title>The Whispering Library - {story?.title ?? "Review"}</title>
+		<title>The Whispering Library - {storyData?.title ?? "Review"}</title>
 		<link
 			href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,200..800&display=swap"
 			rel="stylesheet"
@@ -233,7 +231,7 @@ const reviewErrorMessage = storyError;
 							<h1
 								class="mb-2 text-4xl font-bold leading-tight text-slate-100 md:text-6xl"
 							>
-								{story?.title || "Unknown Story"}
+								{storyData?.title || "Unknown Story"}
 							</h1>
 							<p
 								class="text-xl font-medium italic text-primary md:text-2xl"
@@ -262,14 +260,20 @@ const reviewErrorMessage = storyError;
 							) : null
 						}
 
-						<ReviewStarRating client:load initialRating={rating} />
+						<!-- Star rating — now wired to story_ratings table -->
+						<ReviewStarRating
+							client:load
+							storyId={storyData?.id ?? ""}
+							initialRating={averageRating}
+							initialRatingCount={ratingCount}
+						/>
 
 						<!-- Action buttons -->
 						<div
 							class="flex flex-wrap justify-center gap-4 md:justify-start"
 						>
 							<ReadNowButton
-								storyId={story?.id ?? ""}
+								storyId={storyData?.id ?? ""}
 								storyStarts={storyStarts}
 								client:load
 							/>
@@ -282,7 +286,7 @@ const reviewErrorMessage = storyError;
 								id="author-actions"
 								class="hidden contents"
 								data-author-id={authorId}
-								data-story-id={story?.id || ""}
+								data-story-id={storyData?.id || ""}
 							>
 								<!-- Public / Private toggle -->
 								<label
@@ -315,8 +319,8 @@ const reviewErrorMessage = storyError;
 									>
 								</label>
 								<ArcaneButton
-									href={story
-										? `/create-story?edit=${story.id}`
+									href={storyData
+										? `/create-story?edit=${storyData.id}`
 										: "/create-story"}
 									className="bg-slate-800 text-slate-100 border border-primary/30"
 									icon="edit_note"
@@ -707,6 +711,8 @@ const reviewErrorMessage = storyError;
 				);
 				toggleInput?.addEventListener("change", async () => {
 					const newValue = toggleInput.checked;
+					const newStatus = newValue ? "public" : "private";
+
 					// Update UI immediately (optimistic)
 					if (toggleTrack) {
 						toggleTrack.className = toggleTrack.className.replace(
@@ -728,11 +734,11 @@ const reviewErrorMessage = storyError;
 					try {
 						const res = await fetch(`/api/stories/${storyId}`, {
 							method: "PATCH",
-							headers: { "Content-Type": "application/json" },
-							body: JSON.stringify({
-								author_id: authorId,
-								is_public: newValue,
-							}),
+							headers: {
+								"Content-Type": "application/json",
+								Authorization: `Bearer ${session.access_token}`,
+							},
+							body: JSON.stringify({ status: newStatus }),
 						});
 						if (!res.ok) {
 							// Revert on failure

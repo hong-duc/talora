@@ -13,51 +13,62 @@ type TagChip = {
 	color: string;
 };
 
+/**
+ * Fetch JSON from an internal API endpoint.
+ * Returns { ok, data, error } — never throws.
+ */
 async function safeFetchJson<T>(url: URL, fallback: T) {
 	try {
 		const response = await fetch(url);
-		const responseText = await response.text();
-		let payload: T = fallback;
-		if (responseText) {
+		const text = await response.text();
+		let data: T = fallback;
+		if (text) {
 			try {
-				payload = JSON.parse(responseText) as T;
+				data = JSON.parse(text) as T;
 			} catch {
-				payload = fallback;
+				/* ignore parse error, use fallback */
 			}
 		}
 		if (!response.ok) {
-			const message =
-				(responseText &&
-					(() => {
-						try {
-							const parsed = JSON.parse(responseText);
-							return parsed?.error;
-						} catch {
-							return null;
-						}
-					})()) ||
-				responseText ||
-				response.statusText ||
-				"Request failed.";
-			return { ok: false, data: fallback, error: message };
+			let errMsg = response.statusText || "Request failed.";
+			try {
+				errMsg = (JSON.parse(text) as any)?.error || errMsg;
+			} catch {
+				/* ignore */
+			}
+			return { ok: false, data: fallback, error: errMsg };
 		}
-		return { ok: true, data: payload, error: "" };
-	} catch (error) {
+		return { ok: true, data, error: "" };
+	} catch (err) {
 		return {
 			ok: false,
 			data: fallback,
-			error: error instanceof Error ? error.message : "Request failed.",
+			error: err instanceof Error ? err.message : "Request failed.",
 		};
 	}
 }
 
-const tagsResult = await safeFetchJson(new URL("/api/tags", Astro.url), {
-	categories: [],
-});
-const tagsPayload = tagsResult.data;
-const tagsError = tagsResult.error;
+// Fire both requests in parallel — no sequential wait
+const [tagsResult, storiesResult] = await Promise.all([
+	safeFetchJson(new URL("/api/tags", Astro.url), { categories: [] }),
+	safeFetchJson(new URL("/api/stories", Astro.url), {
+		success: true,
+		data: {
+			stories: [],
+			pagination: {
+				page: 1,
+				limit: 20,
+				total: 0,
+				totalPages: 0,
+				hasNext: false,
+				hasPrev: false,
+			},
+		},
+	}),
+]);
 
-const tagChips: TagChip[] = (tagsPayload?.categories ?? []).flatMap(
+const tagsError = tagsResult.error;
+const tagChips: TagChip[] = (tagsResult.data?.categories ?? []).flatMap(
 	(category: any) =>
 		(category?.tags ?? []).map((tag: any) => ({
 			id: tag.id,
@@ -67,23 +78,8 @@ const tagChips: TagChip[] = (tagsPayload?.categories ?? []).flatMap(
 );
 const tagColorById = new Map(tagChips.map((tag) => [tag.id, tag.color]));
 
-const storiesResult = await safeFetchJson(new URL("/api/stories", Astro.url), {
-	success: true,
-	data: {
-		stories: [],
-		pagination: {
-			page: 1,
-			limit: 20,
-			total: 0,
-			totalPages: 0,
-			hasNext: false,
-			hasPrev: false,
-		},
-	},
-});
-const storiesPayload = storiesResult.data;
 const storiesError = storiesResult.error;
-const stories = storiesPayload?.data?.stories ?? [];
+const stories = storiesResult.data?.data?.stories ?? [];
 
 const archiveErrorMessage = [storiesError, tagsError]
 	.filter(Boolean)
@@ -214,7 +210,10 @@ const getInitials = (name: string | null | undefined) => {
 										"Unknown Seeker";
 									const authorInitials =
 										getInitials(authorName);
+									// tagline is the short one-liner for cards;
+									// fall back to description or world_prompt if absent
 									const description =
+										story.tagline ||
 										story.description ||
 										story.world_prompt ||
 										"";

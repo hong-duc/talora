@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
-import { supabase } from '../../../lib/supabase';
+import { supabase, createAuthedClient } from '../../../lib/supabase';
 import { updateStory } from '../../../lib/stories';
+import { requireAuth } from '../../../lib/api-auth';
 
 export const prerender = false;
 
@@ -125,7 +126,7 @@ export const GET: APIRoute = async ({ params }) => {
             author,
             tags,
             story_starts,
-            is_public: storyData.is_public ?? true,
+            status: storyData.status ?? 'draft',
             // World-building fields
             setting: storyData.setting || null,
             tone: storyData.tone || [],
@@ -172,7 +173,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
             tags,
             story_starts,
             author_id, // For authorization check
-            is_public,
+            status,
             // World-building fields
             setting,
             tone,
@@ -271,7 +272,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
             description: description?.trim() || undefined,
             cover_image_url: cover_image_url || undefined,
             updated_at: new Date().toISOString(),
-            ...(typeof is_public === 'boolean' ? { is_public } : {}),
+            ...(status && ['draft', 'public', 'private'].includes(status) ? { status } : {}),
             // New fields
             setting: setting?.trim() || undefined,
             tone: toneArray.length > 0 ? toneArray : undefined,
@@ -509,8 +510,14 @@ export const PUT: APIRoute = async ({ params, request }) => {
 /**
  * PATCH /api/stories/[id]
  *
- * Lightweight update for a single field — currently used for the is_public toggle.
- * Expects JSON body: { author_id: string, is_public: boolean }
+ * Lightweight update for story status (draft / public / private).
+ * Requires a valid Bearer token (Authorization header) so the update is
+ * executed with the user's identity and satisfies the RLS policy
+ * "allow update for author only" (auth.uid() = author_id).
+ *
+ * Expects JSON body: { status: 'draft' | 'public' | 'private' }
+ * (author_id is still accepted for backwards-compat but the server-side
+ * userId from the token is used for the ownership check.)
  */
 export const PATCH: APIRoute = async ({ params, request }) => {
     const id = params.id;
@@ -521,24 +528,26 @@ export const PATCH: APIRoute = async ({ params, request }) => {
         });
     }
 
+    const VALID_STATUSES = ['draft', 'public', 'private'] as const;
+
     try {
+        // 1. Authenticate — get user identity from Bearer token
+        const auth = await requireAuth(request);
+        if (auth.error) return auth.error;
+        const { userId, token } = auth;
+
+        // 2. Parse & validate body
         const body = await request.json();
-        const { author_id, is_public } = body;
+        const { status } = body;
 
-        if (!author_id) {
-            return new Response(JSON.stringify({ error: 'author_id is required.' }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }
-        if (typeof is_public !== 'boolean') {
-            return new Response(JSON.stringify({ error: 'is_public must be a boolean.' }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' },
-            });
+        if (!status || !VALID_STATUSES.includes(status)) {
+            return new Response(
+                JSON.stringify({ error: `status must be one of: ${VALID_STATUSES.join(', ')}.` }),
+                { status: 400, headers: { 'Content-Type': 'application/json' } },
+            );
         }
 
-        // Ownership check
+        // 3. Ownership check (using anon client — public read is fine)
         const { data: existing } = await supabase
             .from('stories')
             .select('author_id')
@@ -551,16 +560,19 @@ export const PATCH: APIRoute = async ({ params, request }) => {
                 headers: { 'Content-Type': 'application/json' },
             });
         }
-        if (existing.author_id !== author_id) {
+        if (existing.author_id !== userId) {
             return new Response(JSON.stringify({ error: 'Unauthorized.' }), {
                 status: 403,
                 headers: { 'Content-Type': 'application/json' },
             });
         }
 
-        const { error: updateError } = await supabase
+        // 4. Perform the update with an authenticated client so auth.uid() is
+        //    non-null in PostgREST and the RLS UPDATE policy is satisfied.
+        const db = createAuthedClient(token);
+        const { error: updateError } = await db
             .from('stories')
-            .update({ is_public, updated_at: new Date().toISOString() })
+            .update({ status, updated_at: new Date().toISOString() })
             .eq('id', id);
 
         if (updateError) {
@@ -570,7 +582,7 @@ export const PATCH: APIRoute = async ({ params, request }) => {
             });
         }
 
-        return new Response(JSON.stringify({ success: true, is_public }), {
+        return new Response(JSON.stringify({ success: true, status }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
         });

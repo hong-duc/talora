@@ -48,10 +48,12 @@ function transformStoryData(data: any): StoryResponse {
         id: data.id,
         author_id: data.author_id,
         title: data.title,
+        tagline: data.tagline || undefined,
         description: data.description || undefined,
         cover_image_url: data.cover_image_url || undefined,
         rating: data.rating || undefined,
         created_at: data.created_at,
+        status: data.status ?? 'draft',
         author,
         tags,
     };
@@ -79,10 +81,12 @@ const getStoriesHandler = async ({ request }: Parameters<APIRoute>[0]) => {
                 `
                 id,
                 title,
+                tagline,
                 description,
                 cover_image_url,
                 created_at,
                 author_id,
+                status,
                 author:profiles!stories_author_id_fkey(id, username, avatar_url),
                 story_tags(
                     tags(id, name)
@@ -94,7 +98,7 @@ const getStoriesHandler = async ({ request }: Parameters<APIRoute>[0]) => {
 
         // Only filter by public status if not requesting all statuses
         if (!includeAllStatuses) {
-            query = query.eq('is_public', true);
+            query = query.eq('status', 'public');
         }
 
         // Apply filters
@@ -115,15 +119,16 @@ const getStoriesHandler = async ({ request }: Parameters<APIRoute>[0]) => {
 
         if (error) {
             console.error('Supabase query error details:', error);
-            // Fall back to simple query without joins
+            // Fall back to simple query without joins (e.g. if the join on
+            // profiles or story_tags causes an error).
             console.log('Falling back to simple query...');
             let simpleQuery = supabase
                 .from('stories')
-                .select('id, title, description, cover_image_url, created_at, author_id', { count: 'exact' })
+                .select('id, title, description, cover_image_url, created_at, author_id, status', { count: 'exact' })
                 .order('created_at', { ascending: false });
 
             if (!includeAllStatuses) {
-                simpleQuery = simpleQuery.eq('is_public', true);
+                simpleQuery = simpleQuery.eq('status', 'public');
             }
             if (authorId) {
                 simpleQuery = simpleQuery.eq('author_id', authorId);
@@ -146,6 +151,7 @@ const getStoriesHandler = async ({ request }: Parameters<APIRoute>[0]) => {
                 description: story.description || undefined,
                 cover_image_url: story.cover_image_url || undefined,
                 created_at: story.created_at,
+                status: story.status ?? 'draft',
                 author: null,
                 tags: [],
             }));

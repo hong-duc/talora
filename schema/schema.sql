@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict nQrMY6HLfEq841DF7XsdDSgjLtIYWAkmSFnSmqCRDgsVodg2KgVgeZLw9HST51k
+\restrict CtRLarju42Y8ahCf8Bj9P3CvnXUaNkHWupXteayyV8NONqbpSxrTcmQ1KC8aUWw
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 18.3 (Homebrew)
@@ -204,6 +204,27 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: ai_configs; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.ai_configs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    name text NOT NULL,
+    provider text NOT NULL,
+    model text NOT NULL,
+    api_key_enc text DEFAULT ''::text NOT NULL,
+    base_url text,
+    is_default boolean DEFAULT false,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    generation_params jsonb DEFAULT '{}'::jsonb
+);
+
+
+ALTER TABLE public.ai_configs OWNER TO postgres;
+
+--
 -- Name: characters; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -295,18 +316,19 @@ CREATE TABLE public.stories (
     description text,
     setting text,
     tone text[],
-    world_rules text,
+    world_rules text DEFAULT ''::text,
     descriptiveness integer DEFAULT 3,
     dialogue_ratio integer DEFAULT 3,
     pacing text DEFAULT 'medium'::text,
     emotional_intensity integer DEFAULT 3,
     auto_style boolean DEFAULT true,
-    is_public boolean DEFAULT false,
     created_at timestamp without time zone DEFAULT now(),
     updated_at timestamp without time zone DEFAULT now(),
     characters jsonb,
     lore text,
     cover_image_url text,
+    tagline text,
+    status public.story_status DEFAULT 'draft'::public.story_status,
     CONSTRAINT stories_descriptiveness_check CHECK (((descriptiveness >= 1) AND (descriptiveness <= 5))),
     CONSTRAINT stories_dialogue_ratio_check CHECK (((dialogue_ratio >= 1) AND (dialogue_ratio <= 5))),
     CONSTRAINT stories_emotional_intensity_check CHECK (((emotional_intensity >= 1) AND (emotional_intensity <= 5))),
@@ -321,6 +343,13 @@ ALTER TABLE public.stories OWNER TO postgres;
 --
 
 COMMENT ON COLUMN public.stories.cover_image_url IS 'url to the cover image of the story';
+
+
+--
+-- Name: COLUMN stories.tagline; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.stories.tagline IS 'a short text for preview the description';
 
 
 --
@@ -448,6 +477,14 @@ CREATE TABLE public.tags (
 
 
 ALTER TABLE public.tags OWNER TO postgres;
+
+--
+-- Name: ai_configs ai_configs_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_configs
+    ADD CONSTRAINT ai_configs_pkey PRIMARY KEY (id);
+
 
 --
 -- Name: characters characters_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
@@ -693,6 +730,14 @@ CREATE TRIGGER update_stories_updated_at BEFORE UPDATE ON public.stories FOR EAC
 
 
 --
+-- Name: ai_configs ai_configs_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ai_configs
+    ADD CONSTRAINT ai_configs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
 -- Name: characters characters_creator_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -773,6 +818,14 @@ ALTER TABLE ONLY public.story_sessions
 
 
 --
+-- Name: story_sessions story_sessions_story_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.story_sessions
+    ADD CONSTRAINT story_sessions_story_id_fkey FOREIGN KEY (story_id) REFERENCES public.stories(id);
+
+
+--
 -- Name: story_sessions story_sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -829,6 +882,27 @@ ALTER TABLE ONLY public.tags
 
 
 --
+-- Name: story_ratings Enable delete for authenticated users only; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable delete for authenticated users only" ON public.story_ratings FOR DELETE TO authenticated USING (true);
+
+
+--
+-- Name: ai_configs Enable delete for users based on user_id; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable delete for users based on user_id" ON public.ai_configs FOR DELETE USING ((( SELECT auth.uid() AS uid) = user_id));
+
+
+--
+-- Name: story_sessions Enable delete for users based on user_id; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable delete for users based on user_id" ON public.story_sessions FOR DELETE USING ((( SELECT auth.uid() AS uid) = user_id));
+
+
+--
 -- Name: characters Enable insert for authenticated users only; Type: POLICY; Schema: public; Owner: postgres
 --
 
@@ -840,6 +914,13 @@ CREATE POLICY "Enable insert for authenticated users only" ON public.characters 
 --
 
 CREATE POLICY "Enable insert for authenticated users only" ON public.comments FOR INSERT TO authenticated WITH CHECK (true);
+
+
+--
+-- Name: messages Enable insert for authenticated users only; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable insert for authenticated users only" ON public.messages FOR INSERT TO authenticated WITH CHECK (true);
 
 
 --
@@ -864,6 +945,20 @@ CREATE POLICY "Enable insert for authenticated users only" ON public.story_chara
 
 
 --
+-- Name: story_ratings Enable insert for authenticated users only; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable insert for authenticated users only" ON public.story_ratings FOR INSERT TO authenticated WITH CHECK (true);
+
+
+--
+-- Name: story_sessions Enable insert for authenticated users only; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable insert for authenticated users only" ON public.story_sessions FOR INSERT WITH CHECK (true);
+
+
+--
 -- Name: story_starts Enable insert for authenticated users only; Type: POLICY; Schema: public; Owner: postgres
 --
 
@@ -885,6 +980,20 @@ CREATE POLICY "Enable insert for authenticated users only" ON public.tags FOR IN
 
 
 --
+-- Name: ai_configs Enable insert for users based on user_id; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable insert for users based on user_id" ON public.ai_configs FOR INSERT WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
+
+
+--
+-- Name: ai_configs Enable read access for all users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable read access for all users" ON public.ai_configs FOR SELECT USING (true);
+
+
+--
 -- Name: characters Enable read access for all users; Type: POLICY; Schema: public; Owner: postgres
 --
 
@@ -896,6 +1005,13 @@ CREATE POLICY "Enable read access for all users" ON public.characters FOR SELECT
 --
 
 CREATE POLICY "Enable read access for all users" ON public.comments FOR SELECT USING (true);
+
+
+--
+-- Name: messages Enable read access for all users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable read access for all users" ON public.messages FOR SELECT TO authenticated USING (true);
 
 
 --
@@ -917,6 +1033,20 @@ CREATE POLICY "Enable read access for all users" ON public.stories FOR SELECT US
 --
 
 CREATE POLICY "Enable read access for all users" ON public.story_characters FOR SELECT USING (true);
+
+
+--
+-- Name: story_ratings Enable read access for all users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable read access for all users" ON public.story_ratings FOR SELECT USING (true);
+
+
+--
+-- Name: story_sessions Enable read access for all users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable read access for all users" ON public.story_sessions FOR SELECT USING (true);
 
 
 --
@@ -953,6 +1083,40 @@ CREATE POLICY "Enable read access for all users" ON public.tag_categories FOR SE
 
 CREATE POLICY "Enable read access for all users" ON public.tags FOR SELECT USING (true);
 
+
+--
+-- Name: ai_configs Enable update for users based on user_id; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable update for users based on user_id" ON public.ai_configs FOR UPDATE USING ((( SELECT auth.uid() AS uid) = user_id));
+
+
+--
+-- Name: messages Enable update for users based on user_id; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable update for users based on user_id" ON public.messages FOR UPDATE USING (true) WITH CHECK (true);
+
+
+--
+-- Name: story_sessions Enable update for users based on user_id; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable update for users based on user_id" ON public.story_sessions FOR UPDATE USING ((( SELECT auth.uid() AS uid) = user_id));
+
+
+--
+-- Name: story_ratings Enable upfate for authenticated users only; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable upfate for authenticated users only" ON public.story_ratings FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+
+
+--
+-- Name: ai_configs; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.ai_configs ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: story_starts allow delete; Type: POLICY; Schema: public; Owner: postgres
@@ -1147,6 +1311,15 @@ GRANT ALL ON FUNCTION public.update_updated_at_column() TO service_role;
 
 
 --
+-- Name: TABLE ai_configs; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.ai_configs TO anon;
+GRANT ALL ON TABLE public.ai_configs TO authenticated;
+GRANT ALL ON TABLE public.ai_configs TO service_role;
+
+
+--
 -- Name: TABLE characters; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -1332,133 +1505,9 @@ ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON T
 ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON TABLES TO service_role;
 
 
--- ─────────────────────────────────────────────────────────────────────────────
--- ai_configs migration
---
--- Purpose: Store each user's AI backend configuration.
---          The API key is stored AES-256-GCM encrypted (server-side only).
---          The plaintext key NEVER leaves the server after being saved.
---
--- Prerequisites:
---   • Set the environment variable AI_KEY_SECRET to a 32-byte base64 string.
---     Generate one with:  openssl rand -base64 32
---   • Keep this secret out of version control (.env is gitignored).
--- ─────────────────────────────────────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS public.ai_configs (
-    id          uuid        NOT NULL DEFAULT gen_random_uuid(),
-    user_id     uuid        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    name        text        NOT NULL,                          -- human label, e.g. "My DeepSeek"
-    provider    text        NOT NULL                           -- 'deepseek' | 'openrouter' | 'langdb' | 'custom'
-                CHECK (provider IN ('deepseek', 'openrouter', 'langdb', 'custom')),
-    model       text        NOT NULL,                          -- e.g. 'deepseek-chat'
-    api_key_enc text        NOT NULL DEFAULT '',               -- AES-256-GCM ciphertext (base64)
-    base_url    text,                                          -- required for 'custom', optional override for others
-    is_default  boolean     NOT NULL DEFAULT false,
-    created_at  timestamptz NOT NULL DEFAULT now(),
-    updated_at  timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT ai_configs_pkey PRIMARY KEY (id)
-);
-
--- Index so sidebar/settings load is fast even with many configs per user
-CREATE INDEX IF NOT EXISTS ai_configs_user_id_idx ON public.ai_configs (user_id);
-
--- ── Row Level Security ────────────────────────────────────────────────────────
--- Each user can only read/write their own configs.
-
-ALTER TABLE public.ai_configs ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users manage own ai_configs"
-    ON public.ai_configs
-    FOR ALL
-    USING  (auth.uid() = user_id)
-    WITH CHECK (auth.uid() = user_id);
-
--- ── Grants ────────────────────────────────────────────────────────────────────
-GRANT ALL ON TABLE public.ai_configs TO authenticated;
-GRANT ALL ON TABLE public.ai_configs TO service_role;
-
-
--- ─────────────────────────────────────────────────────────────────────────────
--- story_starts — add optional description column
--- Shown on /story/[id] as a summary beneath each scenario title.
--- ─────────────────────────────────────────────────────────────────────────────
-
-ALTER TABLE public.story_starts
-    ADD COLUMN IF NOT EXISTS description text;
-
-
--- ─────────────────────────────────────────────────────────────────────────────
--- Missing FK: story_sessions.story_id → stories.id
---
--- This FK is required for PostgREST to resolve the `stories ( ... )` join
--- syntax used by API routes.  Without it every join query fails with PGRST200
--- "Could not find a relationship", causing:
---   • GET /api/sessions        → 500 Internal Server Error
---   • GET /api/sessions/[id]   → 404 Session not found (error treated as null)
---
--- Run this migration once in your Supabase SQL editor (or via supabase db push).
--- ─────────────────────────────────────────────────────────────────────────────
-
-ALTER TABLE public.story_sessions
-    ADD CONSTRAINT story_sessions_story_id_fkey
-    FOREIGN KEY (story_id) REFERENCES public.stories(id) ON DELETE CASCADE;
-
--- Also add RLS policies for story_sessions, messages, and scene_states.
--- Without these, authenticated DB clients can still be blocked by the implicit
--- DENY that applies when RLS is enabled but no policy matches the request.
-
--- story_sessions: owner-only access
-CREATE POLICY "Users manage own story_sessions"
-    ON public.story_sessions
-    FOR ALL
-    TO authenticated
-    USING  (auth.uid() = user_id)
-    WITH CHECK (auth.uid() = user_id);
-
--- messages: accessible via their parent session (session owner = message owner)
-CREATE POLICY "Users access messages via their session"
-    ON public.messages
-    FOR ALL
-    TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.story_sessions ss
-            WHERE ss.id = messages.session_id
-              AND ss.user_id = auth.uid()
-        )
-    )
-    WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM public.story_sessions ss
-            WHERE ss.id = messages.session_id
-              AND ss.user_id = auth.uid()
-        )
-    );
-
--- scene_states: accessible via their parent session
-CREATE POLICY "Users access scene_states via their session"
-    ON public.scene_states
-    FOR ALL
-    TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.story_sessions ss
-            WHERE ss.id = scene_states.session_id
-              AND ss.user_id = auth.uid()
-        )
-    )
-    WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM public.story_sessions ss
-            WHERE ss.id = scene_states.session_id
-              AND ss.user_id = auth.uid()
-        )
-    );
-
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict nQrMY6HLfEq841DF7XsdDSgjLtIYWAkmSFnSmqCRDgsVodg2KgVgeZLw9HST51k
+\unrestrict CtRLarju42Y8ahCf8Bj9P3CvnXUaNkHWupXteayyV8NONqbpSxrTcmQ1KC8aUWw
 

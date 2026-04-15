@@ -7,6 +7,8 @@ import type { Tag, TagCategoryGroup, Story as BaseStory } from './types';
 // Story response type with author and tags
 export interface StoryResponse extends Omit<BaseStory, 'author_id'> {
     author_id: string;
+    /** Short one-liner for archive card previews */
+    tagline?: string;
     author: {
         id: string;
         username: string | null;
