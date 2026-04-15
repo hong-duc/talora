@@ -237,7 +237,7 @@ async function uploadCoverImageIfProvided(
     }
 
     try {
-        const { url, error } = await uploadCoverImage(file, story.id!, story.title);
+        const { url, error } = await uploadCoverImage(file, story.id!, story.title, db);
 
         if (error || !url) {
             return {

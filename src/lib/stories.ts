@@ -12,7 +12,8 @@ import type { Story } from './types';
 export async function uploadCoverImage(
     file: File,
     storyId: string,
-    title: string
+    title: string,
+    client?: SupabaseClient
 ): Promise<{ url: string | null; error: Error | null }> {
     try {
         // Validate UUID format (basic check)
@@ -41,7 +42,10 @@ export async function uploadCoverImage(
         const fileExt = file.name.split('.').pop() || 'jpg';
         const fileName = `${storyId}-${sanitizedTitle}/cover.${fileExt}`;
 
-        const { error } = await supabase.storage
+        // Use the authenticated client if provided (required when bucket RLS restricts anon writes)
+        const storageClient = client ?? supabase;
+
+        const { error } = await storageClient.storage
             .from('images')
             .upload(fileName, file, {
                 cacheControl: 'public, max-age=31536000, immutable',
@@ -50,8 +54,8 @@ export async function uploadCoverImage(
 
         if (error) throw error;
 
-        // Get public URL
-        const { data: urlData } = supabase.storage
+        // Get public URL (always use the same base client — public URL is deterministic)
+        const { data: urlData } = storageClient.storage
             .from('images')
             .getPublicUrl(fileName);
 

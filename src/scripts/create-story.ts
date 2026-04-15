@@ -192,7 +192,15 @@ async function submitCreate(data: StoryFormData): Promise<{ storyId: string }> {
 
 /**
  * Submit an UPDATE via PUT /api/stories/{id} (JSON body).
- * If a new cover image was selected, upload it separately after the update.
+ * If a new cover image was selected, it is uploaded FIRST so the fresh
+ * public URL can be included in the PUT body — guaranteeing the DB column
+ * is always written with the correct value.
+ *
+ * Upload strategy (upsert: true on the server):
+ *   - Same storyId+title path → file is replaced in-place, URL stays the same.
+ *   - If the old URL was null/empty/broken → a fresh file is created and the
+ *     new URL overwrites whatever was in the column.
+ *   - If the user does NOT upload a new file → the existing URL is preserved.
  */
 async function submitUpdate(editId: string, data: StoryFormData): Promise<{ storyId: string }> {
     const authorId = store.getState().auth.profile?.id as string;
@@ -207,12 +215,42 @@ async function submitUpdate(editId: string, data: StoryFormData): Promise<{ stor
         throw new Error('You must be signed in to update a story.');
     }
 
-    // Build the update body — maps store field names to API field names
+    // --- Step 1: Upload new cover image FIRST (if the user selected one) ----
+    // By uploading before the PUT we can include the fresh public URL directly
+    // in the update body, so it is persisted to the DB in a single round-trip.
+    let resolvedCoverImageUrl: string | undefined = payload.coverImageUrl || undefined;
+
+    if (fileUpload) {
+        const imgFormData = new FormData();
+        imgFormData.append("file", fileUpload);
+        imgFormData.append("storyId", editId);
+        imgFormData.append("title", payload.title);
+
+        try {
+            const uploadResponse = await fetch("/api/upload-image", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${accessToken}` },
+                body: imgFormData,
+            });
+            const uploadResult = await parseResponse(uploadResponse);
+            if (uploadResponse.ok && uploadResult.url) {
+                // Always use the freshly returned URL — it is valid even when
+                // the previous cover_image_url was null, empty, or broken.
+                resolvedCoverImageUrl = uploadResult.url;
+            } else {
+                console.warn("Cover image upload failed during edit:", uploadResult.error || "unknown error");
+            }
+        } catch (err) {
+            console.warn("Cover image upload request failed during edit:", err);
+        }
+    }
+
+    // --- Step 2: PUT — include the resolved cover URL in the body -----------
     const body = {
         title: payload.title,
         tagline: payload.tagline || undefined,
         description: payload.description,
-        cover_image_url: payload.coverImageUrl || undefined,
+        cover_image_url: resolvedCoverImageUrl,
         author_id: authorId,
         tags: payload.tags,
         story_starts: payload.firstMessages,
@@ -241,23 +279,6 @@ async function submitUpdate(editId: string, data: StoryFormData): Promise<{ stor
 
     if (!response.ok) {
         throw new Error(result.error || "Failed to update story");
-    }
-
-    // If a new cover image was selected, upload it after successful update
-    if (fileUpload) {
-        const imgFormData = new FormData();
-        imgFormData.append("file", fileUpload);
-        imgFormData.append("storyId", editId);
-        imgFormData.append("title", payload.title);
-
-        try {
-            await fetch("/api/upload-image", {
-                method: "POST",
-                body: imgFormData,
-            });
-        } catch (err) {
-            console.warn("Cover image upload failed during edit:", err);
-        }
     }
 
     return { storyId: editId };
