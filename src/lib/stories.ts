@@ -148,7 +148,7 @@ export async function updateStory(
             .update(storyData)
             .eq('id', id)
             .select("*")
-            .single()
+            .maybeSingle()
         if (error) throw error;
 
         return { data, error: null };

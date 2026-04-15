@@ -164,6 +164,12 @@ export const PUT: APIRoute = async ({ params, request }) => {
     }
 
     try {
+        // Authenticate — extract Bearer token so RLS UPDATE policies pass
+        const auth = await requireAuth(request);
+        if (auth.error) return auth.error;
+        const db = createAuthedClient(auth.token);
+        const userId = auth.userId;
+
         const body = await request.json();
         const {
             title,
@@ -172,7 +178,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
             cover_image_url,
             tags,
             story_starts,
-            author_id, // For authorization check
+            author_id, // Still accepted from body for backwards-compat, but userId from token is used for authz
             status,
             // World-building fields
             setting,
@@ -195,7 +201,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
             );
         }
 
-        // Verify the user owns the story
+        // Verify the user owns the story (anon read is fine for ownership check)
         const { data: existingStory, error: storyError } = await supabase
             .from('stories')
             .select('author_id')
@@ -217,7 +223,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
             });
         }
 
-        if (existingStory.author_id !== author_id) {
+        if (existingStory.author_id !== userId) {
             return new Response(
                 JSON.stringify({ error: 'Unauthorized: You can only edit your own stories.' }),
                 { status: 403, headers: { 'Content-Type': 'application/json' } }
@@ -265,7 +271,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
         // Validate pacing
         const validPacing = ['slow', 'medium', 'fast'].includes(pacing) ? pacing : 'medium';
 
-        // Update story with all fields
+        // Update story using authenticated client (required for RLS UPDATE policy)
         const { data: _updatedStory, error: updateError } = await updateStory(id, {
             title: title.trim(),
             tagline: tagline?.trim() || undefined,
@@ -284,7 +290,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
             auto_style: typeof auto_style === 'boolean' ? auto_style : true,
             characters: charactersJson || undefined,
             lore: lore?.trim() || undefined,
-        });
+        }, db);
 
         if (updateError) {
             return new Response(
@@ -302,7 +308,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
             }))
             .filter((tag) => tag.name.length > 0);
 
-        // Get current tags for comparison
+        // Get current tags for comparison (anon read is fine)
         const { data: currentTagLinks, error: currentTagError } = await supabase
             .from('story_tags')
             .select('tag_id')
@@ -330,6 +336,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
                 return acc;
             }, []);
 
+            // Read tag_categories with anon (public read)
             const { data: customCategory, error: customCategoryError } = await supabase
                 .from('tag_categories')
                 .select('id')
@@ -349,6 +356,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
                     continue;
                 }
 
+                // Read existing tag with anon (public read)
                 const { data: existingTag, error: existingTagError } = await supabase
                     .from('tags')
                     .select('id')
@@ -365,7 +373,8 @@ export const PUT: APIRoute = async ({ params, request }) => {
                     continue;
                 }
 
-                const { data: newTag, error: newTagError } = await supabase
+                // Insert new tag with authenticated client (requires auth for INSERT RLS)
+                const { data: newTag, error: newTagError } = await db
                     .from('tags')
                     .insert([
                         {
@@ -373,7 +382,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
                             slug: slugify(tag.name),
                             category_id: customCategory.id,
                             is_official: false,
-                            created_by: author_id,
+                            created_by: userId,
                         },
                     ])
                     .select('id')
@@ -392,9 +401,9 @@ export const PUT: APIRoute = async ({ params, request }) => {
         const tagsToAdd = newTagIds.filter(tagId => !currentTagIds.includes(tagId));
         const tagsToRemove = currentTagIds.filter(tagId => !newTagIds.includes(tagId));
 
-        // Add new relationships
+        // Add new tag relationships with authenticated client
         if (tagsToAdd.length > 0) {
-            const { error: addTagsError } = await supabase
+            const { error: addTagsError } = await db
                 .from('story_tags')
                 .insert(tagsToAdd.map(tagId => ({ story_id: id, tag_id: tagId })));
 
@@ -403,9 +412,9 @@ export const PUT: APIRoute = async ({ params, request }) => {
             }
         }
 
-        // Remove old relationships
+        // Remove old tag relationships with authenticated client
         if (tagsToRemove.length > 0) {
-            const { error: removeTagsError } = await supabase
+            const { error: removeTagsError } = await db
                 .from('story_tags')
                 .delete()
                 .eq('story_id', id)
@@ -416,10 +425,10 @@ export const PUT: APIRoute = async ({ params, request }) => {
             }
         }
 
-        // Handle story_starts updates
+        // Handle story_starts updates with authenticated client
         if (story_starts && Array.isArray(story_starts)) {
             // First, delete all existing story_starts for this story
-            const { error: deleteStartsError } = await supabase
+            const { error: deleteStartsError } = await db
                 .from('story_starts')
                 .delete()
                 .eq('story_id', id);
@@ -446,7 +455,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
                 }));
 
             if (validStarts.length > 0) {
-                const { error: insertStartsError } = await supabase
+                const { error: insertStartsError } = await db
                     .from('story_starts')
                     .insert(validStarts);
 
@@ -456,7 +465,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
             }
         }
 
-        // Fetch the updated story with tags
+        // Fetch the updated story with tags (anon read is fine)
         const { data: finalStoryData, error: finalError } = await supabase
             .from('stories')
             .select(`
@@ -613,17 +622,13 @@ export const DELETE: APIRoute = async ({ params, request }) => {
     }
 
     try {
-        const body = await request.json();
-        const { author_id } = body;
+        // Authenticate — extract Bearer token so RLS DELETE policies pass
+        const auth = await requireAuth(request);
+        if (auth.error) return auth.error;
+        const db = createAuthedClient(auth.token);
+        const userId = auth.userId;
 
-        if (!author_id) {
-            return new Response(
-                JSON.stringify({ error: 'Author ID is required for authorization.' }),
-                { status: 400, headers: { 'Content-Type': 'application/json' } }
-            );
-        }
-
-        // Verify the story exists and the user owns it
+        // Verify the story exists and the user owns it (anon read is fine)
         const { data: existingStory, error: storyError } = await supabase
             .from('stories')
             .select('author_id')
@@ -645,16 +650,16 @@ export const DELETE: APIRoute = async ({ params, request }) => {
             });
         }
 
-        if (existingStory.author_id !== author_id) {
+        if (existingStory.author_id !== userId) {
             return new Response(
                 JSON.stringify({ error: 'Unauthorized: You can only delete your own stories.' }),
                 { status: 403, headers: { 'Content-Type': 'application/json' } }
             );
         }
 
-        // Delete related data first (cascade manually to avoid FK issues)
+        // Delete related data first with authenticated client (cascade manually to avoid FK issues)
         // 1. Delete story_tags
-        const { error: tagsDeleteError } = await supabase
+        const { error: tagsDeleteError } = await db
             .from('story_tags')
             .delete()
             .eq('story_id', id);
@@ -664,7 +669,7 @@ export const DELETE: APIRoute = async ({ params, request }) => {
         }
 
         // 2. Delete story_starts
-        const { error: startsDeleteError } = await supabase
+        const { error: startsDeleteError } = await db
             .from('story_starts')
             .delete()
             .eq('story_id', id);
@@ -673,8 +678,8 @@ export const DELETE: APIRoute = async ({ params, request }) => {
             console.error('Error deleting story starts:', startsDeleteError);
         }
 
-        // 3. Delete the story itself
-        const { error: deleteError } = await supabase
+        // 3. Delete the story itself with authenticated client
+        const { error: deleteError } = await db
             .from('stories')
             .delete()
             .eq('id', id);

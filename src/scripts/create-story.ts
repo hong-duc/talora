@@ -200,6 +200,13 @@ async function submitUpdate(editId: string, data: StoryFormData): Promise<{ stor
 
     const payload = store.getState().storyForm.form as StoryFormData;
 
+    // Get the current session token so the API can satisfy RLS UPDATE policies
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+    if (!accessToken) {
+        throw new Error('You must be signed in to update a story.');
+    }
+
     // Build the update body — maps store field names to API field names
     const body = {
         title: payload.title,
@@ -223,7 +230,10 @@ async function submitUpdate(editId: string, data: StoryFormData): Promise<{ stor
 
     const response = await fetch(`/api/stories/${editId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${accessToken}`,
+        },
         body: JSON.stringify(body),
     });
 
