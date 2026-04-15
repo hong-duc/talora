@@ -359,7 +359,7 @@ import LibrarySectionNav from "../components/LibrarySectionNav.astro";
 						);
 						if (!res.ok) throw new Error("fetch failed");
 						const json = await res.json();
-						const stories = json.stories ?? [];
+						const stories = json.data?.stories ?? [];
 
 						if (stories.length === 0) {
 							grid.innerHTML = `
