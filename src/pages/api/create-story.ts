@@ -1,6 +1,8 @@
 import type { APIRoute } from 'astro';
 import { createStory, uploadCoverImage, updateStory } from '../../lib/stories';
-import { supabase } from '../../lib/supabase';
+import { supabase, createAuthedClient } from '../../lib/supabase';
+import type { SupabaseClient } from '../../lib/supabase';
+import { requireAuth } from '../../lib/api-auth';
 import type { Story, StoryCharacterJson } from '../../lib/types';
 
 export const prerender = false;
@@ -186,7 +188,7 @@ function processPacing(pacing?: string): 'slow' | 'medium' | 'fast' {
 /**
  * Create story record in database
  */
-async function createStoryRecord(data: ParsedStoryData): Promise<{ story: Story | null; error: Error | null }> {
+async function createStoryRecord(data: ParsedStoryData, db: SupabaseClient): Promise<{ story: Story | null; error: Error | null }> {
     const toneArray = processToneArray(data.tone);
     const charactersJson = processCharactersJson(data.characters);
     // Resolve camelCase / snake_case aliases from the store
@@ -218,7 +220,7 @@ async function createStoryRecord(data: ParsedStoryData): Promise<{ story: Story 
         lore: data.lore?.trim() || undefined,
     };
 
-    const { data: story, error } = await createStory(storyData);
+    const { data: story, error } = await createStory(storyData, db);
     return { story, error };
 }
 
@@ -282,7 +284,8 @@ const slugify = (value: string): string =>
 async function processTags(
     storyId: string,
     tags: CreateStoryTag[] = [],
-    authorId: string
+    authorId: string,
+    db: SupabaseClient
 ): Promise<{ success: boolean; error?: string }> {
     if (tags.length === 0) {
         return { success: true };
@@ -311,7 +314,7 @@ async function processTags(
     }
 
     // Get custom tag category
-    const { data: customCategory, error: customCategoryError } = await supabase
+    const { data: customCategory, error: customCategoryError } = await db
         .from('tag_categories')
         .select('id')
         .ilike('name', 'custom')
@@ -334,7 +337,7 @@ async function processTags(
         }
 
         // Check if tag already exists
-        const { data: existingTag, error: existingTagError } = await supabase
+        const { data: existingTag, error: existingTagError } = await db
             .from('tags')
             .select('id')
             .ilike('name', tag.name)
@@ -350,7 +353,7 @@ async function processTags(
         }
 
         // Create new tag
-        const { data: newTag, error: newTagError } = await supabase
+        const { data: newTag, error: newTagError } = await db
             .from('tags')
             .insert([
                 {
@@ -376,7 +379,7 @@ async function processTags(
 
     // Associate tags with story
     if (tagIds.length > 0) {
-        const { error: storyTagsError } = await supabase
+        const { error: storyTagsError } = await db
             .from('story_tags')
             .insert(tagIds.map((tagId) => ({ story_id: storyId, tag_id: tagId })));
 
@@ -393,7 +396,8 @@ async function processTags(
  */
 async function processStoryStarts(
     storyId: string,
-    storyStarts: StoryStart[] = []
+    storyStarts: StoryStart[] = [],
+    db: SupabaseClient
 ): Promise<{ success: boolean; error?: string }> {
     if (storyStarts.length === 0) {
         return { success: true };
@@ -419,7 +423,7 @@ async function processStoryStarts(
         return { success: true };
     }
 
-    const { error: storyStartsError } = await supabase
+    const { error: storyStartsError } = await db
         .from('story_starts')
         .insert(validStarts);
 
@@ -454,17 +458,22 @@ function buildResponse(
 
 export const POST: APIRoute = async ({ request }) => {
     try {
-        // 1. Parse form data
+        // 1. Authenticate — extract Bearer token so RLS INSERT policies pass
+        const auth = await requireAuth(request);
+        if (auth.error) return auth.error;
+        const db = createAuthedClient(auth.token);
+
+        // 2. Parse form data
         const { storyData, coverImageFile } = await parseFormData(request);
 
-        // 2. Validate required fields
+        // 3. Validate required fields
         const validation = validateStoryData(storyData);
         if (!validation.isValid) {
             return buildResponse(400, { error: validation.error });
         }
 
-        // 3. Create story record (with empty cover image URL)
-        const { story, error: createError } = await createStoryRecord(storyData);
+        // 4. Create story record (with empty cover image URL)
+        const { story, error: createError } = await createStoryRecord(storyData, db);
         if (createError || !story) {
             return buildResponse(500, {
                 error: createError?.message || 'Failed to create story.'
@@ -478,14 +487,15 @@ export const POST: APIRoute = async ({ request }) => {
             });
         }
 
-        // 4. Upload cover image if provided
+        // 5. Upload cover image if provided
         const uploadResult = await uploadCoverImageIfProvided(coverImageFile, story);
 
-        // 5. Process tags
+        // 6. Process tags
         const tagsResult = await processTags(
             story.id!,
             storyData.tags,
-            resolveAuthorId(storyData)
+            resolveAuthorId(storyData),
+            db
         );
         if (!tagsResult.success) {
             // Story already created, but tag processing failed
@@ -499,10 +509,11 @@ export const POST: APIRoute = async ({ request }) => {
             });
         }
 
-        // 6. Process story starts
+        // 7. Process story starts
         const storyStartsResult = await processStoryStarts(
             story.id!,
-            resolveStoryStarts(storyData)
+            resolveStoryStarts(storyData),
+            db
         );
         if (!storyStartsResult.success) {
             // Story created, tags processed, but story starts failed
@@ -516,7 +527,7 @@ export const POST: APIRoute = async ({ request }) => {
             });
         }
 
-        // 7. Return final response
+        // 8. Return final response
         if (!uploadResult.success) {
             // Story created successfully, but cover image upload failed
             return buildResponse(207, {

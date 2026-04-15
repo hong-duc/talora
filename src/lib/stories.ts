@@ -1,4 +1,5 @@
-import { supabase } from './supabase';
+import { supabase, createAuthedClient } from './supabase';
+import type { SupabaseClient } from './supabase';
 import type { Story } from './types';
 
 /**
@@ -63,13 +64,16 @@ export async function uploadCoverImage(
 /**
  * Create a new story in the database
  * @param storyData - The story data to insert
+ * @param client - Optional authenticated Supabase client (required for RLS INSERT policies)
  * @returns The created story or error
  */
 export async function createStory(
-    storyData: Omit<Story, 'created_at' | 'rating' | 'updated_at'>
+    storyData: Omit<Story, 'created_at' | 'rating' | 'updated_at'>,
+    client?: SupabaseClient
 ): Promise<{ data: Story | null; error: Error | null }> {
     try {
-        const { data, error } = await supabase
+        const db = client ?? supabase;
+        const { data, error } = await db
             .from('stories')
             .insert([storyData])
             .select()

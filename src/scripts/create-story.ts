@@ -30,6 +30,7 @@ import {
     updateSetting,
     updateIsEditMode,
 } from '../lib/store';
+import { supabase } from '../lib/supabase';
 
 // ============================================================================
 // TYPES
@@ -161,6 +162,13 @@ async function submitCreate(data: StoryFormData): Promise<{ storyId: string }> {
 
     const payload = store.getState().storyForm.form as StoryFormData;
 
+    // Get the current session token so the API can satisfy RLS INSERT policies
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+    if (!accessToken) {
+        throw new Error('You must be signed in to create a story.');
+    }
+
     const formdata = new FormData();
     formdata.append("storyData", JSON.stringify(payload));
     if (fileUpload) {
@@ -169,6 +177,7 @@ async function submitCreate(data: StoryFormData): Promise<{ storyId: string }> {
 
     const response = await fetch("/api/create-story", {
         method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
         body: formdata,
     });
 
