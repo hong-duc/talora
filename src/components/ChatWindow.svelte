@@ -107,6 +107,10 @@
 	let showSettings = $state(false);
 	let showFontPanel = $state(false);
 
+	/** True when the user has at least one saved AI config */
+	let hasAiConfig = $state(false);
+	let isCheckingConfig = $state(true);
+
 	/** Chat reading font — persisted in localStorage */
 	const FONT_FAMILIES: Record<string, string> = {
 		inherit: "Default",
@@ -217,9 +221,28 @@
 
 	onMount(async () => {
 		debug("ChatWindow mounted", { sessionId });
-		await loadSession();
+		await Promise.all([loadSession(), checkAiConfig()]);
 		scrollToBottom("auto");
 	});
+
+	// ─── AI config check ───────────────────────────────────────────────────────
+
+	/** Check whether the user has at least one saved AI config */
+	async function checkAiConfig() {
+		isCheckingConfig = true;
+		try {
+			const res = await fetch("/api/user/ai-configs", {
+				headers: { Authorization: `Bearer ${accessToken}` },
+			});
+			if (!res.ok) return;
+			const json = await res.json();
+			hasAiConfig = (json.configs ?? []).length > 0;
+		} catch {
+			// Non-critical — leave hasAiConfig as false
+		} finally {
+			isCheckingConfig = false;
+		}
+	}
 
 	// ─── API helpers ───────────────────────────────────────────────────────────
 
@@ -971,7 +994,7 @@
 				</button>
 			</div>
 		{:else}
-			{#each messages as message (message.id)}
+			{#each messages as message, msgIdx (message.id)}
 				{#if message.sender === "assistant"}
 					<!-- ── Assistant message (left-aligned) ── -->
 					<div class="group/msg flex max-w-2xl gap-4">
@@ -1045,18 +1068,20 @@
 											>edit</span
 										>
 									</button>
-									<button
-										class="rounded p-1 text-slate-500 transition-colors hover:text-red-400"
-										type="button"
-										title="Delete from here"
-										onclick={() =>
-											deleteFromMessage(message.id)}
-									>
-										<span
-											class="material-symbols-outlined text-base leading-none"
-											>delete</span
+									{#if msgIdx !== 0}
+										<button
+											class="rounded p-1 text-slate-500 transition-colors hover:text-red-400"
+											type="button"
+											title="Delete from here"
+											onclick={() =>
+												deleteFromMessage(message.id)}
 										>
-									</button>
+											<span
+												class="material-symbols-outlined text-base leading-none"
+												>delete</span
+											>
+										</button>
+									{/if}
 									{#if message.id === lastMessageId && hasUserMessage}
 										{@const slot =
 											variantSlots[lastReplySlotKey]}
@@ -1219,18 +1244,20 @@
 											>edit</span
 										>
 									</button>
-									<button
-										class="rounded p-1 text-slate-500 transition-colors hover:text-red-400"
-										type="button"
-										title="Delete from here"
-										onclick={() =>
-											deleteFromMessage(message.id)}
-									>
-										<span
-											class="material-symbols-outlined text-base leading-none"
-											>delete</span
+									{#if msgIdx !== 0}
+										<button
+											class="rounded p-1 text-slate-500 transition-colors hover:text-red-400"
+											type="button"
+											title="Delete from here"
+											onclick={() =>
+												deleteFromMessage(message.id)}
 										>
-									</button>
+											<span
+												class="material-symbols-outlined text-base leading-none"
+												>delete</span
+											>
+										</button>
+									{/if}
 								</div>
 							{/if}
 						</div>
@@ -1288,28 +1315,59 @@
 
 	<!-- Input bar -->
 	<div class="glass-panel relative border-t border-primary/10 p-6">
+		<!-- No AI config banner -->
+		{#if !isCheckingConfig && !hasAiConfig}
+			<div
+				class="mx-auto mb-4 flex max-w-4xl items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3"
+			>
+				<span
+					class="material-symbols-outlined shrink-0 text-xl text-amber-400"
+					style="font-variation-settings:'FILL' 1">warning</span
+				>
+				<p class="flex-1 text-sm text-amber-300">
+					You need to configure an AI provider before you can chat.
+				</p>
+				<button
+					class="shrink-0 rounded-lg border border-amber-500/40 px-3 py-1.5 text-xs font-bold text-amber-300 transition-colors hover:bg-amber-500/20"
+					type="button"
+					onclick={() => (showSettings = true)}
+				>
+					<span
+						class="material-symbols-outlined mr-1 align-middle text-sm leading-none"
+						>settings</span
+					>
+					Configure
+				</button>
+			</div>
+		{/if}
 		<div
-			class="mystical-glow group mx-auto flex max-w-4xl items-end gap-2 rounded-2xl border border-primary/30 bg-background-dark/80 p-2 transition-all focus-within:border-primary"
+			class={`mystical-glow group mx-auto flex max-w-4xl items-end gap-2 rounded-2xl border bg-background-dark/80 p-2 transition-all ${!isCheckingConfig && !hasAiConfig ? "cursor-not-allowed border-slate-700/50 opacity-60" : "border-primary/30 focus-within:border-primary"}`}
 		>
 			<button
 				class="p-3 text-slate-500 transition-colors hover:text-primary"
 				type="button"
+				disabled={!hasAiConfig}
 			>
 				<span class="material-symbols-outlined">ink_pen</span>
 			</button>
 			<textarea
-				class="scrollbar-hide flex-1 resize-none border-none bg-transparent py-3 font-display italic text-slate-100 placeholder:text-slate-600 focus:ring-0"
+				class="scrollbar-hide flex-1 resize-none border-none bg-transparent py-3 font-display italic text-slate-100 placeholder:text-slate-600 focus:ring-0 disabled:cursor-not-allowed"
 				oninput={handleInput}
 				onkeydown={handleKeydown}
-				placeholder="Whisper your response into the inkwell..."
+				placeholder={!isCheckingConfig && !hasAiConfig
+					? "Configure an AI provider in ⚙ Settings to start chatting…"
+					: "Whisper your response into the inkwell..."}
 				rows="1"
 				value={draft}
-				disabled={isReplying || isLoading}
+				disabled={isReplying ||
+					isLoading ||
+					(!isCheckingConfig && !hasAiConfig)}
 			></textarea>
 			<div class="flex gap-1 pb-1">
 				<button
 					class="p-2 text-slate-500 transition-colors hover:text-primary"
 					type="button"
+					disabled={!hasAiConfig}
 				>
 					<span class="material-symbols-outlined"
 						>auto_fix_normal</span
@@ -1319,7 +1377,10 @@
 					class="flex size-10 items-center justify-center rounded-xl bg-primary text-white shadow-lg transition-all hover:bg-primary/80 active:scale-95 disabled:opacity-40"
 					onclick={sendMessage}
 					type="button"
-					disabled={isReplying || isLoading || !draft.trim()}
+					disabled={isReplying ||
+						isLoading ||
+						!draft.trim() ||
+						(!isCheckingConfig && !hasAiConfig)}
 					aria-label="Send message"
 				>
 					<span class="material-symbols-outlined">send</span>
