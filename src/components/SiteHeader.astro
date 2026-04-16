@@ -3,7 +3,7 @@ interface Props {
 	variant?: "default" | "chat";
 	className?: string;
 	showNav?: boolean;
-	activeSection?: "archive" | "social" | "my-stories";
+	activeSection?: "archive" | "social" | "my-stories" | "seekers";
 }
 
 const {
@@ -18,13 +18,15 @@ const resolvedActive =
 	activeSection ??
 	(pathname.startsWith("/archive")
 		? "archive"
-		: pathname.startsWith("/social")
-			? "social"
-			: pathname.startsWith("/user/my-stories")
-				? "my-stories"
-				: undefined);
+		: pathname.startsWith("/social/seekers")
+			? "seekers"
+			: pathname.startsWith("/social")
+				? "social"
+				: pathname.startsWith("/user/my-stories")
+					? "my-stories"
+					: undefined);
 
-const navItemClass = (key: "archive" | "social" | "my-stories") =>
+const navItemClass = (key: "archive" | "social" | "my-stories" | "seekers") =>
 	`magic-glow flex items-center gap-2 text-base font-medium transition-colors ${
 		resolvedActive === key
 			? "text-primary"
@@ -61,13 +63,20 @@ const headerBgClass =
 			{
 				showNav && (
 					<nav class="hidden items-center gap-8 md:flex">
-					<a class={navItemClass("archive")} href="/archive">
-						<span class="material-symbols-outlined text-lg">
-							castle
-						</span>
-						The Great Archive
-					</a>
-					<!-- "My Stories" only visible when signed in — toggled by profile-sync.ts -->
+						<a class={navItemClass("archive")} href="/archive">
+							<span class="material-symbols-outlined text-lg">
+								castle
+							</span>
+							The Great Archive
+						</a>
+						<!-- Seekers directory — always visible -->
+						<a class={navItemClass("seekers")} href="/social/seekers">
+							<span class="material-symbols-outlined text-lg">
+								groups
+							</span>
+							Seekers
+						</a>
+						<!-- "My Stories" only visible when signed in — toggled by profile-sync.ts -->
 						<a
 							class={`${navItemClass("my-stories")} hidden`}
 							data-auth="signed-in"

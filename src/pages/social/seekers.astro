@@ -1,0 +1,395 @@
+---
+/**
+ * The Order of Seekers — public user directory
+ *
+ * Fetches all public profiles server-side (id, username, avatar_url),
+ * then hands the full list to the client for:
+ *   - username search (client-side filter, no server round-trips)
+ *   - avatar grid rendering
+ *   - pagination
+ */
+import "../../styles/global.css";
+import SiteHeader from "../../components/SiteHeader.astro";
+import SiteFooter from "../../components/SiteFooter.astro";
+import { supabase } from "../../lib/supabase";
+
+export const prerender = false;
+
+// ── Server-side: load all public profiles ────────────────────────────────────
+type ProfileRow = {
+    id: string;
+    username: string | null;
+    avatar_url: string | null;
+};
+
+let profiles: ProfileRow[] = [];
+
+const { data, error } = await supabase
+    .from("profiles")
+    .select("id, username, avatar_url")
+    .order("username", { ascending: true });
+
+if (!error && data) {
+    profiles = data as ProfileRow[];
+}
+---
+
+<html class="dark" lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="icon" href="/favicon.ico" />
+        <meta name="generator" content={Astro.generator} />
+        <title>The Order of Seekers – The Whispering Library</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap"
+            rel="stylesheet"
+        />
+    </head>
+    <body class="min-h-screen bg-background-dark font-display text-slate-100">
+        <div
+            class="relative flex min-h-screen w-full flex-col overflow-x-hidden"
+        >
+            <div class="layout-container flex h-full grow flex-col">
+                <!-- Shared site header (has its own search bar for global story search) -->
+                <SiteHeader activeSection="seekers" />
+
+                <main
+                    class="mx-auto w-full max-w-6xl flex-1 px-6 py-10 lg:px-20"
+                >
+                    <!-- ── Page heading ───────────────────────────────────── -->
+                    <div class="mb-8">
+                        <h1
+                            class="font-display text-4xl font-black tracking-tight text-slate-100"
+                        >
+                            The Order of Seekers
+                        </h1>
+                        <p class="mt-2 text-slate-400">
+                            Discover fellow readers and authors wandering the
+                            library's halls.
+                        </p>
+                    </div>
+
+                    <!-- ── Username search bar (page-specific, not the header search) ── -->
+                    <div class="group relative mb-10">
+                        <!-- Animated glow ring on focus/hover -->
+                        <div
+                            class="absolute -inset-1 rounded-xl bg-linear-to-r from-primary to-purple-400 opacity-20 blur transition duration-1000 group-focus-within:opacity-50 group-hover:opacity-30 group-hover:duration-200"
+                        >
+                        </div>
+                        <label
+                            class="relative flex h-14 w-full items-center overflow-hidden rounded-xl border border-primary/30 bg-slate-900"
+                        >
+                            <span
+                                class="material-symbols-outlined px-4 text-xl text-primary"
+                                >person_search</span
+                            >
+                            <input
+                                aria-label="Search seekers by username"
+                                class="w-full border-none bg-transparent text-base italic text-slate-100 placeholder:text-slate-500 focus:ring-0 focus:outline-none"
+                                id="seeker-search"
+                                placeholder="Search seekers by name…"
+                                type="search"
+                            />
+                        </label>
+                    </div>
+
+                    <!-- ── Results count ──────────────────────────────────── -->
+                    <div class="mb-6 flex items-center justify-between gap-4">
+                        <p class="text-sm text-slate-400">
+                            Showing <span
+                                id="result-count"
+                                class="font-bold text-primary">0</span
+                            > seekers
+                        </p>
+                        <!-- Page indicator -->
+                        <p class="text-sm text-slate-500" id="page-indicator">
+                        </p>
+                    </div>
+
+                    <!-- ── Avatar grid (populated by JS) ─────────────────── -->
+                    <div
+                        id="seekers-grid"
+                        class="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
+                    >
+                        <!-- Skeleton placeholders shown while JS initialises -->
+                        {
+                            Array.from({ length: 12 }).map(() => (
+                                <div class="animate-pulse flex flex-col items-center gap-3">
+                                    <div class="size-24 rounded-full bg-primary/10" />
+                                    <div class="h-3 w-16 rounded bg-primary/10" />
+                                </div>
+                            ))
+                        }
+                    </div>
+
+                    <!-- ── Empty state (hidden by default) ───────────────── -->
+                    <div
+                        id="empty-state"
+                        class="hidden flex-col items-center gap-4 py-24 text-center"
+                    >
+                        <span
+                            class="material-symbols-outlined text-6xl text-primary/30"
+                            >search_off</span
+                        >
+                        <p class="text-xl font-bold">No seekers found</p>
+                        <p class="text-slate-400">
+                            Try a different name or clear the search.
+                        </p>
+                    </div>
+
+                    <!-- ── Pagination controls ────────────────────────────── -->
+                    <div
+                        id="pagination"
+                        class="mt-10 flex items-center justify-center gap-2 flex-wrap"
+                    >
+                    </div>
+                </main>
+
+                <SiteFooter />
+            </div>
+        </div>
+
+        <!-- ── Client-side: search + pagination + render ─────────────────────── -->
+        <script define:vars={{ profiles }}>
+            (function () {
+                // ── Constants ────────────────────────────────────────────────
+                const PER_PAGE = 24; // users shown per page
+                const DEFAULT_AVATAR = "/default_user_profile.png";
+
+                // ── State ────────────────────────────────────────────────────
+                let currentQuery = "";
+                let currentPage = 1;
+
+                // ── DOM refs ─────────────────────────────────────────────────
+                const grid = document.getElementById("seekers-grid");
+                const paginationEl = document.getElementById("pagination");
+                const searchInput = document.getElementById("seeker-search");
+                const resultCount = document.getElementById("result-count");
+                const pageIndicator = document.getElementById("page-indicator");
+                const emptyState = document.getElementById("empty-state");
+
+                // ── Filter users by username query (case-insensitive) ────────
+                function filterUsers(query) {
+                    if (!query.trim()) return profiles;
+                    const q = query.trim().toLowerCase();
+                    return profiles.filter((u) =>
+                        (u.username || "").toLowerCase().includes(q),
+                    );
+                }
+
+                // ── Slice list for the current page ─────────────────────────
+                function paginate(list, page) {
+                    const start = (page - 1) * PER_PAGE;
+                    return list.slice(start, start + PER_PAGE);
+                }
+
+                // ── Build a single avatar card HTML string ───────────────────
+                function buildCard(user) {
+                    const name = user.username || "Seeker";
+                    const avatar = user.avatar_url || DEFAULT_AVATAR;
+                    // Escape values to prevent XSS
+                    const safeId = encodeURIComponent(user.id);
+                    const safeName = name
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;");
+                    const safeAvatar = avatar
+                        .replace(/"/g, "&quot;")
+                        .replace(/'/g, "&#39;");
+
+                    return `
+						<a
+							href="/user?id=${safeId}"
+							class="seeker-card group flex flex-col items-center gap-3 rounded-xl p-4 transition-all duration-200 hover:bg-primary/10"
+							title="${safeName}"
+						>
+							<!-- Circular avatar -->
+							<div
+								class="size-24 shrink-0 rounded-full border-2 border-primary/30 bg-cover bg-center bg-primary/10 transition-all duration-200 group-hover:border-primary group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-primary/20"
+								style="background-image: url('${safeAvatar}')"
+								aria-hidden="true"
+							></div>
+							<!-- Username label -->
+							<span class="max-w-full truncate text-center text-sm font-medium text-slate-200 group-hover:text-primary">
+								${safeName}
+							</span>
+						</a>
+					`;
+                }
+
+                // ── Render the grid for current filter + page state ─────────
+                function renderGrid(filtered) {
+                    const page = paginate(filtered, currentPage);
+
+                    if (filtered.length === 0) {
+                        // Show empty state, hide grid
+                        grid.innerHTML = "";
+                        emptyState.classList.remove("hidden");
+                        emptyState.classList.add("flex");
+                    } else {
+                        emptyState.classList.add("hidden");
+                        emptyState.classList.remove("flex");
+                        grid.innerHTML = page.map(buildCard).join("");
+                    }
+
+                    // Update result count label
+                    resultCount.textContent = String(filtered.length);
+
+                    // Update page indicator
+                    const totalPages = Math.ceil(filtered.length / PER_PAGE);
+                    if (totalPages > 1) {
+                        pageIndicator.textContent = `Page ${currentPage} of ${totalPages}`;
+                    } else {
+                        pageIndicator.textContent = "";
+                    }
+                }
+
+                // ── Build pagination button HTML ─────────────────────────────
+                function buildPageBtn(label, targetPage, isActive, isDisabled) {
+                    const baseClass =
+                        "flex h-9 min-w-[36px] items-center justify-center rounded-lg border px-3 text-sm font-medium transition-colors";
+                    const activeClass = "border-primary bg-primary text-white";
+                    const inactiveClass =
+                        "border-primary/20 bg-primary/5 text-slate-300 hover:bg-primary/20 hover:border-primary/50";
+                    const disabledClass =
+                        "border-primary/10 bg-transparent text-slate-600 cursor-not-allowed";
+
+                    const cls = isDisabled
+                        ? `${baseClass} ${disabledClass}`
+                        : isActive
+                          ? `${baseClass} ${activeClass}`
+                          : `${baseClass} ${inactiveClass}`;
+
+                    return `<button class="${cls}" data-page="${targetPage}" ${isDisabled ? "disabled" : ""}>${label}</button>`;
+                }
+
+                // ── Render pagination controls ───────────────────────────────
+                function renderPagination(filtered) {
+                    const totalPages = Math.ceil(filtered.length / PER_PAGE);
+
+                    if (totalPages <= 1) {
+                        paginationEl.innerHTML = "";
+                        return;
+                    }
+
+                    let html = "";
+
+                    // Prev button
+                    html += buildPageBtn(
+                        '<span class="material-symbols-outlined text-base leading-none">chevron_left</span>',
+                        currentPage - 1,
+                        false,
+                        currentPage === 1,
+                    );
+
+                    // Page number buttons (show at most 7 around current page)
+                    const range = buildPageRange(currentPage, totalPages);
+                    for (const item of range) {
+                        if (item === "…") {
+                            html += `<span class="flex h-9 w-9 items-center justify-center text-slate-500">…</span>`;
+                        } else {
+                            html += buildPageBtn(
+                                String(item),
+                                item,
+                                item === currentPage,
+                                false,
+                            );
+                        }
+                    }
+
+                    // Next button
+                    html += buildPageBtn(
+                        '<span class="material-symbols-outlined text-base leading-none">chevron_right</span>',
+                        currentPage + 1,
+                        false,
+                        currentPage === totalPages,
+                    );
+
+                    paginationEl.innerHTML = html;
+
+                    // Attach click events to each page button
+                    paginationEl
+                        .querySelectorAll("button[data-page]")
+                        .forEach((btn) => {
+                            btn.addEventListener("click", () => {
+                                const target = parseInt(btn.dataset.page, 10);
+                                if (
+                                    !isNaN(target) &&
+                                    target >= 1 &&
+                                    target <= totalPages
+                                ) {
+                                    currentPage = target;
+                                    refresh();
+                                    // Scroll back to top of grid smoothly
+                                    grid.scrollIntoView({
+                                        behavior: "smooth",
+                                        block: "start",
+                                    });
+                                }
+                            });
+                        });
+                }
+
+                // ── Build a compact page number range with ellipsis ──────────
+                // e.g. [1, 2, '…', 7, 8, 9, '…', 20, 21]
+                function buildPageRange(current, total) {
+                    if (total <= 7) {
+                        return Array.from({ length: total }, (_, i) => i + 1);
+                    }
+                    const pages = new Set();
+                    // Always show first 2 and last 2
+                    pages.add(1);
+                    pages.add(2);
+                    pages.add(total - 1);
+                    pages.add(total);
+                    // Show 2 around current
+                    for (let i = current - 2; i <= current + 2; i++) {
+                        if (i >= 1 && i <= total) pages.add(i);
+                    }
+
+                    // Sort and insert ellipsis where gaps > 1
+                    const sorted = [...pages].sort((a, b) => a - b);
+                    const result = [];
+                    for (let i = 0; i < sorted.length; i++) {
+                        result.push(sorted[i]);
+                        if (
+                            i < sorted.length - 1 &&
+                            sorted[i + 1] - sorted[i] > 1
+                        ) {
+                            result.push("…");
+                        }
+                    }
+                    return result;
+                }
+
+                // ── Master refresh: filter → render grid + pagination ────────
+                function refresh() {
+                    const filtered = filterUsers(currentQuery);
+                    renderGrid(filtered);
+                    renderPagination(filtered);
+                }
+
+                // ── Wire up search input (debounced 200 ms) ──────────────────
+                let debounceTimer;
+                searchInput.addEventListener("input", (e) => {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => {
+                        currentQuery = e.target.value;
+                        currentPage = 1; // reset to page 1 on new search
+                        refresh();
+                    }, 200);
+                });
+
+                // ── Initial render ───────────────────────────────────────────
+                refresh();
+            })();
+        </script>
+    </body>
+</html>
