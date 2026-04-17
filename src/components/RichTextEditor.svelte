@@ -25,9 +25,14 @@
     import { store } from "../lib/store";
 
     // ─── Props ────────────────────────────────────────────────────────────────
-    const { value = "", showToolbar = true } = $props<{
+    const {
+        value = "",
+        showToolbar = true,
+        enableImageUpload = true,
+    } = $props<{
         value?: string;
         showToolbar?: boolean;
+        enableImageUpload?: boolean;
     }>();
 
     // ─── DOM refs ─────────────────────────────────────────────────────────────
@@ -415,19 +420,21 @@
             </div>
 
             <!-- Image insert -->
-            <div class="toolbar-group border-r-0">
-                <button
-                    type="button"
-                    class="tb-btn"
-                    onclick={insertImage}
-                    title="Insert image"
-                    disabled={uploadInProgress}
-                >
-                    <span class="material-symbols-outlined"
-                        >add_photo_alternate</span
+            {#if enableImageUpload}
+                <div class="toolbar-group border-r-0">
+                    <button
+                        type="button"
+                        class="tb-btn"
+                        onclick={insertImage}
+                        title="Insert image"
+                        disabled={uploadInProgress}
                     >
-                </button>
-            </div>
+                        <span class="material-symbols-outlined"
+                            >add_photo_alternate</span
+                        >
+                    </button>
+                </div>
+            {/if}
         </div>
     {/if}
 
