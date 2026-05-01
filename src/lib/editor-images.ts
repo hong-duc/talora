@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import type { SupabaseClient } from './supabase';
 
 /**
  * Upload an editor image to Supabase Storage bucket "images" under editor-images/{storyId}/
@@ -8,7 +8,8 @@ import { supabase } from './supabase';
  */
 export async function uploadEditorImage(
     file: File,
-    storyId: string
+    storyId: string,
+    client: SupabaseClient
 ): Promise<{ url: string | null; error: Error | null }> {
     try {
         // Validate storyId
@@ -37,7 +38,7 @@ export async function uploadEditorImage(
         const fileName = `${timestamp}-${sanitizedName}`;
         const filePath = `editor-images/${storyId}/${fileName}.${fileExt}`;
 
-        const { error } = await supabase.storage
+        const { error } = await client.storage
             .from('images_2')
             .upload(filePath, file, {
                 cacheControl: 'public, max-age=31536000, immutable',
@@ -47,7 +48,7 @@ export async function uploadEditorImage(
         if (error) throw error;
 
         // Get public URL
-        const { data: urlData } = supabase.storage
+        const { data: urlData } = client?.storage
             .from('images_2')
             .getPublicUrl(filePath);
 
@@ -64,10 +65,11 @@ export async function uploadEditorImage(
  * @returns Success status or error
  */
 export async function deleteEditorImage(
-    filePath: string
+    filePath: string,
+    client: SupabaseClient
 ): Promise<{ success: boolean; error: Error | null }> {
     try {
-        const { error } = await supabase.storage
+        const { error } = await client.storage
             .from('images_2')
             .remove([filePath]);
 
@@ -86,10 +88,11 @@ export async function deleteEditorImage(
  * @returns Array of image URLs and paths or error
  */
 export async function listEditorImages(
-    storyId: string
+    storyId: string,
+    client: SupabaseClient
 ): Promise<{ data: Array<{ url: string; path: string }> | null; error: Error | null }> {
     try {
-        const { data, error } = await supabase.storage
+        const { data, error } = await client.storage
             .from('images_2')
             .list(`editor-images/${storyId}`);
 
@@ -97,7 +100,7 @@ export async function listEditorImages(
 
         const images = (data || []).map(item => {
             const path = `editor-images/${storyId}/${item.name}`;
-            const { data: urlData } = supabase.storage
+            const { data: urlData } = client.storage
                 .from('images_2')
                 .getPublicUrl(path);
             return {

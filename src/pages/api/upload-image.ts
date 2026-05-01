@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { uploadCoverImage } from '../../lib/stories';
 import { uploadEditorImage } from '../../lib/editor-images';
 import { createAuthedClient } from '../../lib/supabase';
+import { requireAuth } from '../../lib/api-auth';
 
 export const prerender = false;
 
@@ -47,18 +48,18 @@ export const POST: APIRoute = async ({ request }) => {
             );
         }
 
-        // Extract auth token if present — use authenticated client so storage
-        // bucket RLS policies (auth required for writes) are satisfied.
-        const authHeader = request.headers.get('Authorization') || '';
-        const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-        const storageClient = token ? createAuthedClient(token) : undefined;
+        // Authenticate request to ensure storage bucket RLS policies are satisfied.
+        const auth = await requireAuth(request);
+        if (auth.error) return auth.error;
+
+        const storageClient = createAuthedClient(auth.token);
 
         let url: string | null = null;
         let error: Error | null = null;
 
         if (type === 'editor') {
             // Upload editor image (title not required)
-            const result = await uploadEditorImage(file, storyId);
+            const result = await uploadEditorImage(file, storyId, storageClient);
             url = result.url;
             error = result.error;
         } else {

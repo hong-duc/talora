@@ -7,7 +7,7 @@
  */
 
 import type { APIRoute } from 'astro';
-import { supabase } from '../../../../lib/supabase';
+import { supabase, createAuthedClient } from '../../../../lib/supabase';
 import { jsonResponse } from '../../../../lib/api-auth';
 
 export const prerender = false;
@@ -91,8 +91,11 @@ export const POST: APIRoute = async ({ params, request }) => {
         return jsonResponse({ error: 'Rating must be an integer between 1 and 5.' }, 400);
     }
 
+    // Use authenticated client to satisfy RLS policies for insert/update
+    const db = createAuthedClient(token);
+
     // Upsert: one row per (story_id, user_id) — updating on conflict
-    const { error: upsertError } = await supabase
+    const { error: upsertError } = await db
         .from('story_ratings')
         .upsert(
             { story_id: storyId, user_id: userId, rating },
@@ -102,7 +105,7 @@ export const POST: APIRoute = async ({ params, request }) => {
     if (upsertError) return jsonResponse({ error: upsertError.message }, 500);
 
     // Recalculate the aggregate so the UI can update immediately
-    const { data: ratings, error: fetchError } = await supabase
+    const { data: ratings, error: fetchError } = await db
         .from('story_ratings')
         .select('rating')
         .eq('story_id', storyId);

@@ -1,13 +1,17 @@
 import type { APIRoute } from 'astro';
 import { requireAuth, jsonResponse } from '../../../lib/api-auth';
-import { supabase, createAuthedClient } from '../../../lib/supabase';
+import { createAuthedClient } from '../../../lib/supabase';
 
 export const prerender = false;
 
 export const POST: APIRoute = async ({ request }) => {
+
     // Authenticate
     const auth = await requireAuth(request);
     if (auth.error) return auth.error;
+
+    // Create a single authenticated client for the entire request
+    const supabase = createAuthedClient(auth.token);
 
     try {
         const formData = await request.formData();
@@ -65,8 +69,7 @@ export const POST: APIRoute = async ({ request }) => {
         const avatarUrl = urlData.publicUrl;
 
         // Update profiles table with new avatar_url
-        const db = createAuthedClient(auth.token);
-        const { data: profile, error: profileError } = await db
+        const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .update({ avatar_url: avatarUrl })
             .eq('id', auth.userId)
