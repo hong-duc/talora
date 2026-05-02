@@ -176,6 +176,15 @@ export interface Comment {
 export interface User {
     id?: string;
     username: string;
+    follower_count?: number;
+    following_count?: number;
+    created_at?: string;
+}
+
+// User Followers (many-to-many relationship)
+export interface UserFollower {
+    follower_id: string;
+    following_id: string;
     created_at?: string;
 }
 
@@ -203,6 +212,9 @@ export interface Database {
             };
             users: {
                 Row: User;
+            };
+            user_followers: {
+                Row: UserFollower;
             };
         };
     };

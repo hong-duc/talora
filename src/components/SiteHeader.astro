@@ -3,7 +3,13 @@ interface Props {
 	variant?: "default" | "chat";
 	className?: string;
 	showNav?: boolean;
-	activeSection?: "archive" | "social" | "my-stories" | "seekers";
+	activeSection?:
+		| "archive"
+		| "social"
+		| "my-stories"
+		| "seekers"
+		| "feed"
+		| "network";
 }
 
 const {
@@ -24,9 +30,15 @@ const resolvedActive =
 				? "social"
 				: pathname.startsWith("/user/my-stories")
 					? "my-stories"
-					: undefined);
+					: pathname.startsWith("/feed")
+						? "feed"
+						: pathname.match(/^\/user\/[^/]+\/network/)
+							? "network"
+							: undefined);
 
-const navItemClass = (key: "archive" | "social" | "my-stories" | "seekers") =>
+const navItemClass = (
+	key: "archive" | "social" | "my-stories" | "seekers" | "feed" | "network",
+) =>
 	`magic-glow flex items-center gap-2 text-base font-medium transition-colors ${
 		resolvedActive === key
 			? "text-primary"
@@ -69,23 +81,14 @@ const headerBgClass =
 							</span>
 							The Great Archive
 						</a>
-						<!-- Seekers directory — always visible -->
-						<a class={navItemClass("seekers")} href="/social/seekers">
+						<a
+							class={navItemClass("seekers")}
+							href="/social/seekers"
+						>
 							<span class="material-symbols-outlined text-lg">
 								groups
 							</span>
 							Seekers
-						</a>
-						<!-- "My Stories" only visible when signed in — toggled by profile-sync.ts -->
-						<a
-							class={`${navItemClass("my-stories")} hidden`}
-							data-auth="signed-in"
-							href="/user/my-stories"
-						>
-							<span class="material-symbols-outlined text-lg">
-								auto_stories
-							</span>
-							My Stories
 						</a>
 					</nav>
 				)
@@ -212,10 +215,69 @@ const headerBgClass =
 					Sign In
 				</a>
 			</div>
+			<!-- Signed-in: avatar + collapsible "My Space" dropdown -->
 			<div
-				class="hidden items-center gap-3 border-l border-primary/10 pl-4"
+				class="hidden items-center gap-2 border-l border-primary/10 pl-4"
 				data-auth="signed-in"
 			>
+				<!-- My Space dropdown trigger -->
+				<div class="relative" data-my-space-root>
+					<button
+						aria-controls="my-space-panel"
+						aria-expanded="false"
+						aria-haspopup="true"
+						class="flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-primary/10 hover:text-primary"
+						data-my-space-toggle
+						type="button"
+					>
+						<span class="material-symbols-outlined text-lg"
+							>person</span
+						>
+						<span class="hidden lg:inline">My Space</span>
+						<span
+							class="material-symbols-outlined text-sm"
+							data-my-space-caret>expand_more</span
+						>
+					</button>
+					<div
+						class="pointer-events-none absolute right-0 top-full z-50 mt-3 w-52 origin-top-right scale-95 overflow-hidden rounded-xl border border-primary/20 bg-[#1e1030] opacity-0 shadow-2xl transition duration-200"
+						data-my-space-panel
+						id="my-space-panel"
+					>
+						<div class="p-2">
+							<a
+								href="/user/my-stories"
+								class={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${resolvedActive === "my-stories" ? "bg-primary/20 text-primary" : "text-slate-300 hover:bg-primary/10 hover:text-primary"}`}
+							>
+								<span class="material-symbols-outlined text-lg"
+									>auto_stories</span
+								>
+								My Stories
+							</a>
+							<a
+								href="/feed"
+								class={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${resolvedActive === "feed" ? "bg-primary/20 text-primary" : "text-slate-300 hover:bg-primary/10 hover:text-primary"}`}
+							>
+								<span class="material-symbols-outlined text-lg"
+									>dynamic_feed</span
+								>
+								Feed
+							</a>
+							<a
+								href="#"
+								data-network-link
+								class={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${resolvedActive === "network" ? "bg-primary/20 text-primary" : "text-slate-300 hover:bg-primary/10 hover:text-primary"}`}
+							>
+								<span class="material-symbols-outlined text-lg"
+									>hub</span
+								>
+								Network
+							</a>
+						</div>
+					</div>
+				</div>
+
+				<!-- Avatar -->
 				<button class="hidden flex-col items-end lg:flex" type="button">
 					<span
 						class="text-xs font-semibold uppercase tracking-widest text-primary"
@@ -253,9 +315,11 @@ const headerBgClass =
 
 <script is:inline>
 	(() => {
-		const roots = document.querySelectorAll("[data-notification-root]");
-
-		roots.forEach((root) => {
+		// Notification panel
+		const notifRoots = document.querySelectorAll(
+			"[data-notification-root]",
+		);
+		notifRoots.forEach((root) => {
 			if (
 				!(root instanceof HTMLElement) ||
 				root.dataset.popupReady === "true"
@@ -287,7 +351,58 @@ const headerBgClass =
 			const onDocumentClick = (event) => {
 				if (!root.contains(event.target)) setOpen(false);
 			};
+			const onDocumentKeydown = (event) => {
+				if (event.key === "Escape") setOpen(false);
+			};
 
+			toggle.addEventListener("click", (event) => {
+				event.stopPropagation();
+				setOpen(!open);
+			});
+
+			document.addEventListener("click", onDocumentClick);
+			document.addEventListener("keydown", onDocumentKeydown);
+			setOpen(false);
+		});
+
+		// My Space dropdown
+		const mySpaceRoots = document.querySelectorAll("[data-my-space-root]");
+		mySpaceRoots.forEach((root) => {
+			if (
+				!(root instanceof HTMLElement) ||
+				root.dataset.popupReady === "true"
+			)
+				return;
+			root.dataset.popupReady = "true";
+
+			const toggle = root.querySelector("[data-my-space-toggle]");
+			const panel = root.querySelector("[data-my-space-panel]");
+			const caret = root.querySelector("[data-my-space-caret]");
+
+			if (
+				!(toggle instanceof HTMLButtonElement) ||
+				!(panel instanceof HTMLElement)
+			)
+				return;
+
+			let open = false;
+
+			const setOpen = (nextOpen) => {
+				open = nextOpen;
+				toggle.setAttribute("aria-expanded", String(open));
+				panel.classList.toggle("pointer-events-none", !open);
+				panel.classList.toggle("opacity-0", !open);
+				panel.classList.toggle("scale-95", !open);
+				panel.classList.toggle("opacity-100", open);
+				panel.classList.toggle("scale-100", open);
+				if (caret instanceof HTMLElement) {
+					caret.textContent = open ? "expand_less" : "expand_more";
+				}
+			};
+
+			const onDocumentClick = (event) => {
+				if (!root.contains(event.target)) setOpen(false);
+			};
 			const onDocumentKeydown = (event) => {
 				if (event.key === "Escape") setOpen(false);
 			};

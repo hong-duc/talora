@@ -37,6 +37,8 @@ const applyProfileToNode = (
             return;
         }
         if (node instanceof HTMLElement) {
+            // avatarUrl is either the wsrv.nl proxy URL (safe) or the local fallback path.
+            // Both are guaranteed not to contain unescaped quotes or parentheses.
             node.style.backgroundImage = `url("${avatarUrl}")`;
         }
     });
@@ -74,19 +76,32 @@ whenReady(() => {
         }
     };
 
-    // Collect all profile link anchors so we can update their href with ?id=
+    // Collect all profile link anchors so we can update their href
     const profileLinkNodes = Array.from(document.querySelectorAll('[data-profile-link]'));
+    const networkLinkNodes = Array.from(document.querySelectorAll('[data-network-link]'));
 
-    /** Set the profile avatar link href to /user?id=<userId> */
+    /** Set the profile avatar link href to /user/<userId> */
     const applyProfileLink = (userId: string) => {
         profileLinkNodes.forEach((node) => {
             if (node instanceof HTMLAnchorElement) {
-                node.href = `/user?id=${encodeURIComponent(userId)}`;
+                node.href = `/user/${encodeURIComponent(userId)}`;
+            }
+        });
+        networkLinkNodes.forEach((node) => {
+            if (node instanceof HTMLAnchorElement) {
+                node.href = `/user/${encodeURIComponent(userId)}/network`;
             }
         });
     };
 
-    const fetchSessionProfile = async () => {
+    /**
+     * Fetch the user's profile from the server and update the store + localStorage.
+     * If `forceRefresh` is false (default) and a locally stored profile already
+     * exists, the fetch still runs in the background and updates storage if the
+     * server returns different data. This keeps the cached profile fresh across
+     * devices and after profile edits.
+     */
+    const fetchSessionProfile = async (forceRefresh = false) => {
         try {
             // Use the client-side Supabase to get the current session.
             // This checks localStorage for a valid (or auto-refreshable) token.
@@ -103,15 +118,16 @@ whenReady(() => {
             applyProfileLink(session.user.id);
 
             // Session is valid. Try the locally stored profile first to avoid
-            // an extra network round-trip on every page load.
+            // a blocking round-trip on every page load. We still fire a background
+            // refresh to pick up changes made on other devices / after profile edits.
             const storedProfile = loadProfile();
-            if (storedProfile) {
+            if (storedProfile && !forceRefresh) {
                 store.dispatch(setProfile(storedProfile));
-                return;
+                // Fall through intentionally — background refresh continues below.
             }
 
-            // No stored profile but session is valid — fetch fresh from server
-            // using the access token so the server can verify it.
+            // Fetch fresh profile from server using the access token so the
+            // server can verify it via RLS.
             const response = await fetch('/api/auth/session', {
                 headers: {
                     Accept: 'application/json',
@@ -120,8 +136,10 @@ whenReady(() => {
             });
 
             if (!response.ok) {
-                store.dispatch(clearProfile());
-                saveProfile(null);
+                if (!storedProfile) {
+                    store.dispatch(clearProfile());
+                    saveProfile(null);
+                }
                 return;
             }
 
@@ -129,7 +147,7 @@ whenReady(() => {
             if (result?.signedIn && result.profile) {
                 store.dispatch(setProfile(result.profile));
                 saveProfile(result.profile);
-            } else {
+            } else if (!storedProfile) {
                 store.dispatch(clearProfile());
                 saveProfile(null);
             }
@@ -148,4 +166,37 @@ whenReady(() => {
     syncProfileFromStore();
     store.subscribe(syncProfileFromStore);
     void fetchSessionProfile();
+
+    /**
+     * Listen for Supabase auth state changes (sign-in, sign-out, token refresh).
+     *
+     * Security note: The access token is written to a JS-readable cookie (not
+     * HttpOnly) so that SSR pages can forward it to the server. This is an
+     * intentional trade-off: the cookie cannot be made HttpOnly from client-side
+     * JS. To harden this, the sign-in server endpoint should set the cookie with
+     * HttpOnly instead, and this client-side cookie write should be removed.
+     *
+     * This listener is placed inside whenReady() so it is co-located with the
+     * rest of the auth/profile logic and avoids any race with fetchSessionProfile.
+     */
+    supabase.auth.onAuthStateChange((event, session) => {
+        if (session) {
+            // Derive max-age from the token's own expiry rather than hardcoding.
+            const maxAge = session.expires_at
+                ? session.expires_at - Math.floor(Date.now() / 1000)
+                : 3600;
+            document.cookie = `sb-access-token=${session.access_token}; path=/; max-age=${maxAge}; SameSite=Lax; secure`;
+
+            // Re-sync the profile whenever the session changes (e.g. after sign-in
+            // or a silent token refresh that might carry updated user metadata).
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                void fetchSessionProfile(true);
+            }
+        } else {
+            // Clear the cookie on sign out
+            document.cookie = `sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+            store.dispatch(clearProfile());
+            saveProfile(null);
+        }
+    });
 });

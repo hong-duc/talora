@@ -1,0 +1,170 @@
+---
+import "../styles/global.css";
+import { createAuthedClient } from "../lib/supabase";
+import { requireAuth } from "../lib/api-auth";
+import Header from "../components/SiteHeader.astro";
+import Footer from "../components/SiteFooter.astro";
+
+export const prerender = false;
+
+const auth = await requireAuth(Astro.request);
+if (auth.error) return Astro.redirect("/signin");
+
+const db = createAuthedClient(auth.token);
+
+// Fetch following IDs first (needed to filter stories)
+const { data: followingData } = await db
+    .from("user_followers")
+    .select("following_id")
+    .eq("follower_id", auth.userId);
+
+const followingIds = followingData?.map((f) => f.following_id) || [];
+
+type FeedStory = {
+    id: string;
+    title: string;
+    tagline: string | null;
+    created_at: string;
+    author_id: string;
+    cover_image_url: string | null;
+};
+
+let stories: FeedStory[] = [];
+let authorsMap: Record<string, string> = {};
+
+if (followingIds.length > 0) {
+    const { data: feedStories } = await db
+        .from("stories")
+        .select("id, title, tagline, created_at, author_id, cover_image_url")
+        .in("author_id", followingIds)
+        .eq("status", "public")
+        .order("created_at", { ascending: false })
+        .limit(30);
+
+    stories = (feedStories as FeedStory[]) || [];
+
+    // Fetch author profiles in parallel after getting stories
+    const uniqueAuthorIds = [...new Set(stories.map((s) => s.author_id))];
+    if (uniqueAuthorIds.length > 0) {
+        const { data: authors } = await db
+            .from("profiles")
+            .select("id, username")
+            .in("id", uniqueAuthorIds);
+
+        authors?.forEach((a) => {
+            if (a.id) authorsMap[a.id] = a.username;
+        });
+    }
+}
+
+const getInitials = (name: string | null | undefined) => {
+    if (!name) return "??";
+    return name
+        .split(" ")
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part: string) => part[0]?.toUpperCase() ?? "")
+        .join("");
+};
+
+const getAuthorName = (story: FeedStory) =>
+    authorsMap[story.author_id] || "Unknown Seeker";
+---
+
+<!doctype html>
+<html class="dark" lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="icon" href="/favicon.ico" />
+        <title>Following Feed | Arcane Ink</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,200..800&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+            rel="stylesheet"
+        />
+    </head>
+    <body
+        class="min-h-screen bg-background-dark font-display text-slate-100 flex flex-col"
+    >
+        <Header />
+        <main class="mx-auto w-full max-w-[1200px] flex-1 px-6 py-12">
+            <div
+                class="mb-2 text-xs tracking-[0.05em] uppercase text-slate-400"
+            >
+                Curated
+            </div>
+            <h1 class="mb-10 text-4xl font-bold text-slate-100 md:text-5xl">
+                Following Feed
+            </h1>
+
+            {
+                stories.length === 0 ? (
+                    <div class="rounded-xl border border-primary/10 bg-slate-800/50 p-16 text-center shadow-xl">
+                        <span class="material-symbols-outlined mb-4 block text-5xl text-primary/40">
+                            menu_book
+                        </span>
+                        <p class="mb-2 text-2xl font-bold text-slate-300">
+                            The pages are blank.
+                        </p>
+                        <p class="text-sm text-slate-500">
+                            Follow other scholars to discover their latest
+                            public works.
+                        </p>
+                    </div>
+                ) : (
+                    <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                        {stories.map((story) => {
+                            const authorName = getAuthorName(story);
+                            const authorInitials = getInitials(authorName);
+                            return (
+                                <a
+                                    href={`/review/${story.id}`}
+                                    class="group overflow-hidden rounded-xl border border-primary/10 bg-slate-800/50 transition-all hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/10"
+                                >
+                                    <div class="relative h-64 overflow-hidden">
+                                        <img
+                                            alt={story.title}
+                                            class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                            loading="lazy"
+                                            src={
+                                                story.cover_image_url ||
+                                                "/hero-library.png"
+                                            }
+                                        />
+                                        <div class="absolute inset-0 bg-linear-to-t from-black/80 to-transparent" />
+                                    </div>
+                                    <div class="p-6">
+                                        <h3 class="mb-2 text-xl font-bold transition-colors group-hover:text-primary">
+                                            {story.title}
+                                        </h3>
+                                        {story.tagline && (
+                                            <p class="line-clamp-2 text-sm leading-relaxed text-slate-400">
+                                                {story.tagline}
+                                            </p>
+                                        )}
+                                        <div class="mt-4 flex items-center gap-2">
+                                            <div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold">
+                                                {authorInitials}
+                                            </div>
+                                            <span class="text-xs text-slate-500">
+                                                {authorName}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </a>
+                            );
+                        })}
+                    </div>
+                )
+            }
+        </main>
+        <Footer />
+    </body>
+</html>

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 80MFuVh3O8GfDbQUS0XNBr0vOl3ryXbYVP4SuEacRBMsF9cEa43YgXaEUqlmFeR
+\restrict okCFe1ARLeIEb0bu2vg78oCpSVrWGPyaNXUvhwUff0Lq0KzXnj8zoKDkOWhANXj
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 18.3 (Homebrew)
@@ -91,6 +91,45 @@ $$;
 
 
 ALTER FUNCTION public.handle_new_user() OWNER TO postgres;
+
+--
+-- Name: handle_user_follow(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.handle_user_follow() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    -- Increase following_count for the person doing the following
+    UPDATE public.profiles
+    SET following_count = following_count + 1
+    WHERE id = NEW.follower_id;
+
+    -- Increase follower_count for the person being followed
+    UPDATE public.profiles
+    SET follower_count = follower_count + 1
+    WHERE id = NEW.following_id;
+
+    RETURN NEW;
+  ELSIF TG_OP = 'DELETE' THEN
+    -- Decrease following_count for the person doing the unfollowing
+    UPDATE public.profiles
+    SET following_count = following_count - 1
+    WHERE id = OLD.follower_id;
+
+    -- Decrease follower_count for the person being unfollowed
+    UPDATE public.profiles
+    SET follower_count = follower_count - 1
+    WHERE id = OLD.following_id;
+
+    RETURN OLD;
+  END IF;
+END;
+$$;
+
+
+ALTER FUNCTION public.handle_user_follow() OWNER TO postgres;
 
 --
 -- Name: increase_tag_usage(); Type: FUNCTION; Schema: public; Owner: postgres
@@ -281,29 +320,13 @@ CREATE TABLE public.profiles (
     username character varying(50),
     avatar_url text,
     bio text,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    follower_count integer DEFAULT 0,
+    following_count integer DEFAULT 0
 );
 
 
 ALTER TABLE public.profiles OWNER TO postgres;
-
---
--- Name: scene_states; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.scene_states (
-    session_id uuid NOT NULL,
-    summary text,
-    current_location text,
-    current_situation text,
-    last_mode text,
-    last_intensity integer,
-    updated_at timestamp without time zone DEFAULT now(),
-    CONSTRAINT scene_states_last_mode_check CHECK ((last_mode = ANY (ARRAY['character'::text, 'narrator'::text, 'hybrid'::text])))
-);
-
-
-ALTER TABLE public.scene_states OWNER TO postgres;
 
 --
 -- Name: stories; Type: TABLE; Schema: public; Owner: postgres
@@ -427,19 +450,6 @@ CREATE TABLE public.story_tags (
 ALTER TABLE public.story_tags OWNER TO postgres;
 
 --
--- Name: tag_aliases; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.tag_aliases (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    alias text NOT NULL,
-    tag_id uuid NOT NULL
-);
-
-
-ALTER TABLE public.tag_aliases OWNER TO postgres;
-
---
 -- Name: tag_categories; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -479,6 +489,20 @@ CREATE TABLE public.tags (
 ALTER TABLE public.tags OWNER TO postgres;
 
 --
+-- Name: user_followers; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.user_followers (
+    follower_id uuid NOT NULL,
+    following_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT user_followers_prevent_self_follow CHECK ((follower_id <> following_id))
+);
+
+
+ALTER TABLE public.user_followers OWNER TO postgres;
+
+--
 -- Name: ai_configs ai_configs_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -516,22 +540,6 @@ ALTER TABLE ONLY public.messages
 
 ALTER TABLE ONLY public.profiles
     ADD CONSTRAINT profiles_pkey PRIMARY KEY (id);
-
-
---
--- Name: profiles profiles_username_key; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.profiles
-    ADD CONSTRAINT profiles_username_key UNIQUE (username);
-
-
---
--- Name: scene_states scene_states_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.scene_states
-    ADD CONSTRAINT scene_states_pkey PRIMARY KEY (session_id);
 
 
 --
@@ -583,22 +591,6 @@ ALTER TABLE ONLY public.story_tags
 
 
 --
--- Name: tag_aliases tag_aliases_alias_key; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.tag_aliases
-    ADD CONSTRAINT tag_aliases_alias_key UNIQUE (alias);
-
-
---
--- Name: tag_aliases tag_aliases_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.tag_aliases
-    ADD CONSTRAINT tag_aliases_pkey PRIMARY KEY (id);
-
-
---
 -- Name: tag_categories tag_categories_name_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -636,6 +628,14 @@ ALTER TABLE ONLY public.tags
 
 ALTER TABLE ONLY public.tags
     ADD CONSTRAINT tags_slug_key UNIQUE (slug);
+
+
+--
+-- Name: user_followers user_followers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_followers
+    ADD CONSTRAINT user_followers_pkey PRIMARY KEY (follower_id, following_id);
 
 
 --
@@ -692,6 +692,27 @@ CREATE INDEX idx_story_tags_tag ON public.story_tags USING btree (tag_id);
 --
 
 CREATE INDEX idx_tags_slug ON public.tags USING btree (slug);
+
+
+--
+-- Name: idx_user_followers_follower; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_user_followers_follower ON public.user_followers USING btree (follower_id);
+
+
+--
+-- Name: idx_user_followers_following; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_user_followers_following ON public.user_followers USING btree (following_id);
+
+
+--
+-- Name: user_followers on_user_follow; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER on_user_follow AFTER INSERT OR DELETE ON public.user_followers FOR EACH ROW EXECUTE FUNCTION public.handle_user_follow();
 
 
 --
@@ -778,14 +799,6 @@ ALTER TABLE ONLY public.profiles
 
 
 --
--- Name: scene_states scene_states_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.scene_states
-    ADD CONSTRAINT scene_states_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.story_sessions(id) ON DELETE CASCADE;
-
-
---
 -- Name: stories stories_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -799,6 +812,14 @@ ALTER TABLE ONLY public.stories
 
 ALTER TABLE ONLY public.story_characters
     ADD CONSTRAINT story_characters_character_id_fkey FOREIGN KEY (character_id) REFERENCES public.characters(id) ON DELETE CASCADE;
+
+
+--
+-- Name: story_ratings story_ratings_story_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.story_ratings
+    ADD CONSTRAINT story_ratings_story_id_fkey FOREIGN KEY (story_id) REFERENCES public.stories(id) ON DELETE CASCADE;
 
 
 --
@@ -858,14 +879,6 @@ ALTER TABLE ONLY public.story_tags
 
 
 --
--- Name: tag_aliases tag_aliases_tag_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.tag_aliases
-    ADD CONSTRAINT tag_aliases_tag_id_fkey FOREIGN KEY (tag_id) REFERENCES public.tags(id) ON DELETE CASCADE;
-
-
---
 -- Name: tags tags_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -879,6 +892,22 @@ ALTER TABLE ONLY public.tags
 
 ALTER TABLE ONLY public.tags
     ADD CONSTRAINT tags_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
+-- Name: user_followers user_followers_follower_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_followers
+    ADD CONSTRAINT user_followers_follower_id_fkey FOREIGN KEY (follower_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: user_followers user_followers_following_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_followers
+    ADD CONSTRAINT user_followers_following_id_fkey FOREIGN KEY (following_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
 
 
 --
@@ -1064,13 +1093,6 @@ CREATE POLICY "Enable read access for all users" ON public.story_tags FOR SELECT
 
 
 --
--- Name: tag_aliases Enable read access for all users; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY "Enable read access for all users" ON public.tag_aliases FOR SELECT USING (true);
-
-
---
 -- Name: tag_categories Enable read access for all users; Type: POLICY; Schema: public; Owner: postgres
 --
 
@@ -1082,6 +1104,13 @@ CREATE POLICY "Enable read access for all users" ON public.tag_categories FOR SE
 --
 
 CREATE POLICY "Enable read access for all users" ON public.tags FOR SELECT USING (true);
+
+
+--
+-- Name: user_followers Enable read access for all users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable read access for all users" ON public.user_followers FOR SELECT USING (true);
 
 
 --
@@ -1110,6 +1139,20 @@ CREATE POLICY "Enable update for users based on user_id" ON public.story_session
 --
 
 CREATE POLICY "Enable upfate for authenticated users only" ON public.story_ratings FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+
+
+--
+-- Name: user_followers Users can follow others; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Users can follow others" ON public.user_followers FOR INSERT WITH CHECK ((auth.uid() = follower_id));
+
+
+--
+-- Name: user_followers Users can unfollow others; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Users can unfollow others" ON public.user_followers FOR DELETE USING ((auth.uid() = follower_id));
 
 
 --
@@ -1185,12 +1228,6 @@ ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: scene_states; Type: ROW SECURITY; Schema: public; Owner: postgres
---
-
-ALTER TABLE public.scene_states ENABLE ROW LEVEL SECURITY;
-
---
 -- Name: stories; Type: ROW SECURITY; Schema: public; Owner: postgres
 --
 
@@ -1227,12 +1264,6 @@ ALTER TABLE public.story_starts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.story_tags ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: tag_aliases; Type: ROW SECURITY; Schema: public; Owner: postgres
---
-
-ALTER TABLE public.tag_aliases ENABLE ROW LEVEL SECURITY;
-
---
 -- Name: tag_categories; Type: ROW SECURITY; Schema: public; Owner: postgres
 --
 
@@ -1243,6 +1274,12 @@ ALTER TABLE public.tag_categories ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.tags ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: user_followers; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.user_followers ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: SCHEMA public; Type: ACL; Schema: -; Owner: pg_database_owner
@@ -1270,6 +1307,15 @@ GRANT ALL ON FUNCTION public.decrease_tag_usage() TO service_role;
 GRANT ALL ON FUNCTION public.handle_new_user() TO anon;
 GRANT ALL ON FUNCTION public.handle_new_user() TO authenticated;
 GRANT ALL ON FUNCTION public.handle_new_user() TO service_role;
+
+
+--
+-- Name: FUNCTION handle_user_follow(); Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON FUNCTION public.handle_user_follow() TO anon;
+GRANT ALL ON FUNCTION public.handle_user_follow() TO authenticated;
+GRANT ALL ON FUNCTION public.handle_user_follow() TO service_role;
 
 
 --
@@ -1363,15 +1409,6 @@ GRANT ALL ON TABLE public.profiles TO service_role;
 
 
 --
--- Name: TABLE scene_states; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.scene_states TO anon;
-GRANT ALL ON TABLE public.scene_states TO authenticated;
-GRANT ALL ON TABLE public.scene_states TO service_role;
-
-
---
 -- Name: TABLE stories; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -1426,15 +1463,6 @@ GRANT ALL ON TABLE public.story_tags TO service_role;
 
 
 --
--- Name: TABLE tag_aliases; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT ALL ON TABLE public.tag_aliases TO anon;
-GRANT ALL ON TABLE public.tag_aliases TO authenticated;
-GRANT ALL ON TABLE public.tag_aliases TO service_role;
-
-
---
 -- Name: TABLE tag_categories; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -1450,6 +1478,15 @@ GRANT ALL ON TABLE public.tag_categories TO service_role;
 GRANT ALL ON TABLE public.tags TO anon;
 GRANT ALL ON TABLE public.tags TO authenticated;
 GRANT ALL ON TABLE public.tags TO service_role;
+
+
+--
+-- Name: TABLE user_followers; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.user_followers TO anon;
+GRANT ALL ON TABLE public.user_followers TO authenticated;
+GRANT ALL ON TABLE public.user_followers TO service_role;
 
 
 --
@@ -1516,5 +1553,5 @@ ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON T
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 80MFuVh3O8GfDbQUS0XNBr0vOl3ryXbYVP4SuEacRBMsF9cEa43YgXaEUqlmFeR
+\unrestrict okCFe1ARLeIEb0bu2vg78oCpSVrWGPyaNXUvhwUff0Lq0KzXnj8zoKDkOWhANXj
 

@@ -1,0 +1,148 @@
+---
+import "../../../styles/global.css";
+import { supabase } from "@lib/supabase";
+import Header from "@components/SiteHeader.astro";
+import Footer from "@components/SiteFooter.astro";
+
+export const prerender = false;
+
+const { id: targetUserId } = Astro.params;
+if (!targetUserId) return Astro.redirect("/404");
+
+// Fetch target user's basic profile
+const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, username")
+    .eq("id", targetUserId)
+    .single();
+
+if (!profile) return Astro.redirect("/404");
+
+// Fetch followers and following in parallel
+const [{ data: followersData }, { data: followingData }] = await Promise.all([
+    supabase
+        .from("user_followers")
+        .select("follower_id")
+        .eq("following_id", targetUserId),
+    supabase
+        .from("user_followers")
+        .select("following_id")
+        .eq("follower_id", targetUserId),
+]);
+
+const followerIds = followersData?.map((f) => f.follower_id) || [];
+const followingIds = followingData?.map((f) => f.following_id) || [];
+
+// Fetch profiles for both lists
+const allIds = [...new Set([...followerIds, ...followingIds])];
+let usersMap: Record<string, any> = {};
+
+if (allIds.length > 0) {
+    const { data: users } = await supabase
+        .from("profiles")
+        .select("id, username, follower_count")
+        .in("id", allIds);
+
+    users?.forEach((u) => {
+        if (u.id) usersMap[u.id] = u;
+    });
+}
+
+const followers = followerIds.map((id) => usersMap[id]).filter(Boolean);
+const following = followingIds.map((id) => usersMap[id]).filter(Boolean);
+
+// Parse ?tab=followers or ?tab=following from URL
+const currentTab =
+    Astro.url.searchParams.get("tab") === "following"
+        ? "following"
+        : "followers";
+const displayUsers = currentTab === "followers" ? followers : following;
+
+const pageTitle = `${profile.username}'s Network | Arcane Ink`;
+---
+
+<!doctype html>
+<html class="dark" lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="icon" href="/favicon.ico" />
+        <title>{pageTitle}</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,200..800&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+            rel="stylesheet"
+        />
+    </head>
+
+    <body class="bg-[#190e24] text-[#efdcfb] min-h-screen flex flex-col">
+        <Header />
+        <main class="grow py-20 px-8 flex justify-center">
+            <div class="w-full max-w-3xl">
+                <div class="mb-12">
+                    <a
+                        href={`/user/${targetUserId}`}
+                        class="font-sans text-xs tracking-[0.05em] uppercase text-[#958f98] hover:text-[#e9c349] transition-colors mb-6 inline-flex items-center gap-2"
+                    >
+                        <span>← Back to {profile.username}'s Desk</span>
+                    </a>
+                    <h1
+                        class="font-serif text-5xl tracking-[-0.02em] text-[#e9c349]"
+                    >
+                        Registry
+                    </h1>
+                </div>
+
+                <!-- Tabs -->
+                <div class="flex gap-8 border-b border-[#3c3048] mb-8 pb-4">
+                    <a
+                        href="?tab=followers"
+                        class={`font-sans text-sm font-medium tracking-[0.05em] uppercase transition-colors ${currentTab === "followers" ? "text-[#e9c349]" : "text-[#958f98] hover:text-[#efdcfb]"}`}
+                    >
+                        Followers ({followers.length})
+                    </a>
+                    <a
+                        href="?tab=following"
+                        class={`font-sans text-sm font-medium tracking-[0.05em] uppercase transition-colors ${currentTab === "following" ? "text-[#e9c349]" : "text-[#958f98] hover:text-[#efdcfb]"}`}
+                    >
+                        Following ({following.length})
+                    </a>
+                </div>
+
+                <!-- List -->
+                {
+                    displayUsers.length === 0 ? (
+                        <div class="bg-[#261b31] p-12 rounded-xl text-center shadow-xl">
+                            <p class="font-serif text-2xl text-[#958f98]">
+                                No scholars found in this registry.
+                            </p>
+                        </div>
+                    ) : (
+                        <div class="space-y-4">
+                            {displayUsers.map((user) => (
+                                <a
+                                    href={`/user/${user.id}`}
+                                    class="bg-[#261b31] p-6 rounded-xl flex items-center justify-between transition-all duration-300 hover:bg-[#31253c] group"
+                                >
+                                    <h3 class="font-serif text-2xl text-[#efdcfb] group-hover:text-[#e9c349] transition-colors">
+                                        {user.username}
+                                    </h3>
+                                    <span class="font-sans text-xs tracking-[0.05em] text-[#958f98] uppercase">
+                                        {user.follower_count || 0} Followers
+                                    </span>
+                                </a>
+                            ))}
+                        </div>
+                    )
+                }
+            </div>
+        </main>
+        <Footer />
+    </body>
+</html>
