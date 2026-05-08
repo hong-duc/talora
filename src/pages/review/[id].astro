@@ -25,6 +25,8 @@ const [
 	tagLinksResult,
 	storyStartsResult,
 	ratingsResult,
+	commentsResult,
+	commentCountResult,
 ] = await Promise.allSettled([
 	// 1. Story row
 	supabase.from("stories").select("*").eq("id", id).maybeSingle(),
@@ -40,6 +42,22 @@ const [
 		.order("sort_order", { ascending: true }),
 	// 4. Ratings aggregate
 	supabase.from("story_ratings").select("rating").eq("story_id", id),
+	// 5. First page of comments (10 newest, joined with author profile)
+	supabase
+		.from("comments")
+		.select(
+			"id, content, created_at, user_id, parent_id, profiles(username, avatar_url)",
+		)
+		.eq("story_id", id)
+		.is("parent_id", null)
+		.order("created_at", { ascending: false })
+		.limit(10),
+	// 6. Total comment count
+	supabase
+		.from("comments")
+		.select("id", { count: "exact", head: true })
+		.eq("story_id", id)
+		.is("parent_id", null),
 ]);
 
 // ── Extract story row ───────────────────────────────────────────────────────
@@ -164,6 +182,20 @@ const defaultToneClass = "bg-primary/20 text-primary border-primary/40";
 function sliderPercent(value: number): number {
 	return ((value - 1) / 4) * 100;
 }
+
+// ── Extract comments ────────────────────────────────────────────────────────
+const initialComments =
+	commentsResult.status === "fulfilled" && commentsResult.value.data
+		? (commentsResult.value.data as any[])
+		: [];
+const initialTotal =
+	commentCountResult.status === "fulfilled"
+		? ((commentCountResult.value as any).count ?? 0)
+		: 0;
+
+// ── Supabase public credentials (passed to client for auth token retrieval) ──
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL as string;
+const supabaseKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY as string;
 
 const reviewErrorMessage = storyError;
 ---
@@ -639,7 +671,12 @@ const reviewErrorMessage = storyError;
 
 				<!-- ── 8. Comments / Thoughts ──────────────────────────────────── -->
 				<section class="mb-16">
-					<ReviewThoughtsThread client:load />
+					<ReviewThoughtsThread
+						client:load
+						storyId={storyData?.id ?? ""}
+						initialComments={initialComments}
+						initialTotal={initialTotal}
+					/>
 				</section>
 			</main>
 
@@ -647,6 +684,12 @@ const reviewErrorMessage = storyError;
 		</div>
 
 		<ArcaneToast id="story-toast" variant="information" />
+
+		<!-- Inject Supabase credentials for the client-side comment submission -->
+		<script is:inline define:vars={{ supabaseUrl, supabaseKey }}>
+			window.__supabaseUrl = supabaseUrl;
+			window.__supabaseKey = supabaseKey;
+		</script>
 
 		<script is:inline define:vars={{ reviewErrorMessage }}>
 			// ─── Show error toast if story failed to load ───
