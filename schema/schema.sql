@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict okCFe1ARLeIEb0bu2vg78oCpSVrWGPyaNXUvhwUff0Lq0KzXnj8zoKDkOWhANXj
+\restrict dPfSfd5yJV4QaydtEYOHrNVaHyeadyzGwQ7l2fqf5Ic9w1LXo0Tgc8vFFyzQbvt
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 18.3 (Homebrew)
@@ -772,6 +772,14 @@ ALTER TABLE ONLY public.characters
 
 ALTER TABLE ONLY public.comments
     ADD CONSTRAINT comments_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.comments(id) ON DELETE CASCADE;
+
+
+--
+-- Name: comments comments_story_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.comments
+    ADD CONSTRAINT comments_story_id_fkey FOREIGN KEY (story_id) REFERENCES public.stories(id) ON DELETE CASCADE;
 
 
 --
@@ -1553,5 +1561,5 @@ ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON T
 -- PostgreSQL database dump complete
 --
 
-\unrestrict okCFe1ARLeIEb0bu2vg78oCpSVrWGPyaNXUvhwUff0Lq0KzXnj8zoKDkOWhANXj
+\unrestrict dPfSfd5yJV4QaydtEYOHrNVaHyeadyzGwQ7l2fqf5Ic9w1LXo0Tgc8vFFyzQbvt
 
