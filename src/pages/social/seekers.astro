@@ -7,15 +7,23 @@
  *   - username search (client-side filter, no server round-trips)
  *   - avatar grid rendering
  *   - pagination
+ *   - follow/unfollow buttons
  */
 import "../../styles/global.css";
 import SiteHeader from "../../components/SiteHeader.astro";
 import SiteFooter from "../../components/SiteFooter.astro";
 import { supabase } from "../../lib/supabase";
+import { createAuthedClient } from "../../lib/supabase";
+import { requireAuth } from "../../lib/api-auth";
 
 export const prerender = false;
 
-// ── Server-side: load all public profiles ────────────────────────────────────
+// Auth (optional)
+const auth = await requireAuth(Astro.request);
+const isLoggedIn = !auth.error;
+const currentUserId: string | null = isLoggedIn ? auth.userId : null;
+
+// Load all public profiles
 type ProfileRow = {
     id: string;
     username: string | null;
@@ -32,6 +40,24 @@ const { data, error } = await supabase
 if (!error && data) {
     profiles = data as ProfileRow[];
 }
+
+// If logged in, fetch which users the current user already follows
+let followingIds: string[] = [];
+
+if (isLoggedIn && currentUserId) {
+    const db = createAuthedClient(auth.token!);
+    const { data: follows } = await db
+        .from("user_followers")
+        .select("following_id")
+        .eq("follower_id", currentUserId);
+
+    followingIds = (follows || []).map((f: any) => f.following_id);
+}
+
+const profilesJson = JSON.stringify(profiles);
+const followingIdsJson = JSON.stringify(followingIds);
+const isLoggedInJson = JSON.stringify(isLoggedIn);
+const currentUserIdJson = JSON.stringify(currentUserId);
 ---
 
 <html class="dark" lang="en">
@@ -56,37 +82,41 @@ if (!error && data) {
             class="relative flex min-h-screen w-full flex-col overflow-x-hidden"
         >
             <div class="layout-container flex h-full grow flex-col">
-                <!-- Shared site header (has its own search bar for global story search) -->
                 <SiteHeader activeSection="seekers" />
 
                 <main
                     class="mx-auto w-full max-w-6xl flex-1 px-6 py-10 lg:px-20"
                 >
-                    <!-- ── Page heading ───────────────────────────────────── -->
+                    <!-- Page heading -->
                     <div class="mb-8">
                         <h1
                             class="font-display text-4xl font-black tracking-tight text-slate-100"
                         >
-                            The Order of Seekers
+                            The Order of <span class="gold-shimmer"
+                                >Seekers</span
+                            >
                         </h1>
+                        <div
+                            class="mt-1 h-1 w-24 rounded-full bg-linear-to-r from-primary via-accent-gold to-primary"
+                        >
+                        </div>
                         <p class="mt-2 text-slate-400">
                             Discover fellow readers and authors wandering the
                             library's halls.
                         </p>
                     </div>
 
-                    <!-- ── Username search bar (page-specific, not the header search) ── -->
+                    <!-- Username search bar -->
                     <div class="group relative mb-10">
-                        <!-- Animated glow ring on focus/hover -->
                         <div
-                            class="absolute -inset-1 rounded-xl bg-linear-to-r from-primary to-purple-400 opacity-20 blur transition duration-1000 group-focus-within:opacity-50 group-hover:opacity-30 group-hover:duration-200"
+                            class="absolute -inset-1 rounded-xl bg-linear-to-r from-primary via-accent-gold to-purple-400 opacity-20 blur transition duration-1000 group-focus-within:opacity-50 group-hover:opacity-30 group-hover:duration-200"
                         >
                         </div>
                         <label
-                            class="relative flex h-14 w-full items-center overflow-hidden rounded-xl border border-primary/30 bg-slate-900"
+                            class="glass-card relative flex h-14 w-full items-center overflow-hidden rounded-xl border border-primary/30"
                         >
                             <span
-                                class="material-symbols-outlined px-4 text-xl text-primary"
+                                class="material-symbols-outlined px-4 text-xl text-accent-gold"
                                 >person_search</span
                             >
                             <input
@@ -99,7 +129,7 @@ if (!error && data) {
                         </label>
                     </div>
 
-                    <!-- ── Results count ──────────────────────────────────── -->
+                    <!-- Results count -->
                     <div class="mb-6 flex items-center justify-between gap-4">
                         <p class="text-sm text-slate-400">
                             Showing <span
@@ -107,17 +137,15 @@ if (!error && data) {
                                 class="font-bold text-primary">0</span
                             > seekers
                         </p>
-                        <!-- Page indicator -->
                         <p class="text-sm text-slate-500" id="page-indicator">
                         </p>
                     </div>
 
-                    <!-- ── Avatar grid (populated by JS) ─────────────────── -->
+                    <!-- Avatar grid (populated by JS) -->
                     <div
                         id="seekers-grid"
                         class="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
                     >
-                        <!-- Skeleton placeholders shown while JS initialises -->
                         {
                             Array.from({ length: 12 }).map(() => (
                                 <div class="animate-pulse flex flex-col items-center gap-3">
@@ -128,7 +156,7 @@ if (!error && data) {
                         }
                     </div>
 
-                    <!-- ── Empty state (hidden by default) ───────────────── -->
+                    <!-- Empty state -->
                     <div
                         id="empty-state"
                         class="hidden flex-col items-center gap-4 py-24 text-center"
@@ -143,7 +171,7 @@ if (!error && data) {
                         </p>
                     </div>
 
-                    <!-- ── Pagination controls ────────────────────────────── -->
+                    <!-- Pagination -->
                     <div
                         id="pagination"
                         class="mt-10 flex items-center justify-center gap-2 flex-wrap"
@@ -155,18 +183,27 @@ if (!error && data) {
             </div>
         </div>
 
-        <!-- ── Client-side: search + pagination + render ─────────────────────── -->
-        <script define:vars={{ profiles }}>
+        <!-- Client-side: search + pagination + render + follow -->
+        <script
+            define:vars={{
+                profilesJson,
+                followingIdsJson,
+                isLoggedInJson,
+                currentUserIdJson,
+            }}
+        >
             (function () {
-                // ── Constants ────────────────────────────────────────────────
-                const PER_PAGE = 24; // users shown per page
+                const PER_PAGE = 24;
                 const DEFAULT_AVATAR = "/default_user_profile.png";
+                const profiles = JSON.parse(profilesJson);
+                const followingIds = new Set(JSON.parse(followingIdsJson));
+                const isLoggedIn = JSON.parse(isLoggedInJson);
+                const currentUserId = JSON.parse(currentUserIdJson);
 
-                // ── State ────────────────────────────────────────────────────
+                let followingSet = new Set(followingIds);
                 let currentQuery = "";
                 let currentPage = 1;
 
-                // ── DOM refs ─────────────────────────────────────────────────
                 const grid = document.getElementById("seekers-grid");
                 const paginationEl = document.getElementById("pagination");
                 const searchInput = document.getElementById("seeker-search");
@@ -174,62 +211,101 @@ if (!error && data) {
                 const pageIndicator = document.getElementById("page-indicator");
                 const emptyState = document.getElementById("empty-state");
 
-                // ── Filter users by username query (case-insensitive) ────────
-                function filterUsers(query) {
-                    if (!query.trim()) return profiles;
-                    const q = query.trim().toLowerCase();
-                    return profiles.filter((u) =>
-                        (u.username || "").toLowerCase().includes(q),
-                    );
+                // Helper: get cookie
+                function getCookie(name) {
+                    var cookies = document.cookie.split("; ");
+                    for (var i = 0; i < cookies.length; i++) {
+                        var idx = cookies[i].indexOf("=");
+                        if (idx > -1) {
+                            var key = cookies[i].slice(0, idx);
+                            var val = cookies[i].slice(idx + 1);
+                            if (key === name) return val;
+                        }
+                    }
+                    return null;
                 }
 
-                // ── Slice list for the current page ─────────────────────────
+                // Escape HTML
+                function escapeHtml(str) {
+                    return str
+                        .replace(/&/g, "&")
+                        .replace(/</g, "<")
+                        .replace(/>/g, ">")
+                        .replace(/"/g, "&#34;");
+                }
+
+                // Filter
+                function filterUsers(query) {
+                    if (!query.trim()) return profiles;
+                    var q = query.trim().toLowerCase();
+                    return profiles.filter(function (u) {
+                        return (
+                            (u.username || "").toLowerCase().indexOf(q) !== -1
+                        );
+                    });
+                }
+
+                // Paginate
                 function paginate(list, page) {
-                    const start = (page - 1) * PER_PAGE;
+                    var start = (page - 1) * PER_PAGE;
                     return list.slice(start, start + PER_PAGE);
                 }
 
-                // ── Build a single avatar card HTML string ───────────────────
+                // Build a single seeker card
                 function buildCard(user) {
-                    const name = user.username || "Seeker";
-                    const avatar = user.avatar_url || DEFAULT_AVATAR;
-                    // Escape values to prevent XSS
-                    const safeId = encodeURIComponent(user.id);
-                    const safeName = name
-                        .replace(/&/g, "&amp;")
-                        .replace(/</g, "&lt;")
-                        .replace(/>/g, "&gt;")
-                        .replace(/"/g, "&quot;");
-                    const safeAvatar = avatar
-                        .replace(/"/g, "&quot;")
+                    var name = user.username || "Seeker";
+                    var avatar = user.avatar_url || DEFAULT_AVATAR;
+                    var safeId = encodeURIComponent(user.id);
+                    var safeName = escapeHtml(name);
+                    var safeAvatarUrl = avatar
+                        .replace(/"/g, "&#34;")
                         .replace(/'/g, "&#39;");
 
-                    return `
-						<a
-							href="/user/${safeId}"
-							class="seeker-card group flex flex-col items-center gap-3 rounded-xl p-4 transition-all duration-200 hover:bg-primary/10"
-							title="${safeName}"
-						>
-							<!-- Circular avatar -->
-							<div
-								class="size-24 shrink-0 rounded-full border-2 border-primary/30 bg-cover bg-center bg-primary/10 transition-all duration-200 group-hover:border-primary group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-primary/20"
-								style="background-image: url('${safeAvatar}')"
-								aria-hidden="true"
-							></div>
-							<!-- Username label -->
-							<span class="max-w-full truncate text-center text-sm font-medium text-slate-200 group-hover:text-primary">
-								${safeName}
-							</span>
-						</a>
-					`;
+                    var isSelf = user.id === currentUserId;
+                    var isFollowing = followingSet.has(user.id);
+
+                    var followBtn = "";
+                    if (isLoggedIn && !isSelf) {
+                        var followClass = isFollowing
+                            ? "bg-accent-gold/20 text-accent-gold border border-accent-gold/40 hover:bg-accent-gold/30"
+                            : "bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30";
+                        var followText = isFollowing ? "Following" : "Follow";
+                        followBtn =
+                            '<button class="follow-btn mt-2 rounded-full px-3 py-1 text-xs font-medium transition-all ' +
+                            followClass +
+                            '" data-user-id="' +
+                            safeId +
+                            '" data-following="' +
+                            (isFollowing ? "1" : "0") +
+                            '">' +
+                            followText +
+                            "</button>";
+                    }
+
+                    return (
+                        '<div class="seeker-card group flex flex-col items-center gap-2 rounded-xl p-4 transition-all duration-200 hover:bg-primary/10">' +
+                        '<a href="/user/' +
+                        safeId +
+                        '" class="flex flex-col items-center gap-2" title="' +
+                        safeName +
+                        '">' +
+                        '<div class="size-24 shrink-0 rounded-full border-2 border-primary/30 bg-cover bg-center bg-primary/10 transition-all duration-200 group-hover:border-accent-gold group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-accent-gold/20" style="background-image: url(\'' +
+                        safeAvatarUrl +
+                        '\')" aria-hidden="true"></div>' +
+                        '<span class="max-w-full truncate text-center text-sm font-medium text-slate-200 group-hover:text-accent-gold">' +
+                        safeName +
+                        "</span>" +
+                        "</a>" +
+                        followBtn +
+                        "</div>"
+                    );
                 }
 
-                // ── Render the grid for current filter + page state ─────────
+                // Render grid
                 function renderGrid(filtered) {
-                    const page = paginate(filtered, currentPage);
+                    var page = paginate(filtered, currentPage);
 
                     if (filtered.length === 0) {
-                        // Show empty state, hide grid
                         grid.innerHTML = "";
                         emptyState.classList.remove("hidden");
                         emptyState.classList.add("flex");
@@ -237,51 +313,118 @@ if (!error && data) {
                         emptyState.classList.add("hidden");
                         emptyState.classList.remove("flex");
                         grid.innerHTML = page.map(buildCard).join("");
+
+                        // Wire follow buttons
+                        grid.querySelectorAll(".follow-btn").forEach(
+                            function (btn) {
+                                btn.addEventListener("click", function (e) {
+                                    e.preventDefault();
+                                    handleFollow(btn);
+                                });
+                            },
+                        );
                     }
 
-                    // Update result count label
                     resultCount.textContent = String(filtered.length);
 
-                    // Update page indicator
-                    const totalPages = Math.ceil(filtered.length / PER_PAGE);
+                    var totalPages = Math.ceil(filtered.length / PER_PAGE);
                     if (totalPages > 1) {
-                        pageIndicator.textContent = `Page ${currentPage} of ${totalPages}`;
+                        pageIndicator.textContent =
+                            "Page " + currentPage + " of " + totalPages;
                     } else {
                         pageIndicator.textContent = "";
                     }
                 }
 
-                // ── Build pagination button HTML ─────────────────────────────
-                function buildPageBtn(label, targetPage, isActive, isDisabled) {
-                    const baseClass =
-                        "flex h-9 min-w-[36px] items-center justify-center rounded-lg border px-3 text-sm font-medium transition-colors";
-                    const activeClass = "border-primary bg-primary text-white";
-                    const inactiveClass =
-                        "border-primary/20 bg-primary/5 text-slate-300 hover:bg-primary/20 hover:border-primary/50";
-                    const disabledClass =
-                        "border-primary/10 bg-transparent text-slate-600 cursor-not-allowed";
+                // Follow/unfollow
+                async function handleFollow(btn) {
+                    if (!isLoggedIn) {
+                        window.location.href = "/signin";
+                        return;
+                    }
 
-                    const cls = isDisabled
-                        ? `${baseClass} ${disabledClass}`
-                        : isActive
-                          ? `${baseClass} ${activeClass}`
-                          : `${baseClass} ${inactiveClass}`;
+                    var userId = btn.getAttribute("data-user-id");
+                    var isFollowing =
+                        btn.getAttribute("data-following") === "1";
+                    var token = getCookie("sb-access-token");
 
-                    return `<button class="${cls}" data-page="${targetPage}" ${isDisabled ? "disabled" : ""}>${label}</button>`;
+                    btn.setAttribute("disabled", "true");
+                    btn.textContent = isFollowing
+                        ? "Unfollowing..."
+                        : "Following...";
+
+                    try {
+                        var res = await fetch(
+                            "/api/user/" + userId + "/follow",
+                            {
+                                method: isFollowing ? "DELETE" : "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    Authorization: "Bearer " + token,
+                                },
+                            },
+                        );
+                        var data = await res.json();
+
+                        if (res.ok) {
+                            if (isFollowing) {
+                                followingSet.delete(userId);
+                                btn.setAttribute("data-following", "0");
+                                btn.textContent = "Follow";
+                                btn.className =
+                                    "follow-btn mt-2 rounded-full px-3 py-1 text-xs font-medium transition-all bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30";
+                            } else {
+                                followingSet.add(userId);
+                                btn.setAttribute("data-following", "1");
+                                btn.textContent = "Following";
+                                btn.className =
+                                    "follow-btn mt-2 rounded-full px-3 py-1 text-xs font-medium transition-all bg-accent-gold/20 text-accent-gold border border-accent-gold/40 hover:bg-accent-gold/30";
+                            }
+                        }
+                    } catch (err) {
+                        console.error("Follow error:", err);
+                    } finally {
+                        btn.removeAttribute("disabled");
+                    }
                 }
 
-                // ── Render pagination controls ───────────────────────────────
-                function renderPagination(filtered) {
-                    const totalPages = Math.ceil(filtered.length / PER_PAGE);
+                // Pagination button builder
+                function buildPageBtn(label, targetPage, isActive, isDisabled) {
+                    var baseClass =
+                        "flex h-9 min-w-[36px] items-center justify-center rounded-lg border px-3 text-sm font-medium transition-colors";
+                    var activeClass = "border-primary bg-primary text-white";
+                    var inactiveClass =
+                        "border-primary/20 bg-primary/5 text-slate-300 hover:bg-primary/20 hover:border-primary/50";
+                    var disabledClass =
+                        "border-primary/10 bg-transparent text-slate-600 cursor-not-allowed";
 
+                    var cls = isDisabled
+                        ? baseClass + " " + disabledClass
+                        : isActive
+                          ? baseClass + " " + activeClass
+                          : baseClass + " " + inactiveClass;
+
+                    return (
+                        '<button class="' +
+                        cls +
+                        '" data-page="' +
+                        targetPage +
+                        '" ' +
+                        (isDisabled ? "disabled" : "") +
+                        ">" +
+                        label +
+                        "</button>"
+                    );
+                }
+
+                function renderPagination(filtered) {
+                    var totalPages = Math.ceil(filtered.length / PER_PAGE);
                     if (totalPages <= 1) {
                         paginationEl.innerHTML = "";
                         return;
                     }
 
-                    let html = "";
-
-                    // Prev button
+                    var html = "";
                     html += buildPageBtn(
                         '<span class="material-symbols-outlined text-base leading-none">chevron_left</span>',
                         currentPage - 1,
@@ -289,11 +432,12 @@ if (!error && data) {
                         currentPage === 1,
                     );
 
-                    // Page number buttons (show at most 7 around current page)
-                    const range = buildPageRange(currentPage, totalPages);
-                    for (const item of range) {
-                        if (item === "…") {
-                            html += `<span class="flex h-9 w-9 items-center justify-center text-slate-500">…</span>`;
+                    var range = buildPageRange(currentPage, totalPages);
+                    for (var i = 0; i < range.length; i++) {
+                        var item = range[i];
+                        if (item === "...") {
+                            html +=
+                                '<span class="flex h-9 w-9 items-center justify-center text-slate-500">...</span>';
                         } else {
                             html += buildPageBtn(
                                 String(item),
@@ -304,7 +448,6 @@ if (!error && data) {
                         }
                     }
 
-                    // Next button
                     html += buildPageBtn(
                         '<span class="material-symbols-outlined text-base leading-none">chevron_right</span>',
                         currentPage + 1,
@@ -314,12 +457,14 @@ if (!error && data) {
 
                     paginationEl.innerHTML = html;
 
-                    // Attach click events to each page button
                     paginationEl
                         .querySelectorAll("button[data-page]")
-                        .forEach((btn) => {
-                            btn.addEventListener("click", () => {
-                                const target = parseInt(btn.dataset.page, 10);
+                        .forEach(function (btn) {
+                            btn.addEventListener("click", function () {
+                                var target = parseInt(
+                                    btn.getAttribute("data-page"),
+                                    10,
+                                );
                                 if (
                                     !isNaN(target) &&
                                     target >= 1 &&
@@ -327,7 +472,6 @@ if (!error && data) {
                                 ) {
                                     currentPage = target;
                                     refresh();
-                                    // Scroll back to top of grid smoothly
                                     grid.scrollIntoView({
                                         behavior: "smooth",
                                         block: "start",
@@ -337,57 +481,52 @@ if (!error && data) {
                         });
                 }
 
-                // ── Build a compact page number range with ellipsis ──────────
-                // e.g. [1, 2, '…', 7, 8, 9, '…', 20, 21]
                 function buildPageRange(current, total) {
                     if (total <= 7) {
-                        return Array.from({ length: total }, (_, i) => i + 1);
+                        return Array.from({ length: total }, function (_, i) {
+                            return i + 1;
+                        });
                     }
-                    const pages = new Set();
-                    // Always show first 2 and last 2
+                    var pages = new Set();
                     pages.add(1);
                     pages.add(2);
                     pages.add(total - 1);
                     pages.add(total);
-                    // Show 2 around current
-                    for (let i = current - 2; i <= current + 2; i++) {
+                    for (var i = current - 2; i <= current + 2; i++) {
                         if (i >= 1 && i <= total) pages.add(i);
                     }
-
-                    // Sort and insert ellipsis where gaps > 1
-                    const sorted = [...pages].sort((a, b) => a - b);
-                    const result = [];
-                    for (let i = 0; i < sorted.length; i++) {
-                        result.push(sorted[i]);
+                    var sorted = Array.from(pages).sort(function (a, b) {
+                        return a - b;
+                    });
+                    var result = [];
+                    for (var j = 0; j < sorted.length; j++) {
+                        result.push(sorted[j]);
                         if (
-                            i < sorted.length - 1 &&
-                            sorted[i + 1] - sorted[i] > 1
+                            j < sorted.length - 1 &&
+                            sorted[j + 1] - sorted[j] > 1
                         ) {
-                            result.push("…");
+                            result.push("...");
                         }
                     }
                     return result;
                 }
 
-                // ── Master refresh: filter → render grid + pagination ────────
                 function refresh() {
-                    const filtered = filterUsers(currentQuery);
+                    var filtered = filterUsers(currentQuery);
                     renderGrid(filtered);
                     renderPagination(filtered);
                 }
 
-                // ── Wire up search input (debounced 200 ms) ──────────────────
-                let debounceTimer;
-                searchInput.addEventListener("input", (e) => {
+                var debounceTimer;
+                searchInput.addEventListener("input", function (e) {
                     clearTimeout(debounceTimer);
-                    debounceTimer = setTimeout(() => {
+                    debounceTimer = setTimeout(function () {
                         currentQuery = e.target.value;
-                        currentPage = 1; // reset to page 1 on new search
+                        currentPage = 1;
                         refresh();
                     }, 200);
                 });
 
-                // ── Initial render ───────────────────────────────────────────
                 refresh();
             })();
         </script>

@@ -2,6 +2,123 @@
 import "../../styles/global.css";
 import SiteFooter from "../../components/SiteFooter.astro";
 import SiteHeader from "../../components/SiteHeader.astro";
+import { createAuthedClient } from "../../lib/supabase";
+import { requireAuth } from "../../lib/api-auth";
+
+export const prerender = false;
+
+// Auth required for the social feed
+const auth = await requireAuth(Astro.request);
+const isLoggedIn = !auth.error;
+const db = isLoggedIn ? createAuthedClient(auth.token!) : null;
+
+let posts: any[] = [];
+const currentUserId: string | null = isLoggedIn ? auth.userId : null;
+
+// Fetch user's own profile for the create-post avatar
+let myProfile: {
+	id: string;
+	username: string | null;
+	avatar_url: string | null;
+} | null = null;
+
+if (db) {
+	// Fetch posts with joins
+	const { data: postsData } = await db
+		.from("posts")
+		.select(
+			`
+            id,
+            content,
+            author_id,
+            story_id,
+            character_id,
+            image_urls,
+            visibility,
+            like_count,
+            comment_count,
+            repost_count,
+            created_at,
+            updated_at,
+            author:profiles!posts_author_id_fkey(id, username, avatar_url),
+            story:stories!posts_story_id_fkey(id, title),
+            character:characters!posts_character_id_fkey(id, name, avatar_url)
+        `,
+		)
+		.eq("is_deleted", false)
+		.eq("visibility", "public")
+		.order("created_at", { ascending: false })
+		.limit(20);
+
+	posts = (postsData || []) as any[];
+
+	// Get liked/reposted status for current user
+	if (posts.length > 0) {
+		const postIds = posts.map((p: any) => p.id);
+		const [{ data: likes }, { data: reposts }] = await Promise.all([
+			db
+				.from("post_likes")
+				.select("post_id")
+				.in("post_id", postIds)
+				.eq("user_id", auth.userId),
+			db
+				.from("post_reposts")
+				.select("post_id")
+				.in("post_id", postIds)
+				.eq("user_id", auth.userId),
+		]);
+		const likedSet = new Set((likes || []).map((l: any) => l.post_id));
+		const repostedSet = new Set((reposts || []).map((r: any) => r.post_id));
+		posts = posts.map((p: any) => ({
+			...p,
+			liked_by_me: likedSet.has(p.id),
+			reposted_by_me: repostedSet.has(p.id),
+		}));
+	}
+
+	// Fetch user's own profile for the create-post avatar
+	const { data: profileData } = await db
+		.from("profiles")
+		.select("id, username, avatar_url")
+		.eq("id", auth.userId)
+		.single();
+	myProfile = profileData as typeof myProfile;
+}
+
+// Helper: relative time formatting
+function timeAgo(dateStr: string): string {
+	const now = Date.now();
+	const then = new Date(dateStr).getTime();
+	const diff = now - then;
+	const mins = Math.floor(diff / 60000);
+	if (mins < 1) return "just now";
+	if (mins < 60) return `${mins}m ago`;
+	const hours = Math.floor(mins / 60);
+	if (hours < 24) return `${hours}h ago`;
+	const days = Math.floor(hours / 24);
+	if (days < 7) return `${days}d ago`;
+	return new Date(dateStr).toLocaleDateString();
+}
+
+const defaultAvatar = "/default_user_profile.png";
+const myAvatarUrl =
+	(myProfile as { avatar_url: string | null } | null)?.avatar_url ||
+	defaultAvatar;
+
+const postsJson = JSON.stringify(
+	posts.map((p: any) => ({
+		...p,
+		created_at: p.created_at,
+		author: p.author,
+		story: p.story,
+		character: p.character,
+		timeAgo: timeAgo(p.created_at),
+		image_urls: p.image_urls || [],
+	})),
+);
+
+const isLoggedInJson = JSON.stringify(isLoggedIn);
+const currentUserIdJson = JSON.stringify(currentUserId);
 ---
 
 <html class="dark" lang="en">
@@ -29,24 +146,39 @@ import SiteHeader from "../../components/SiteHeader.astro";
 				<SiteHeader activeSection="social" />
 
 				<main
-					class="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-10 px-6 py-10 md:flex-row lg:px-20"
+					class="mx-auto flex w-full max-w-360 flex-1 flex-col gap-10 px-6 py-10 md:flex-row lg:px-20"
 				>
+					<!-- LEFT SIDEBAR -->
 					<aside class="w-full shrink-0 md:w-64">
 						<div
-							class="rounded-xl border border-primary/10 bg-primary/5 p-6"
+							class="glass-card ethereal-glow relative overflow-hidden rounded-xl border border-primary/20 p-6"
 						>
-							<h3
-								class="font-display mb-1 text-lg font-bold text-primary"
+							<div
+								class="absolute -left-px -top-px h-6 w-6 border-l-2 border-t-2 border-accent-gold/40 rounded-tl-lg"
 							>
-								The Sanctum
+							</div>
+							<div
+								class="absolute -right-px -top-px h-6 w-6 border-r-2 border-t-2 border-accent-gold/40 rounded-tr-lg"
+							>
+							</div>
+							<div
+								class="absolute -bottom-px -left-px h-6 w-6 border-b-2 border-l-2 border-accent-gold/40 rounded-bl-lg"
+							>
+							</div>
+							<div
+								class="absolute -bottom-px -right-px h-6 w-6 border-b-2 border-r-2 border-accent-gold/40 rounded-br-lg"
+							>
+							</div>
+							<h3 class="font-display mb-1 text-lg font-bold">
+								<span class="gold-shimmer">The Sanctum</span>
 							</h3>
 							<p class="mb-6 text-sm text-slate-400">
 								Seeker Rank: High Archivist
 							</p>
 							<nav class="flex flex-col gap-2">
 								<a
-									class="flex items-center gap-3 rounded-lg bg-primary px-3 py-2.5 text-white"
-									href="#"
+									class="flex items-center gap-3 rounded-lg border border-accent-gold/30 bg-accent-gold/10 px-3 py-2.5 text-accent-gold"
+									href="/social"
 								>
 									<span
 										class="material-symbols-outlined text-[20px]"
@@ -57,11 +189,11 @@ import SiteHeader from "../../components/SiteHeader.astro";
 									>
 								</a>
 								<a
-									class="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-primary/10"
-									href="#"
+									class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-400 transition-colors hover:bg-primary/10 hover:text-primary"
+									href="/user/my-stories"
 								>
 									<span
-										class="material-symbols-outlined text-[20px] text-primary"
+										class="material-symbols-outlined text-[20px]"
 										>menu_book</span
 									>
 									<span class="text-sm font-medium"
@@ -69,11 +201,11 @@ import SiteHeader from "../../components/SiteHeader.astro";
 									>
 								</a>
 								<a
-									class="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-primary/10"
-									href="#"
+									class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-400 transition-colors hover:bg-primary/10 hover:text-primary"
+									href="/user/reading-list"
 								>
 									<span
-										class="material-symbols-outlined text-[20px] text-primary"
+										class="material-symbols-outlined text-[20px]"
 										>diamond</span
 									>
 									<span class="text-sm font-medium"
@@ -81,399 +213,177 @@ import SiteHeader from "../../components/SiteHeader.astro";
 									>
 								</a>
 								<a
-									class="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-primary/10"
-									href="/social/group"
+									class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-400 transition-colors hover:bg-primary/10 hover:text-primary"
+									href="/social/seekers"
 								>
 									<span
-										class="material-symbols-outlined text-[20px] text-primary"
+										class="material-symbols-outlined text-[20px]"
 										>groups</span
 									>
 									<span class="text-sm font-medium"
-										>Scholarly Circles</span
+										>Fellow Seekers</span
 									>
 								</a>
 							</nav>
 						</div>
-						<div
-							class="mt-8 rounded-xl border border-primary/10 bg-primary/5 p-6"
-						>
-							<h3
-								class="mb-4 flex items-center gap-2 font-bold text-slate-100"
-							>
-								<span
-									class="material-symbols-outlined text-primary"
-									>auto_awesome</span
-								>
-								Trending Whispers
-							</h3>
-							<ul class="flex flex-col gap-3">
-								<li>
-									<a
-										class="text-sm italic text-primary hover:underline"
-										href="#">#TheLostCodex</a>
-								</li>
-								<li>
-									<a
-										class="text-sm italic text-primary hover:underline"
-										href="#">#EchoesFromGlowormCaves</a>
-								</li>
-								<li>
-									<a
-										class="text-sm italic text-primary hover:underline"
-										href="#">#StarChartPuzzle</a>
-								</li>
-								<li>
-									<a
-										class="text-sm italic text-primary hover:underline"
-										href="#">#MidnightInTheArchives</a>
-								</li>
-							</ul>
-						</div>
 					</aside>
 
+					<!-- MAIN FEED -->
 					<section class="min-w-0 flex-1 flex-col gap-8 md:flex">
 						<div>
 							<h1
 								class="font-display text-4xl font-black tracking-tight text-slate-100"
 							>
-								The Hall of Echoes
+								The Hall of <span class="gold-shimmer"
+									>Echoes</span
+								>
 							</h1>
+							<div
+								class="mt-1 h-1 w-24 rounded-full bg-linear-to-r from-primary via-accent-gold to-primary"
+							>
+							</div>
 							<p class="mt-2 text-slate-400">
 								A communal space for seekers of lost knowledge
 								and whispered tales.
 							</p>
 						</div>
 
-						<div
-							class="rounded-xl border border-primary/20 bg-primary/5 p-4"
-						>
-							<div class="flex gap-4">
-								<div
-									class="size-12 shrink-0 rounded-full border border-primary bg-primary/20 bg-cover bg-center"
-									style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBOK-fhfRJkgaU0q9ZXrBi_oC0yRUInCXuuGH9-oulWaH3_zrE7Y1RWhvsKVWZ9gUDQBCuc1cflBrIVpOOdfqptVgJXuWb_4cQc7TWUJkd70B31MJyCJGsNn59bx6Owm5rzQs9OQQw_r6iIlffGf7GGL4ofk3siIwd7wZkH2rpHTGPCI0w8zooI8faFeI5bw9Qj36IAVSbXc55DKAKAT-3Pd4WO9DEW8ru0iYxzGLEIm10hQHKxlxP-6zayUL9Z7ucpXqkbIKDFd7Y')"
-								>
-								</div>
-								<div class="flex-1">
-									<textarea
-										class="w-full resize-none border-none bg-transparent text-lg italic text-slate-100 placeholder:text-slate-500 focus:ring-0"
-										placeholder="Share a discovery or a whisper..."
-										rows="2"></textarea>
-									<div
-										class="mt-4 flex items-center justify-between border-t border-primary/10 pt-4"
-									>
-										<div class="flex gap-4 text-slate-500">
-											<button
-												class="flex items-center gap-1 transition-colors hover:text-primary"
-											>
-												<span
-													class="material-symbols-outlined text-[20px]"
-													>image</span
-												>
-											</button>
-											<button
-												class="flex items-center gap-1 transition-colors hover:text-primary"
-											>
-												<span
-													class="material-symbols-outlined text-[20px]"
-													>auto_stories</span
-												>
-											</button>
-											<button
-												class="flex items-center gap-1 transition-colors hover:text-primary"
-											>
-												<span
-													class="material-symbols-outlined text-[20px]"
-													>token</span
-												>
-											</button>
-										</div>
-										<button
-											class="rounded-lg bg-primary px-6 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
-											>Echo</button
-										>
-									</div>
-								</div>
-							</div>
-						</div>
-
-						<div class="flex flex-col gap-6">
-							<div
-								class="overflow-hidden rounded-xl border border-primary/10 bg-primary/5"
-							>
-								<div class="p-6">
-									<div class="mb-4 flex items-center gap-3">
+						<!-- Create Post Box -->
+						{
+							isLoggedIn ? (
+								<div class="ethereal-glow rounded-xl border border-primary/20 bg-surface-container p-4">
+									<div class="flex gap-4">
 										<div
-											class="size-10 rounded-full bg-cover bg-center"
-											style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBF9pDCmXpL2cFqOtzYtFkMG2xpkaNaIBmI3K0BEpO-ASOcofyY5SGnXmZgMVwzJRKva3J5odD5XiGNRGA1nX27CAonXHg748Hvhe1RKa7D4tC24qWOTVfhNyYaVWhOurtHqj4BHygBvUu-y1Oskufc5J3ALTXce_T5gFYR0uq_GE7yxexyiva1qzHIfhoF_IO5q6cwcvOp_-GGwayIMvX84q3n8okEh6C0t2pr_Q2gWZAkPwmSFPpCiSLyMC0N_4jiQA_2Wnlrd7Y')"
-										>
-										</div>
-										<div>
-											<p class="text-sm font-bold">
-												Archivist Silas
-											</p>
-											<p
-												class="text-xs italic text-slate-500"
-											>
-												2 hours ago in The Sunken
-												Library
-											</p>
-										</div>
-										<div class="ml-auto text-primary">
-											<span
-												class="material-symbols-outlined"
-												>stars</span
-											>
+											class="size-12 shrink-0 rounded-full border border-accent-gold/30 bg-cover bg-center"
+											style={{
+												backgroundImage: `url('${myAvatarUrl}')`,
+											}}
+										/>
+										<div class="flex-1">
+											<textarea
+												id="create-post-textarea"
+												class="w-full resize-none border-none bg-transparent text-lg italic text-slate-100 placeholder:text-slate-500 focus:ring-0"
+												placeholder="Share a discovery or a whisper..."
+												rows="2"
+												maxlength="5000"
+											/>
+											<div class="mt-4 flex items-center justify-between border-t border-primary/10 pt-4">
+												<div class="flex gap-4 text-slate-500">
+													<button
+														id="attach-image-btn"
+														class="flex items-center gap-1 transition-colors hover:text-accent-gold"
+														title="Attach image"
+													>
+														<span class="material-symbols-outlined text-[20px]">
+															image
+														</span>
+													</button>
+													<button
+														id="attach-story-btn"
+														class="flex items-center gap-1 transition-colors hover:text-accent-gold"
+														title="Attach story"
+													>
+														<span class="material-symbols-outlined text-[20px]">
+															auto_stories
+														</span>
+													</button>
+													<button
+														id="attach-character-btn"
+														class="flex items-center gap-1 transition-colors hover:text-accent-gold"
+														title="Attach character"
+													>
+														<span class="material-symbols-outlined text-[20px]">
+															token
+														</span>
+													</button>
+												</div>
+												<button
+													id="submit-post-btn"
+													class="rounded-lg bg-primary px-6 py-2 text-sm font-bold text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary/90 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+												>
+													Echo
+												</button>
+											</div>
 										</div>
 									</div>
-									<p
-										class="mb-4 text-lg italic leading-relaxed text-slate-200"
-									>
-										"After three nights of decoding the
-										lunar glyphs, I've finally unearthed the
-										'Prism of Veiled Sight'. Its glow is
-										faint, but it reveals paths I never knew
-										existed in the fourth chapter."
+								</div>
+							) : (
+								<div class="rounded-xl border border-primary/20 bg-surface-container p-8 text-center">
+									<p class="text-lg text-slate-400 mb-4">
+										Sign in to share your own echoes.
 									</p>
-									<div
-										class="relative mb-4 h-48 w-full overflow-hidden rounded-lg border border-primary/20 bg-background-dark"
+									<a
+										href="/signin"
+										class="inline-block rounded-lg bg-primary px-6 py-2 text-sm font-bold text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary/90 hover:scale-105"
 									>
-										<div
-											class="absolute inset-0 bg-linear-to-tr from-primary/40 to-transparent"
-										>
-										</div>
-										<div
-											class="flex h-full items-center justify-center"
-										>
-											<span
-												class="material-symbols-outlined text-6xl text-primary/60"
-												>diamond</span
-											>
-										</div>
-										<div
-											class="absolute bottom-4 left-4 right-4 flex items-center justify-between rounded-lg bg-background-dark/80 p-3 backdrop-blur-md"
-										>
-											<span
-												class="text-xs font-bold uppercase tracking-widest"
-												>New Artifact Unlocked</span
-											>
-											<span
-												class="text-xs font-bold text-primary"
-												>Prism of Veiled Sight</span
-											>
-										</div>
-									</div>
-									<div
-										class="flex items-center gap-6 text-slate-500"
-									>
-										<button
-											class="flex items-center gap-2 text-sm hover:text-primary"
-										>
-											<span
-												class="material-symbols-outlined text-[20px]"
-												>favorite</span
-											>
-											24
-										</button>
-										<button
-											class="flex items-center gap-2 text-sm hover:text-primary"
-										>
-											<span
-												class="material-symbols-outlined text-[20px]"
-												>chat_bubble</span
-											>
-											8
-										</button>
-										<button
-											class="flex items-center gap-2 text-sm hover:text-primary"
-										>
-											<span
-												class="material-symbols-outlined text-[20px]"
-												>share</span
-											>
-										</button>
-									</div>
+										Sign In
+									</a>
 								</div>
-							</div>
+							)
+						}
 
+						<!-- Posts Feed -->
+						<div id="posts-feed" class="flex flex-col gap-6 mt-6">
 							<div
-								class="rounded-xl border border-primary/10 bg-primary/5 p-6"
+								id="posts-empty"
+								class="hidden rounded-xl border border-primary/10 bg-surface-container p-16 text-center"
 							>
-								<div class="mb-4 flex items-center gap-3">
-									<div
-										class="size-10 rounded-full bg-cover bg-center"
-										style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuA8SwBOxqRbXeRekQu1zrzykcxNQ4paa-7YVt1_CGCIWOk5TsbeUMYtpBOCo8btHjCjiCCpOCxIDqhkhSlxyakWI5VrKo8mtGla3nbpJJ4X_QL7j7VKxDFgme2ODQwAIArbcCq6ob-9UCJ4btZsF4JcTmUZueT4578a6QBu2MDJfjNb-MP1YGKzVeXozdG-PoHW-x9SeNGJzHzO91QztZgDe633v0n1ooJvyg1W8lg5naYdqmwfiEYJAteafZxNpaKl1BnCKTXPyYQ')"
-									>
-									</div>
-									<div>
-										<p class="text-sm font-bold">
-											Seeker Elena
-										</p>
-										<p
-											class="text-xs italic text-slate-500"
-										>
-											5 hours ago
-										</p>
-									</div>
-									<div
-										class="ml-auto rounded-full bg-primary/20 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary"
-									>
-										Story Milestone
-									</div>
-								</div>
+								<span
+									class="material-symbols-outlined mb-4 block text-5xl text-primary/40"
+									>forum</span
+								>
 								<p
-									class="mb-4 text-lg italic leading-relaxed text-slate-200"
+									class="mb-2 text-2xl font-bold text-slate-300"
 								>
-									"The Choice at the Obsidian Gate... I chose
-									to trust the Shadow. The narrative has
-									shifted entirely. Has anyone else seen the
-									murals change in the main hall after this?"
+									The hall is silent.
 								</p>
-								<div
-									class="flex items-center gap-6 text-slate-500"
+								<p class="text-sm text-slate-500">
+									No echoes yet. Be the first to share a
+									whisper.
+								</p>
+							</div>
+							<div
+								id="posts-loading"
+								class="rounded-xl border border-primary/10 bg-surface-container p-16 text-center"
+							>
+								<span
+									class="material-symbols-outlined mb-4 block text-5xl text-primary/40 animate-spin"
+									>hourglass</span
 								>
-									<button
-										class="flex items-center gap-2 text-sm hover:text-primary"
-									>
-										<span
-											class="material-symbols-outlined text-[20px]"
-											>favorite</span
-										>
-										52
-									</button>
-									<button
-										class="flex items-center gap-2 text-sm hover:text-primary"
-									>
-										<span
-											class="material-symbols-outlined text-[20px]"
-											>chat_bubble</span
-										>
-										15
-									</button>
-									<button
-										class="flex items-center gap-2 text-sm hover:text-primary"
-									>
-										<span
-											class="material-symbols-outlined text-[20px]"
-											>share</span
-										>
-									</button>
-								</div>
+								<p class="text-sm text-slate-500">
+									Listening for echoes...
+								</p>
 							</div>
 						</div>
 					</section>
 
+					<!-- RIGHT SIDEBAR -->
 					<aside class="w-full md:w-72">
 						<div
-							class="rounded-xl border border-primary/10 bg-primary/5 p-6"
+							class="glass-card rounded-xl border border-primary/20 p-6"
 						>
 							<h3
 								class="mb-6 flex items-center justify-between font-bold text-slate-100"
 							>
-								Fellow Seekers
+								Fellow <span class="gold-shimmer">Seekers</span>
 								<a
 									href="/social/seekers"
-									class="text-xs font-medium uppercase tracking-tight text-primary hover:underline"
+									class="text-xs font-medium uppercase tracking-tight text-accent-gold hover:underline"
 									>See all</a
 								>
 							</h3>
-							<div class="flex flex-col gap-5">
-								<div class="flex items-center gap-3">
-									<div
-										class="size-10 rounded-full border border-primary/20 bg-cover bg-center"
-										style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBMc27Km3W7ofFHvPqKA_eH4UkvpFjaTpMosurD26-WU5a0L1er2Tbv2yXvMThCZYySx1MWmEvwK0aiW8AAzYeBaxrRWCn7ojlApEKaQm7TXu4TCNySe-gwS0Fw03FiIzaxtVZNHBB8CLHFRbvd0Yy6CWKz60FO2-Hfbmjerf36LRH_vtMbMoZliMf5y70OB1HuHHZ8L8eGxhYvGNl3oeh_3Wh2ZfGzVZ72HJwovHb1b9S5SiMLvMBYzA6Kwa0PVSRanUEbY_8gPTg')"
-									>
-									</div>
-									<div class="min-w-0 flex-1">
-										<p class="truncate text-sm font-bold">
-											Julian Thorne
-										</p>
-										<p
-											class="truncate text-xs text-slate-500"
-										>
-											Adept Seeker • 12 Artifacts
-										</p>
-									</div>
-									<button
-										class="rounded-full p-1 text-primary transition-colors hover:bg-primary/10"
-									>
-										<span
-											class="material-symbols-outlined text-[20px]"
-											>person_add</span
-										>
-									</button>
-								</div>
-								<div class="flex items-center gap-3">
-									<div
-										class="size-10 rounded-full border border-primary/20 bg-cover bg-center"
-										style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCOnalM5JxNCVOnJvmJWZ3YNf6msFRvyleltNAQTdms6vYXSovMjcKzDSXjw_jvdW3rYTl7F8NguSaRGh5tGRrcgw3EYQMb8qNLWp2gliiku4a8MVJyTjbBkgvFVD8FDJ6eAbqu2SLoUMWh8yZQjnNQR6GFPlS-yTRnSrfC_5-V17QH3bokxQaVlmyIYVmfiQ2fCm4hBEHri50yl_qk7c2zObFWPmKeG3j_mih8V8UCsNhIcFeSyOiftz-IAWVHl9hH-SBcm7qsRzI')"
-									>
-									</div>
-									<div class="min-w-0 flex-1">
-										<p class="truncate text-sm font-bold">
-											Lyra Moonshade
-										</p>
-										<p
-											class="truncate text-xs text-slate-500"
-										>
-											Chronocologist • 8 Artifacts
-										</p>
-									</div>
-									<button
-										class="rounded-full p-1 text-primary transition-colors hover:bg-primary/10"
-									>
-										<span
-											class="material-symbols-outlined text-[20px]"
-											>person_add</span
-										>
-									</button>
-								</div>
-								<div class="flex items-center gap-3">
-									<div
-										class="size-10 rounded-full border border-primary/20 bg-cover bg-center"
-										style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAo5c0xM8L_C01ikYz9VpM5mb3f2vXXFp683EAZFX_jZcMkaMVYqkivUnTkyVdgAV-YL1sAALHZxPEAQ27yIwT7KHgTj1SlwBBRaYNcNFXPdWgwwEK_7xJQFEEaESmyW7c4CDWrYtymLZGLOZ4T75C1evT1ISkuhdOE1yhSUHs1c38zjTjdA3CVvvwjvPZgyzNiKk0uRXHVmEXhlJsne6bPpWlLRxe_2DATzKXinFJ-AdIvPfkwj_2Xgo5apcqR3GOqvW8Nw2tBf_M')"
-									>
-									</div>
-									<div class="min-w-0 flex-1">
-										<p class="truncate text-sm font-bold">
-											Bram Van Der Berg
-										</p>
-										<p
-											class="truncate text-xs text-slate-500"
-										>
-											Rune Smith • 25 Artifacts
-										</p>
-									</div>
-									<button
-										class="rounded-full p-1 text-primary transition-colors hover:bg-primary/10"
-									>
-										<span
-											class="material-symbols-outlined text-[20px]"
-											>person_add</span
-										>
-									</button>
-								</div>
+							<div class="flex flex-col gap-3">
+								<p class="text-sm text-slate-500 italic">
+									Discover fellow readers and authors
+									wandering the library's halls.
+								</p>
+								<a
+									href="/social/seekers"
+									class="rounded-lg border border-primary/20 px-4 py-2 text-center text-sm text-primary hover:bg-primary/10 transition-colors"
+								>
+									Browse Seekers
+								</a>
 							</div>
-						</div>
-
-						<div
-							class="relative mt-8 overflow-hidden rounded-xl border border-primary/20 bg-linear-to-br from-primary/20 to-transparent p-6"
-						>
-							<span
-								class="material-symbols-outlined absolute -bottom-4 -right-4 text-7xl text-primary/10"
-								>auto_stories</span
-							>
-							<h4
-								class="mb-2 text-sm font-bold uppercase tracking-widest text-primary"
-							>
-								Library Notice
-							</h4>
-							<p
-								class="relative z-10 text-sm italic text-slate-300"
-							>
-								"The Restricted Section will be open for a lunar
-								phase starting tomorrow. Prepare your protection
-								charms."
-							</p>
 						</div>
 					</aside>
 				</main>
@@ -481,5 +391,545 @@ import SiteHeader from "../../components/SiteHeader.astro";
 				<SiteFooter />
 			</div>
 		</div>
+
+		<!-- Post Template (hidden, used by JS) -->
+		<template id="post-template">
+			<div
+				class="glass-card relative overflow-hidden rounded-xl border border-primary/10"
+			>
+				<div class="p-6">
+					<div class="mb-4 flex items-center gap-3">
+						<div
+							class="post-avatar size-10 rounded-full bg-cover bg-center ring-2 ring-accent-gold/30"
+						>
+						</div>
+						<div>
+							<p class="post-username text-sm font-bold"></p>
+							<p class="post-time text-xs italic text-slate-500">
+							</p>
+						</div>
+						<div
+							class="post-badge ml-auto hidden rounded-full bg-accent-gold/20 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-accent-gold"
+						>
+							Story Attached
+						</div>
+
+						<!-- Post action dropdown (edit/delete) — hidden by default, shown only for own posts -->
+						<div class="post-actions relative ml-2 hidden">
+							<button
+								class="post-actions-trigger flex items-center justify-center rounded-full p-1 text-slate-500 transition-colors hover:bg-primary/10 hover:text-accent-gold"
+								title="More actions"
+							>
+								<span class="material-symbols-outlined text-[20px]">more_vert</span>
+							</button>
+							<div class="post-actions-dropdown absolute right-0 top-full z-20 mt-1 hidden w-36 rounded-lg border border-primary/20 bg-surface-container shadow-xl shadow-black/30">
+								<button
+									class="post-action-edit flex w-full items-center gap-2 rounded-t-lg px-3 py-2.5 text-sm text-slate-300 transition-colors hover:bg-primary/10 hover:text-accent-gold"
+								>
+									<span class="material-symbols-outlined text-[18px]">edit</span>
+									Edit
+								</button>
+								<button
+									class="post-action-delete flex w-full items-center gap-2 rounded-b-lg px-3 py-2.5 text-sm text-slate-300 transition-colors hover:bg-red-500/10 hover:text-red-400"
+								>
+									<span class="material-symbols-outlined text-[18px]">delete</span>
+									Delete
+								</button>
+							</div>
+						</div>
+					</div>
+					<p
+						class="post-content mb-4 text-lg italic leading-relaxed text-slate-200"
+					>
+					</p>
+					<!-- Edit textarea (hidden by default) -->
+					<textarea
+						class="post-edit-textarea hidden mb-4 w-full resize-none rounded-lg border border-accent-gold/30 bg-slate-900 p-3 text-lg italic leading-relaxed text-slate-200 focus:ring-1 focus:ring-accent-gold/50"
+						rows="3"
+						maxlength="5000"
+					></textarea>
+					<!-- Edit actions (hidden by default) -->
+					<div class="post-edit-actions hidden mb-4 flex items-center gap-2">
+						<button
+							class="post-edit-save rounded-lg bg-primary px-4 py-1.5 text-sm font-bold text-white transition-all hover:bg-primary/90"
+						>
+							Save
+						</button>
+						<button
+							class="post-edit-cancel rounded-lg border border-primary/20 px-4 py-1.5 text-sm text-slate-400 transition-all hover:text-slate-200"
+						>
+							Cancel
+						</button>
+					</div>
+					<!-- Delete confirmation (hidden by default) -->
+					<div class="post-delete-confirm hidden mb-4 rounded-lg border border-red-500/20 bg-red-500/5 p-4">
+						<p class="mb-3 text-sm text-slate-300">Delete this echo? This action cannot be undone.</p>
+						<div class="flex items-center gap-2">
+							<button
+								class="post-delete-confirm-btn rounded-lg bg-red-600 px-4 py-1.5 text-sm font-bold text-white transition-all hover:bg-red-500"
+							>
+								Delete
+							</button>
+							<button
+								class="post-delete-cancel rounded-lg border border-primary/20 px-4 py-1.5 text-sm text-slate-400 transition-all hover:text-slate-200"
+							>
+								Keep
+							</button>
+						</div>
+					</div>
+					<div class="post-images mb-4 hidden flex-wrap gap-2"></div>
+					<div
+						class="post-story-card mb-4 hidden rounded-lg border border-accent-gold/20 bg-surface-dim p-4"
+					>
+					</div>
+					<div class="flex items-center gap-6 text-slate-500">
+						<button
+							class="btn-like flex items-center gap-2 text-sm hover:text-accent-gold transition-colors"
+						>
+							<span class="material-symbols-outlined text-[20px]"
+								>favorite</span
+							>
+							<span class="like-count">0</span>
+						</button>
+						<button
+							class="btn-comment flex items-center gap-2 text-sm hover:text-accent-gold transition-colors"
+						>
+							<span class="material-symbols-outlined text-[20px]"
+								>chat_bubble</span
+							>
+							<span class="comment-count">0</span>
+						</button>
+						<button
+							class="btn-repost flex items-center gap-2 text-sm hover:text-accent-gold transition-colors"
+						>
+							<span class="material-symbols-outlined text-[20px]"
+								>share</span
+							>
+							<span class="repost-count">0</span>
+						</button>
+					</div>
+				</div>
+			</div>
+		</template>
 	</body>
 </html>
+
+<script define:vars={{ postsJson, isLoggedInJson, currentUserIdJson, defaultAvatar }}>
+	const isLoggedIn = JSON.parse(isLoggedInJson);
+	const currentUserId = JSON.parse(currentUserIdJson);
+	let posts = JSON.parse(postsJson);
+
+	const feed = document.getElementById("posts-feed");
+	const emptyState = document.getElementById("posts-empty");
+	const loadingState = document.getElementById("posts-loading");
+	const template = document.getElementById("post-template");
+
+	// Helper to get access token from cookies
+	function getAccessToken() {
+		const cookies = document.cookie.split("; ");
+		for (const c of cookies) {
+			const idx = c.indexOf("=");
+			if (idx > -1) {
+				const key = c.slice(0, idx);
+				const val = c.slice(idx + 1);
+				if (key === "sb-access-token") return val;
+			}
+		}
+		return null;
+	}
+
+	// ── Close all open dropdowns ──────────────────────────────────────────────
+	function closeAllDropdowns() {
+		document.querySelectorAll(".post-actions-dropdown:not(.hidden)").forEach(function (dd) {
+			dd.classList.add("hidden");
+		});
+	}
+
+	// Close dropdowns when clicking outside
+	document.addEventListener("click", function (e) {
+		if (!e.target.closest(".post-actions")) {
+			closeAllDropdowns();
+		}
+	});
+
+	// ── Render posts ────────────────────────────────────────────────────────
+	function renderPosts() {
+		feed.querySelectorAll(".post-card").forEach(function (el) {
+			el.remove();
+		});
+
+		if (posts.length === 0) {
+			loadingState.classList.add("hidden");
+			emptyState.classList.remove("hidden");
+			return;
+		}
+
+		loadingState.classList.add("hidden");
+		emptyState.classList.add("hidden");
+
+		posts.forEach(function (post) {
+			const clone = template.content.cloneNode(true);
+			const card = clone.querySelector(".glass-card");
+			card.classList.add("post-card");
+			card.setAttribute("data-post-id", post.id);
+
+			// Avatar
+			const avatarEl = clone.querySelector(".post-avatar");
+			avatarEl.style.backgroundImage =
+				"url('" +
+				(post.author && post.author.avatar_url
+					? post.author.avatar_url
+					: defaultAvatar) +
+				"')";
+
+			// Username + time
+			clone.querySelector(".post-username").textContent =
+				(post.author && post.author.username) || "Unknown Seeker";
+			clone.querySelector(".post-time").textContent = post.timeAgo || "";
+
+			// Content
+			clone.querySelector(".post-content").textContent = post.content;
+
+			// ── Owner actions (edit/delete dropdown) ──────────────────────────
+			const actionsContainer = clone.querySelector(".post-actions");
+			if (currentUserId && post.author_id === currentUserId) {
+				actionsContainer.classList.remove("hidden");
+
+				// Dropdown toggle
+				const trigger = actionsContainer.querySelector(".post-actions-trigger");
+				const dropdown = actionsContainer.querySelector(".post-actions-dropdown");
+
+				trigger.addEventListener("click", function (e) {
+					e.stopPropagation();
+					const isOpen = !dropdown.classList.contains("hidden");
+					closeAllDropdowns();
+					if (!isOpen) {
+						dropdown.classList.remove("hidden");
+					}
+				});
+
+				// Edit action
+				const editBtn = actionsContainer.querySelector(".post-action-edit");
+				const contentP = clone.querySelector(".post-content");
+				const editTextarea = clone.querySelector(".post-edit-textarea");
+				const editActions = clone.querySelector(".post-edit-actions");
+				const editSave = clone.querySelector(".post-edit-save");
+				const editCancel = clone.querySelector(".post-edit-cancel");
+				const deleteConfirm = clone.querySelector(".post-delete-confirm");
+
+				editBtn.addEventListener("click", function () {
+					dropdown.classList.add("hidden");
+					// Hide view mode
+					contentP.classList.add("hidden");
+					// Show edit mode
+					editTextarea.value = post.content;
+					editTextarea.classList.remove("hidden");
+					editActions.classList.remove("hidden");
+					editTextarea.focus();
+				});
+
+				editSave.addEventListener("click", async function () {
+					const newContent = editTextarea.value.trim();
+					if (!newContent || newContent === post.content) {
+						// Revert
+						editTextarea.classList.add("hidden");
+						editActions.classList.add("hidden");
+						contentP.classList.remove("hidden");
+						return;
+					}
+
+					const token = getAccessToken();
+					editSave.setAttribute("disabled", "true");
+					editSave.textContent = "Saving...";
+
+					try {
+						const res = await fetch("/api/posts/" + post.id, {
+							method: "PUT",
+							headers: {
+								"Content-Type": "application/json",
+								Authorization: "Bearer " + token,
+							},
+							body: JSON.stringify({ content: newContent }),
+						});
+						const data = await res.json();
+						if (res.ok && data.success) {
+							post.content = newContent;
+							contentP.textContent = newContent;
+							editTextarea.classList.add("hidden");
+							editActions.classList.add("hidden");
+							contentP.classList.remove("hidden");
+						} else {
+							alert(data.error || "Failed to update post");
+						}
+					} catch (err) {
+						console.error("Edit failed:", err);
+						alert("Failed to update post");
+					} finally {
+						editSave.removeAttribute("disabled");
+						editSave.textContent = "Save";
+					}
+				});
+
+				editCancel.addEventListener("click", function () {
+					editTextarea.classList.add("hidden");
+					editActions.classList.add("hidden");
+					contentP.classList.remove("hidden");
+				});
+
+				// Delete action
+				const deleteBtn = actionsContainer.querySelector(".post-action-delete");
+				const deleteConfirmBtn = clone.querySelector(".post-delete-confirm-btn");
+				const deleteCancelBtn = clone.querySelector(".post-delete-cancel");
+
+				deleteBtn.addEventListener("click", function () {
+					dropdown.classList.add("hidden");
+					deleteConfirm.classList.remove("hidden");
+				});
+
+				deleteCancelBtn.addEventListener("click", function () {
+					deleteConfirm.classList.add("hidden");
+				});
+
+				deleteConfirmBtn.addEventListener("click", async function () {
+					const token = getAccessToken();
+					deleteConfirmBtn.setAttribute("disabled", "true");
+					deleteConfirmBtn.textContent = "Deleting...";
+
+					try {
+						const res = await fetch("/api/posts/" + post.id, {
+							method: "DELETE",
+							headers: {
+								Authorization: "Bearer " + token,
+							},
+						});
+						const data = await res.json();
+						if (res.ok && data.success) {
+							// Remove from array and DOM with fade
+							card.style.transition = "opacity 0.3s, transform 0.3s";
+							card.style.opacity = "0";
+							card.style.transform = "scale(0.95)";
+							setTimeout(function () {
+								card.remove();
+								// Remove from posts array
+								posts = posts.filter(function (p) { return p.id !== post.id; });
+								if (posts.length === 0) {
+									emptyState.classList.remove("hidden");
+								}
+							}, 300);
+						} else {
+							alert(data.error || "Failed to delete post");
+							deleteConfirmBtn.removeAttribute("disabled");
+							deleteConfirmBtn.textContent = "Delete";
+						}
+					} catch (err) {
+						console.error("Delete failed:", err);
+						alert("Failed to delete post");
+						deleteConfirmBtn.removeAttribute("disabled");
+						deleteConfirmBtn.textContent = "Delete";
+					}
+				});
+			}
+
+			// Story badge & card
+			if (post.story) {
+				clone.querySelector(".post-badge").classList.remove("hidden");
+				const storyCard = clone.querySelector(".post-story-card");
+				storyCard.classList.remove("hidden");
+				const title = post.story.title
+					.replace(/&/g, "&")
+					.replace(/</g, "<")
+					.replace(/>/g, ">");
+				storyCard.innerHTML =
+					'<p class="text-xs text-slate-400">Attached Story</p><p class="font-bold text-accent-gold">' +
+					title +
+					"</p>";
+			}
+
+			// Images
+			if (post.image_urls && post.image_urls.length) {
+				const imagesDiv = clone.querySelector(".post-images");
+				imagesDiv.classList.remove("hidden");
+				post.image_urls.forEach(function (url) {
+					const img = document.createElement("img");
+					img.src = url;
+					img.className =
+						"h-32 w-32 rounded-lg object-cover border border-primary/10";
+					imagesDiv.appendChild(img);
+				});
+			}
+
+			// Counters
+			const likeBtn = clone.querySelector(".btn-like");
+			const likeCount = likeBtn.querySelector(".like-count");
+			likeCount.textContent = String(post.like_count || 0);
+			if (post.liked_by_me) {
+				likeBtn.classList.add("text-accent-gold");
+				likeBtn.querySelector(
+					".material-symbols-outlined",
+				).textContent = "favorite";
+			}
+
+			clone.querySelector(".comment-count").textContent = String(
+				post.comment_count || 0,
+			);
+
+			const repostBtn = clone.querySelector(".btn-repost");
+			const repostCount = repostBtn.querySelector(".repost-count");
+			repostCount.textContent = String(post.repost_count || 0);
+			if (post.reposted_by_me) {
+				repostBtn.classList.add("text-accent-gold");
+			}
+
+			// Wire up interaction buttons
+			likeBtn.addEventListener("click", function () {
+				handleLike(post.id, likeBtn, likeCount);
+			});
+			repostBtn.addEventListener("click", function () {
+				handleRepost(post.id, repostBtn, repostCount);
+			});
+
+			feed.appendChild(clone);
+		});
+	}
+
+	// ── Like toggle ─────────────────────────────────────────────────────────
+	async function handleLike(postId, btn, countEl) {
+		if (!isLoggedIn) {
+			window.location.href = "/signin";
+			return;
+		}
+
+		const token = getAccessToken();
+		try {
+			const res = await fetch("/api/posts/" + postId + "/like", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: "Bearer " + token,
+				},
+			});
+			const data = await res.json();
+			if (res.ok) {
+				countEl.textContent = String(data.like_count);
+				if (data.liked) {
+					btn.classList.add("text-accent-gold");
+				} else {
+					btn.classList.remove("text-accent-gold");
+				}
+			}
+		} catch (err) {
+			console.error("Like failed:", err);
+		}
+	}
+
+	// ── Repost toggle ───────────────────────────────────────────────────────
+	async function handleRepost(postId, btn, countEl) {
+		if (!isLoggedIn) {
+			window.location.href = "/signin";
+			return;
+		}
+
+		const token = getAccessToken();
+		const isReposted = btn.classList.contains("text-accent-gold");
+		try {
+			const res = await fetch("/api/posts/" + postId + "/repost", {
+				method: isReposted ? "DELETE" : "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: "Bearer " + token,
+				},
+			});
+			const data = await res.json();
+			if (res.ok) {
+				if (isReposted) {
+					btn.classList.remove("text-accent-gold");
+					countEl.textContent = String(
+						Math.max(0, parseInt(countEl.textContent || "1") - 1),
+					);
+				} else {
+					btn.classList.add("text-accent-gold");
+					countEl.textContent = String(
+						parseInt(countEl.textContent || "0") + 1,
+					);
+				}
+			}
+		} catch (err) {
+			console.error("Repost failed:", err);
+		}
+	}
+
+	// ── Create Post ─────────────────────────────────────────────────────────
+	const submitBtn = document.getElementById("submit-post-btn");
+	const textarea = document.getElementById("create-post-textarea");
+
+	if (submitBtn) {
+		submitBtn.addEventListener("click", async function () {
+			if (!textarea) return;
+			const content = textarea.value.trim();
+			if (!content) return;
+
+			const token = getAccessToken();
+			submitBtn.setAttribute("disabled", "true");
+			submitBtn.textContent = "Echoing...";
+
+			try {
+				const res = await fetch("/api/posts", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: "Bearer " + token,
+					},
+					body: JSON.stringify({
+						content: content,
+						visibility: "public",
+					}),
+				});
+				const data = await res.json();
+				if (res.ok && data.post) {
+					const newPost = {
+						id: data.post.id,
+						content: data.post.content,
+						author_id: data.post.author_id,
+						story_id: data.post.story_id,
+						character_id: data.post.character_id,
+						image_urls: data.post.image_urls || [],
+						visibility: data.post.visibility,
+						like_count: data.post.like_count,
+						comment_count: data.post.comment_count,
+						repost_count: data.post.repost_count,
+						created_at: data.post.created_at,
+						updated_at: data.post.updated_at,
+						timeAgo: "just now",
+						liked_by_me: false,
+						reposted_by_me: false,
+						author: data.post.author,
+						story: null,
+						character: null,
+					};
+					posts.unshift(newPost);
+					renderPosts();
+					textarea.value = "";
+				} else {
+					alert(data.error || "Failed to create post");
+				}
+			} catch (err) {
+				console.error("Create post failed:", err);
+				alert("Failed to create post");
+			} finally {
+				submitBtn.removeAttribute("disabled");
+				submitBtn.textContent = "Echo";
+			}
+		});
+	}
+
+	// Auto-resize textarea
+	if (textarea) {
+		textarea.addEventListener("input", function () {
+			textarea.style.height = "auto";
+			textarea.style.height = Math.min(textarea.scrollHeight, 200) + "px";
+		});
+	}
+
+	// ── Initial render ──────────────────────────────────────────────────────
+	renderPosts();
+</script>

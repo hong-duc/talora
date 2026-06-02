@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict dPfSfd5yJV4QaydtEYOHrNVaHyeadyzGwQ7l2fqf5Ic9w1LXo0Tgc8vFFyzQbvt
+\restrict xeCKXA4wDhJkaV1z52jbbwoJWUqCvqyrBArYG0UNbN4XaBzdIOJ3Ho35JjgXezF
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 18.3 (Homebrew)
@@ -312,6 +312,89 @@ CREATE TABLE public.messages (
 ALTER TABLE public.messages OWNER TO postgres;
 
 --
+-- Name: post_comments; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.post_comments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    post_id uuid,
+    author_id uuid,
+    parent_id uuid,
+    content text NOT NULL,
+    like_count integer DEFAULT 0,
+    is_deleted boolean DEFAULT false,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.post_comments OWNER TO postgres;
+
+--
+-- Name: post_likes; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.post_likes (
+    post_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.post_likes OWNER TO postgres;
+
+--
+-- Name: post_reposts; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.post_reposts (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    post_id uuid,
+    user_id uuid,
+    quote_content text,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.post_reposts OWNER TO postgres;
+
+--
+-- Name: post_tags; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.post_tags (
+    post_id uuid NOT NULL,
+    tag_id uuid NOT NULL
+);
+
+
+ALTER TABLE public.post_tags OWNER TO postgres;
+
+--
+-- Name: posts; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.posts (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    author_id uuid,
+    content text NOT NULL,
+    story_id uuid,
+    character_id uuid,
+    image_urls text[] DEFAULT '{}'::text[],
+    visibility text DEFAULT 'public'::text,
+    like_count integer DEFAULT 0,
+    comment_count integer DEFAULT 0,
+    repost_count integer DEFAULT 0,
+    is_deleted boolean DEFAULT false,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT max_images CHECK ((array_length(image_urls, 1) <= 10)),
+    CONSTRAINT posts_visibility_check CHECK ((visibility = ANY (ARRAY['public'::text, 'followers'::text, 'unlisted'::text])))
+);
+
+
+ALTER TABLE public.posts OWNER TO postgres;
+
+--
 -- Name: profiles; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -535,6 +618,54 @@ ALTER TABLE ONLY public.messages
 
 
 --
+-- Name: post_comments post_comments_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.post_comments
+    ADD CONSTRAINT post_comments_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: post_likes post_likes_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.post_likes
+    ADD CONSTRAINT post_likes_pkey PRIMARY KEY (post_id, user_id);
+
+
+--
+-- Name: post_reposts post_reposts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.post_reposts
+    ADD CONSTRAINT post_reposts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: post_reposts post_reposts_post_id_user_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.post_reposts
+    ADD CONSTRAINT post_reposts_post_id_user_id_key UNIQUE (post_id, user_id);
+
+
+--
+-- Name: post_tags post_tags_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.post_tags
+    ADD CONSTRAINT post_tags_pkey PRIMARY KEY (post_id, tag_id);
+
+
+--
+-- Name: posts posts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.posts
+    ADD CONSTRAINT posts_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: profiles profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -653,6 +784,34 @@ CREATE INDEX idx_messages_session ON public.messages USING btree (session_id);
 
 
 --
+-- Name: idx_post_comments_post; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_post_comments_post ON public.post_comments USING btree (post_id);
+
+
+--
+-- Name: idx_post_tags_tag; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_post_tags_tag ON public.post_tags USING btree (tag_id);
+
+
+--
+-- Name: idx_posts_author; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_posts_author ON public.posts USING btree (author_id);
+
+
+--
+-- Name: idx_posts_story; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_posts_story ON public.posts USING btree (story_id);
+
+
+--
 -- Name: idx_sessions_story; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -737,6 +896,13 @@ CREATE TRIGGER trigger_increase_tag_usage AFTER INSERT ON public.story_tags FOR 
 
 
 --
+-- Name: posts update_posts_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_posts_updated_at BEFORE UPDATE ON public.posts FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+
+--
 -- Name: story_sessions update_session_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -796,6 +962,102 @@ ALTER TABLE ONLY public.comments
 
 ALTER TABLE ONLY public.messages
     ADD CONSTRAINT messages_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.story_sessions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: post_comments post_comments_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.post_comments
+    ADD CONSTRAINT post_comments_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
+-- Name: post_comments post_comments_parent_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.post_comments
+    ADD CONSTRAINT post_comments_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.post_comments(id) ON DELETE CASCADE;
+
+
+--
+-- Name: post_comments post_comments_post_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.post_comments
+    ADD CONSTRAINT post_comments_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.posts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: post_likes post_likes_post_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.post_likes
+    ADD CONSTRAINT post_likes_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.posts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: post_likes post_likes_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.post_likes
+    ADD CONSTRAINT post_likes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: post_reposts post_reposts_post_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.post_reposts
+    ADD CONSTRAINT post_reposts_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.posts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: post_reposts post_reposts_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.post_reposts
+    ADD CONSTRAINT post_reposts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: post_tags post_tags_post_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.post_tags
+    ADD CONSTRAINT post_tags_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.posts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: post_tags post_tags_tag_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.post_tags
+    ADD CONSTRAINT post_tags_tag_id_fkey FOREIGN KEY (tag_id) REFERENCES public.tags(id) ON DELETE CASCADE;
+
+
+--
+-- Name: posts posts_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.posts
+    ADD CONSTRAINT posts_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
+-- Name: posts posts_character_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.posts
+    ADD CONSTRAINT posts_character_id_fkey FOREIGN KEY (character_id) REFERENCES public.characters(id) ON DELETE SET NULL;
+
+
+--
+-- Name: posts posts_story_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.posts
+    ADD CONSTRAINT posts_story_id_fkey FOREIGN KEY (story_id) REFERENCES public.stories(id) ON DELETE SET NULL;
 
 
 --
@@ -919,6 +1181,48 @@ ALTER TABLE ONLY public.user_followers
 
 
 --
+-- Name: post_tags Allow delete; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Allow delete" ON public.post_tags FOR DELETE USING (true);
+
+
+--
+-- Name: post_comments Allow delete for author only; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Allow delete for author only" ON public.post_comments FOR DELETE TO authenticated USING ((( SELECT auth.uid() AS uid) = author_id));
+
+
+--
+-- Name: posts Allow delete for author only; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Allow delete for author only" ON public.posts FOR DELETE TO authenticated USING ((( SELECT auth.uid() AS uid) = author_id));
+
+
+--
+-- Name: post_likes Allow delete own like; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Allow delete own like" ON public.post_likes FOR DELETE TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id));
+
+
+--
+-- Name: post_reposts Allow delete own repost; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Allow delete own repost" ON public.post_reposts FOR DELETE TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id));
+
+
+--
+-- Name: posts Allow update for author only; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Allow update for author only" ON public.posts FOR UPDATE TO authenticated USING ((( SELECT auth.uid() AS uid) = author_id));
+
+
+--
 -- Name: story_ratings Enable delete for authenticated users only; Type: POLICY; Schema: public; Owner: postgres
 --
 
@@ -958,6 +1262,41 @@ CREATE POLICY "Enable insert for authenticated users only" ON public.comments FO
 --
 
 CREATE POLICY "Enable insert for authenticated users only" ON public.messages FOR INSERT TO authenticated WITH CHECK (true);
+
+
+--
+-- Name: post_comments Enable insert for authenticated users only; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable insert for authenticated users only" ON public.post_comments FOR INSERT TO authenticated WITH CHECK (true);
+
+
+--
+-- Name: post_likes Enable insert for authenticated users only; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable insert for authenticated users only" ON public.post_likes FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
+
+
+--
+-- Name: post_reposts Enable insert for authenticated users only; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable insert for authenticated users only" ON public.post_reposts FOR INSERT TO authenticated WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
+
+
+--
+-- Name: post_tags Enable insert for authenticated users only; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable insert for authenticated users only" ON public.post_tags FOR INSERT TO authenticated WITH CHECK (true);
+
+
+--
+-- Name: posts Enable insert for authenticated users only; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable insert for authenticated users only" ON public.posts FOR INSERT TO authenticated WITH CHECK (true);
 
 
 --
@@ -1049,6 +1388,41 @@ CREATE POLICY "Enable read access for all users" ON public.comments FOR SELECT U
 --
 
 CREATE POLICY "Enable read access for all users" ON public.messages FOR SELECT TO authenticated USING (true);
+
+
+--
+-- Name: post_comments Enable read access for all users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable read access for all users" ON public.post_comments FOR SELECT USING (true);
+
+
+--
+-- Name: post_likes Enable read access for all users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable read access for all users" ON public.post_likes FOR SELECT USING (true);
+
+
+--
+-- Name: post_reposts Enable read access for all users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable read access for all users" ON public.post_reposts FOR SELECT USING (true);
+
+
+--
+-- Name: post_tags Enable read access for all users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable read access for all users" ON public.post_tags FOR SELECT USING (true);
+
+
+--
+-- Name: posts Enable read access for all users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable read access for all users" ON public.posts FOR SELECT USING (true);
 
 
 --
@@ -1230,6 +1604,36 @@ ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: post_comments; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.post_comments ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: post_likes; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.post_likes ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: post_reposts; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.post_reposts ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: post_tags; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.post_tags ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: posts; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: profiles; Type: ROW SECURITY; Schema: public; Owner: postgres
 --
 
@@ -1408,6 +1812,51 @@ GRANT ALL ON TABLE public.messages TO service_role;
 
 
 --
+-- Name: TABLE post_comments; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.post_comments TO anon;
+GRANT ALL ON TABLE public.post_comments TO authenticated;
+GRANT ALL ON TABLE public.post_comments TO service_role;
+
+
+--
+-- Name: TABLE post_likes; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.post_likes TO anon;
+GRANT ALL ON TABLE public.post_likes TO authenticated;
+GRANT ALL ON TABLE public.post_likes TO service_role;
+
+
+--
+-- Name: TABLE post_reposts; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.post_reposts TO anon;
+GRANT ALL ON TABLE public.post_reposts TO authenticated;
+GRANT ALL ON TABLE public.post_reposts TO service_role;
+
+
+--
+-- Name: TABLE post_tags; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.post_tags TO anon;
+GRANT ALL ON TABLE public.post_tags TO authenticated;
+GRANT ALL ON TABLE public.post_tags TO service_role;
+
+
+--
+-- Name: TABLE posts; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.posts TO anon;
+GRANT ALL ON TABLE public.posts TO authenticated;
+GRANT ALL ON TABLE public.posts TO service_role;
+
+
+--
 -- Name: TABLE profiles; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -1561,5 +2010,5 @@ ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON T
 -- PostgreSQL database dump complete
 --
 
-\unrestrict dPfSfd5yJV4QaydtEYOHrNVaHyeadyzGwQ7l2fqf5Ic9w1LXo0Tgc8vFFyzQbvt
+\unrestrict xeCKXA4wDhJkaV1z52jbbwoJWUqCvqyrBArYG0UNbN4XaBzdIOJ3Ho35JjgXezF
 

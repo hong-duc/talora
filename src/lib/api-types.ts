@@ -120,3 +120,118 @@ export type SupabaseStoryData = {
         } | null;
     }> | null;
 };
+
+// ─── Social / Post types ───────────────────────────────────────────────────────
+
+/** Raw post row from the database */
+export interface Post {
+    id: string;
+    author_id: string;
+    content: string;
+    story_id: string | null;
+    character_id: string | null;
+    image_urls: string[];
+    visibility: 'public' | 'followers' | 'unlisted';
+    like_count: number;
+    comment_count: number;
+    repost_count: number;
+    is_deleted: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+/** Post with joined author profile */
+export interface PostWithAuthor extends Post {
+    author: {
+        id: string;
+        username: string | null;
+        avatar_url: string | null;
+    } | null;
+    /** Whether the current user has liked this post */
+    liked_by_me?: boolean;
+    /** Whether the current user has reposted this post */
+    reposted_by_me?: boolean;
+    /** Story info if attached */
+    story?: {
+        id: string;
+        title: string;
+    } | null;
+    /** Character info if attached */
+    character?: {
+        id: string;
+        name: string;
+        avatar_url: string | null;
+    } | null;
+}
+
+/** Paginated posts response */
+export interface PaginatedPostResponse {
+    posts: PostWithAuthor[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+    };
+}
+
+/** Raw post_comment row */
+export interface PostComment {
+    id: string;
+    post_id: string;
+    author_id: string;
+    parent_id: string | null;
+    content: string;
+    like_count: number;
+    is_deleted: boolean;
+    created_at: string;
+}
+
+/** Post comment with author */
+export interface PostCommentWithAuthor extends PostComment {
+    author: {
+        id: string;
+        username: string | null;
+        avatar_url: string | null;
+    } | null;
+    /** Nested replies (only one level deep from DB) */
+    replies?: PostCommentWithAuthor[];
+}
+
+/** Create post request body */
+export interface CreatePostRequest {
+    content: string;
+    story_id?: string;
+    character_id?: string;
+    image_urls?: string[];
+    visibility?: 'public' | 'followers' | 'unlisted';
+    tags?: Array<{ id: string | null; name: string }>;
+}
+
+/** Update post request body */
+export interface UpdatePostRequest {
+    content?: string;
+    visibility?: 'public' | 'followers' | 'unlisted';
+}
+
+/** Create post comment request body */
+export interface CreatePostCommentRequest {
+    content: string;
+    parent_id?: string;
+}
+
+/** Repost request body */
+export interface RepostRequest {
+    quote_content?: string;
+}
+
+/** Repost row (for checking already-reposted) */
+export interface PostRepost {
+    id: string;
+    post_id: string;
+    user_id: string;
+    quote_content: string | null;
+    created_at: string;
+}
