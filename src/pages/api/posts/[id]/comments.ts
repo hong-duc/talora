@@ -1,9 +1,10 @@
 /**
  * /api/posts/[id]/comments
  *
- * GET  — Get threaded comments for a post.
- * POST — Create a new comment (or reply) on a post.
- * DELETE — Delete own comment (uses query param ?comment_id=xxx).
+ * GET    — Get threaded comments for a post.
+ * POST   — Create a new comment (or reply) on a post.
+ * PUT    — Edit own comment (uses query param ?comment_id=xxx).
+ * DELETE — Replace own comment content with placeholder (uses query param ?comment_id=xxx).
  */
 
 import type { APIRoute } from 'astro';
@@ -19,7 +20,7 @@ export const GET: APIRoute = async ({ params }) => {
     const postId = params.id;
     if (!postId) return jsonResponse({ error: 'Post ID required.' }, 400);
 
-    // Fetch all comments for this post (not deleted), with author
+    // Fetch all comments for this post (including deleted, to show placeholders), with author
     const { data: comments, error } = await supabase
         .from('post_comments')
         .select(`
@@ -34,7 +35,6 @@ export const GET: APIRoute = async ({ params }) => {
             author:profiles!post_comments_author_id_fkey(id, username, avatar_url)
         `)
         .eq('post_id', postId)
-        .eq('is_deleted', false)
         .order('created_at', { ascending: true });
 
     if (error) {
@@ -42,26 +42,26 @@ export const GET: APIRoute = async ({ params }) => {
         return jsonResponse({ error: error.message }, 500);
     }
 
-    // Build threaded structure: top-level comments get their replies nested
-    const topLevel: any[] = [];
-    const replyMap = new Map<string, any[]>();
-
+    // Build recursive threaded structure — supports arbitrary nesting depth.
+    // First, group all comments by parent_id.
+    const childrenMap = new Map<string | null, any[]>();
     (comments || []).forEach((c: any) => {
-        const comment = { ...c };
-        if (comment.parent_id) {
-            const replies = replyMap.get(comment.parent_id) || [];
-            replies.push(comment);
-            replyMap.set(comment.parent_id, replies);
-        } else {
-            topLevel.push(comment);
-        }
+        const key = c.parent_id ?? null;
+        const siblings = childrenMap.get(key as any) || [];
+        siblings.push(c);
+        childrenMap.set(key as any, siblings);
     });
 
-    // Attach replies to their parents
-    const threaded = topLevel.map((comment: any) => ({
-        ...comment,
-        replies: replyMap.get(comment.id) || [],
-    }));
+    // Recursively attach nested replies.
+    function buildTree(parentId: string | null): any[] {
+        const children = (childrenMap.get(parentId as any) || []).map((c: any) => ({
+            ...c,
+            replies: buildTree(c.id),
+        }));
+        return children;
+    }
+
+    const threaded = buildTree(null);
 
     return jsonResponse({ comments: threaded });
 };
@@ -144,6 +144,73 @@ export const POST: APIRoute = async ({ params, request }) => {
     return jsonResponse({ success: true, comment }, 201);
 };
 
+// ─── PUT /api/posts/[id]/comments?comment_id=xxx ───────────────────────────────
+
+export const PUT: APIRoute = async ({ params, request, url }) => {
+    const postId = params.id;
+    if (!postId) return jsonResponse({ error: 'Post ID required.' }, 400);
+
+    const commentId = url.searchParams.get('comment_id');
+    if (!commentId) return jsonResponse({ error: 'comment_id query param required.' }, 400);
+
+    const auth = await requireAuth(request);
+    if (auth.error) return auth.error;
+
+    let body: { content: string };
+    try {
+        body = await request.json();
+    } catch {
+        return jsonResponse({ error: 'Invalid JSON body.' }, 400);
+    }
+
+    if (!body.content || !body.content.trim()) {
+        return jsonResponse({ error: 'Comment content is required.' }, 400);
+    }
+
+    if (body.content.length > 2000) {
+        return jsonResponse({ error: 'Comment must be under 2000 characters.' }, 400);
+    }
+
+    const db = createAuthedClient(auth.token);
+
+    // Verify ownership
+    const { data: existing } = await db
+        .from('post_comments')
+        .select('author_id')
+        .eq('id', commentId)
+        .eq('post_id', postId)
+        .maybeSingle();
+
+    if (!existing) return jsonResponse({ error: 'Comment not found.' }, 404);
+    if (existing.author_id !== auth.userId) {
+        return jsonResponse({ error: 'You can only edit your own comments.' }, 403);
+    }
+
+    const { data: comment, error } = await db
+        .from('post_comments')
+        .update({ content: body.content.trim() })
+        .eq('id', commentId)
+        .select(`
+            id,
+            post_id,
+            author_id,
+            parent_id,
+            content,
+            like_count,
+            is_deleted,
+            created_at,
+            author:profiles!post_comments_author_id_fkey(id, username, avatar_url)
+        `)
+        .single();
+
+    if (error) {
+        console.error('PUT comment error:', error);
+        return jsonResponse({ error: error.message }, 500);
+    }
+
+    return jsonResponse({ success: true, comment });
+};
+
 // ─── DELETE /api/posts/[id]/comments?comment_id=xxx ────────────────────────────
 
 export const DELETE: APIRoute = async ({ params, request, url }) => {
@@ -171,10 +238,10 @@ export const DELETE: APIRoute = async ({ params, request, url }) => {
         return jsonResponse({ error: 'You can only delete your own comments.' }, 403);
     }
 
-    // Soft-delete
+    // Replace content with deletion placeholder instead of hiding
     const { error } = await db
         .from('post_comments')
-        .update({ is_deleted: true })
+        .update({ content: '[comment deleted by user]', is_deleted: true })
         .eq('id', commentId);
 
     if (error) {
@@ -182,7 +249,7 @@ export const DELETE: APIRoute = async ({ params, request, url }) => {
         return jsonResponse({ error: error.message }, 500);
     }
 
-    // Decrement comment_count
+    // Decrement comment_count on the post to keep it in sync with DB
     const { data: post } = await db
         .from('posts')
         .select('comment_count')
@@ -191,5 +258,5 @@ export const DELETE: APIRoute = async ({ params, request, url }) => {
     const newCount = Math.max(0, (post?.comment_count || 1) - 1);
     await db.from('posts').update({ comment_count: newCount }).eq('id', postId);
 
-    return jsonResponse({ success: true });
+    return jsonResponse({ success: true, comment_count: newCount });
 };

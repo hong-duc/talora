@@ -397,6 +397,30 @@ const currentUserIdJson = JSON.stringify(currentUserId);
 			<div
 				class="glass-card relative overflow-hidden rounded-xl border border-primary/10"
 			>
+				<!-- Post action dropdown (edit/delete) — positioned top-right corner -->
+				<div class="post-actions absolute top-3 right-3 z-10 hidden">
+					<button
+						class="post-actions-trigger flex items-center justify-center rounded-full p-1 text-slate-500 transition-colors hover:bg-primary/10 hover:text-accent-gold"
+						title="More actions"
+					>
+						<span class="material-symbols-outlined text-[20px]">more_vert</span>
+					</button>
+					<div class="post-actions-dropdown absolute right-0 top-full z-20 mt-1 hidden w-36 rounded-lg border border-primary/20 bg-surface-container shadow-xl shadow-black/30">
+						<button
+							class="post-action-edit flex w-full items-center gap-2 rounded-t-lg px-3 py-2.5 text-sm text-slate-300 transition-colors hover:bg-primary/10 hover:text-accent-gold"
+						>
+							<span class="material-symbols-outlined text-[18px]">edit</span>
+							Edit
+						</button>
+						<button
+							class="post-action-delete flex w-full items-center gap-2 rounded-b-lg px-3 py-2.5 text-sm text-slate-300 transition-colors hover:bg-red-500/10 hover:text-red-400"
+						>
+							<span class="material-symbols-outlined text-[18px]">delete</span>
+							Delete
+						</button>
+					</div>
+				</div>
+
 				<div class="p-6">
 					<div class="mb-4 flex items-center gap-3">
 						<div
@@ -413,30 +437,6 @@ const currentUserIdJson = JSON.stringify(currentUserId);
 						>
 							Story Attached
 						</div>
-
-						<!-- Post action dropdown (edit/delete) — hidden by default, shown only for own posts -->
-						<div class="post-actions relative ml-2 hidden">
-							<button
-								class="post-actions-trigger flex items-center justify-center rounded-full p-1 text-slate-500 transition-colors hover:bg-primary/10 hover:text-accent-gold"
-								title="More actions"
-							>
-								<span class="material-symbols-outlined text-[20px]">more_vert</span>
-							</button>
-							<div class="post-actions-dropdown absolute right-0 top-full z-20 mt-1 hidden w-36 rounded-lg border border-primary/20 bg-surface-container shadow-xl shadow-black/30">
-								<button
-									class="post-action-edit flex w-full items-center gap-2 rounded-t-lg px-3 py-2.5 text-sm text-slate-300 transition-colors hover:bg-primary/10 hover:text-accent-gold"
-								>
-									<span class="material-symbols-outlined text-[18px]">edit</span>
-									Edit
-								</button>
-								<button
-									class="post-action-delete flex w-full items-center gap-2 rounded-b-lg px-3 py-2.5 text-sm text-slate-300 transition-colors hover:bg-red-500/10 hover:text-red-400"
-								>
-									<span class="material-symbols-outlined text-[18px]">delete</span>
-									Delete
-								</button>
-							</div>
-						</div>
 					</div>
 					<p
 						class="post-content mb-4 text-lg italic leading-relaxed text-slate-200"
@@ -449,7 +449,7 @@ const currentUserIdJson = JSON.stringify(currentUserId);
 						maxlength="5000"
 					></textarea>
 					<!-- Edit actions (hidden by default) -->
-					<div class="post-edit-actions hidden mb-4 flex items-center gap-2">
+					<div class="post-edit-actions hidden mb-4 items-center gap-2">
 						<button
 							class="post-edit-save rounded-lg bg-primary px-4 py-1.5 text-sm font-bold text-white transition-all hover:bg-primary/90"
 						>
@@ -508,9 +508,156 @@ const currentUserIdJson = JSON.stringify(currentUserId);
 							<span class="repost-count">0</span>
 						</button>
 					</div>
+
+					<!-- Comment section (hidden by default) -->
+					<div class="post-comments-section hidden mt-4 border-t border-primary/10 pt-4">
+						<!-- New comment input -->
+						<div class="post-comment-input flex gap-3 mb-4">
+							<div
+								class="comment-self-avatar size-8 shrink-0 rounded-full bg-cover bg-center ring-1 ring-accent-gold/30"
+							></div>
+							<div class="flex-1">
+								<textarea
+									class="post-comment-textarea w-full resize-none rounded-lg border border-primary/20 bg-slate-900 p-2 text-sm text-slate-200 placeholder:text-slate-500 focus:ring-1 focus:ring-accent-gold/50"
+									placeholder="Whisper a reply..."
+									rows="1"
+									maxlength="2000"
+								></textarea>
+								<div class="post-comment-actions hidden mt-2 items-center gap-2">
+									<button
+										class="post-comment-submit rounded-lg bg-primary px-3 py-1 text-xs font-bold text-white transition-all hover:bg-primary/90"
+									>
+										Reply
+									</button>
+									<button
+										class="post-comment-cancel rounded-lg border border-primary/20 px-3 py-1 text-xs text-slate-400 transition-all hover:text-slate-200"
+									>
+										Cancel
+									</button>
+								</div>
+							</div>
+						</div>
+						<!-- Comments thread container -->
+						<div class="post-comments-thread flex flex-col gap-0">
+						</div>
+					</div>
 				</div>
 			</div>
 		</template>
+
+		<!-- Comment template (hidden, used by JS) -->
+		<template id="comment-template">
+			<div class="comment-item">
+				<div class="flex gap-3">
+					<!-- Thread line connector -->
+					<div class="comment-thread-col flex flex-col items-center shrink-0 w-8">
+						<div class="comment-avatar size-7 rounded-full bg-cover bg-center ring-1 ring-accent-gold/20 shrink-0"></div>
+						<div class="comment-thread-line hidden w-0.5 flex-1 bg-accent-gold/30 mt-1 rounded-full"></div>
+					</div>
+					<div class="flex-1 min-w-0 pb-3">
+						<div class="flex items-center gap-2 mb-1">
+							<span class="comment-username text-xs font-bold text-slate-300"></span>
+							<span class="comment-time text-[10px] italic text-slate-500"></span>
+							<!-- Comment 3-dot dropdown -->
+							<div class="comment-actions relative ml-auto hidden">
+								<button
+									class="comment-actions-trigger flex items-center justify-center rounded-full p-0.5 text-slate-500 transition-colors hover:bg-primary/10 hover:text-accent-gold"
+									title="More actions"
+								>
+									<span class="material-symbols-outlined text-[16px]">more_vert</span>
+								</button>
+								<div class="comment-actions-dropdown absolute right-0 top-full z-20 mt-1 hidden w-36 rounded-lg border border-primary/20 bg-surface-container shadow-xl shadow-black/30">
+									<button
+										class="comment-action-edit flex w-full items-center gap-2 rounded-t-lg px-3 py-2 text-xs text-slate-300 transition-colors hover:bg-primary/10 hover:text-accent-gold"
+									>
+										<span class="material-symbols-outlined text-[14px]">edit</span>
+										Edit
+									</button>
+									<button
+										class="comment-action-delete flex w-full items-center gap-2 rounded-b-lg px-3 py-2 text-xs text-slate-300 transition-colors hover:bg-red-500/10 hover:text-red-400"
+									>
+										<span class="material-symbols-outlined text-[14px]">delete</span>
+										Delete
+									</button>
+								</div>
+							</div>
+						</div>
+						<!-- Comment content (view mode) -->
+						<p class="comment-content text-sm leading-relaxed text-slate-300"></p>
+						<!-- Deleted comment placeholder -->
+						<p class="comment-deleted hidden text-sm italic leading-relaxed text-slate-600"></p>
+						<!-- Edit textarea (hidden) -->
+						<textarea
+							class="comment-edit-textarea hidden mt-1 w-full resize-none rounded-lg border border-accent-gold/30 bg-slate-900 p-2 text-sm text-slate-200 focus:ring-1 focus:ring-accent-gold/50"
+							rows="2"
+							maxlength="2000"
+						></textarea>
+						<!-- Edit actions (hidden) -->
+						<div class="comment-edit-actions hidden mt-2 items-center gap-2">
+							<button
+								class="comment-edit-save rounded-lg bg-primary px-3 py-1 text-xs font-bold text-white transition-all hover:bg-primary/90"
+							>
+								Save
+							</button>
+							<button
+								class="comment-edit-cancel rounded-lg border border-primary/20 px-3 py-1 text-xs text-slate-400 transition-all hover:text-slate-200"
+							>
+								Cancel
+							</button>
+						</div>
+						<!-- Delete confirmation (hidden) -->
+						<div class="comment-delete-confirm hidden mt-2 rounded-lg border border-red-500/20 bg-red-500/5 p-3">
+							<p class="mb-2 text-xs text-slate-400">Delete this whisper? It will be replaced with a placeholder.</p>
+							<div class="flex items-center gap-2">
+								<button
+									class="comment-delete-confirm-btn rounded-lg bg-red-600 px-3 py-1 text-xs font-bold text-white transition-all hover:bg-red-500"
+								>
+									Delete
+								</button>
+								<button
+									class="comment-delete-cancel rounded-lg border border-primary/20 px-3 py-1 text-xs text-slate-400 transition-all hover:text-slate-200"
+								>
+									Cancel
+								</button>
+							</div>
+						</div>
+						<!-- Reply button & inline reply form -->
+						<button
+							class="comment-reply-btn mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-600 hover:text-accent-gold transition-colors"
+						>
+							Reply
+						</button>
+						<div class="comment-inline-reply hidden mt-2 gap-2">
+							<div class="comment-reply-avatar size-6 shrink-0 rounded-full bg-cover bg-center ring-1 ring-accent-gold/20"></div>
+							<div class="flex-1">
+								<textarea
+									class="comment-reply-textarea w-full resize-none rounded-lg border border-primary/20 bg-slate-900 p-2 text-xs text-slate-200 placeholder:text-slate-500 focus:ring-1 focus:ring-accent-gold/50"
+									placeholder="Write a reply..."
+									rows="1"
+									maxlength="2000"
+								></textarea>
+								<div class="comment-reply-actions hidden mt-1 items-center gap-2">
+									<button
+										class="comment-reply-submit rounded-lg bg-primary px-3 py-1 text-[10px] font-bold text-white transition-all hover:bg-primary/90"
+									>
+										Reply
+									</button>
+									<button
+										class="comment-reply-cancel rounded-lg border border-primary/20 px-3 py-1 text-[10px] text-slate-400 transition-all hover:text-slate-200"
+									>
+										Cancel
+									</button>
+								</div>
+							</div>
+						</div>
+						<!-- Nested replies container -->
+						<div class="comment-replies ml-2 mt-1"></div>
+					</div>
+				</div>
+			</div>
+		</template>
+		<!-- Toast container for error notifications -->
+		<div id="toast-container" class="pointer-events-none fixed left-1/2 top-6 z-[100] flex w-[min(92vw,28rem)] -translate-x-1/2 flex-col gap-3"></div>
 	</body>
 </html>
 
@@ -523,6 +670,62 @@ const currentUserIdJson = JSON.stringify(currentUserId);
 	const emptyState = document.getElementById("posts-empty");
 	const loadingState = document.getElementById("posts-loading");
 	const template = document.getElementById("post-template");
+	const commentTemplate = document.getElementById("comment-template");
+
+	// ── Toast helper ──────────────────────────────────────────────────────────
+	/**
+	 * Show a dismissible gold-themed error toast with a close button.
+	 * @param {string} message - The error message to display
+	 */
+	function showToast(message) {
+		const container = document.getElementById("toast-container");
+		if (!container) return;
+
+		const id = "toast-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+
+		const toast = document.createElement("div");
+		toast.id = id;
+		toast.className = "pointer-events-auto flex items-start gap-3 rounded-xl border border-red-500/40 bg-[#3b0d1e]/95 px-4 py-3 shadow-2xl backdrop-blur-md transition-all duration-300 opacity-0 translate-y-2";
+		toast.setAttribute("role", "alert");
+		toast.innerHTML =
+			'<span class="material-symbols-outlined mt-0.5 shrink-0 text-xl text-red-400" style="font-variation-settings:\'FILL\' 1">error</span>' +
+			'<p class="flex-1 text-sm leading-relaxed text-red-200/90">' +
+			message.replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">") +
+			"</p>" +
+			'<button class="toast-close shrink-0 rounded p-0.5 text-red-400/60 transition-colors hover:text-red-300" aria-label="Dismiss">' +
+			'<span class="material-symbols-outlined text-base">close</span>' +
+			"</button>";
+
+		container.appendChild(toast);
+
+		// Animate in
+		requestAnimationFrame(function () {
+			toast.classList.remove("opacity-0", "translate-y-2");
+		});
+
+		// Close button
+		toast.querySelector(".toast-close").addEventListener("click", function () {
+			dismissToast(toast);
+		});
+
+		// Auto-dismiss after 15 seconds (long timeout)
+		const timer = setTimeout(function () {
+			dismissToast(toast);
+		}, 15000);
+
+		// Store timer on element for cleanup
+		toast._dismissTimer = timer;
+	}
+
+	function dismissToast(toast) {
+		if (toast._dismissed) return;
+		toast._dismissed = true;
+		clearTimeout(toast._dismissTimer);
+		toast.classList.add("opacity-0", "translate-y-2");
+		setTimeout(function () {
+			toast.remove();
+		}, 300);
+	}
 
 	// Helper to get access token from cookies
 	function getAccessToken() {
@@ -538,19 +741,372 @@ const currentUserIdJson = JSON.stringify(currentUserId);
 		return null;
 	}
 
+	// Helper: relative time formatting
+	function timeAgo(dateStr) {
+		const now = Date.now();
+		const then = new Date(dateStr).getTime();
+		const diff = now - then;
+		const mins = Math.floor(diff / 60000);
+		if (mins < 1) return "just now";
+		if (mins < 60) return `${mins}m ago`;
+		const hours = Math.floor(mins / 60);
+		if (hours < 24) return `${hours}h ago`;
+		const days = Math.floor(hours / 24);
+		if (days < 7) return `${days}d ago`;
+		return new Date(dateStr).toLocaleDateString();
+	}
+
 	// ── Close all open dropdowns ──────────────────────────────────────────────
 	function closeAllDropdowns() {
-		document.querySelectorAll(".post-actions-dropdown:not(.hidden)").forEach(function (dd) {
+		document.querySelectorAll(".post-actions-dropdown:not(.hidden), .comment-actions-dropdown:not(.hidden)").forEach(function (dd) {
 			dd.classList.add("hidden");
 		});
 	}
 
 	// Close dropdowns when clicking outside
 	document.addEventListener("click", function (e) {
-		if (!e.target.closest(".post-actions")) {
+		if (!e.target.closest(".post-actions") && !e.target.closest(".comment-actions")) {
 			closeAllDropdowns();
 		}
 	});
+
+	// ── Build a comment element recursively ───────────────────────────────────
+	function buildCommentElement(comment, depth, postId) {
+		const clone = commentTemplate.content.cloneNode(true);
+		const item = clone.querySelector(".comment-item");
+		item.setAttribute("data-comment-id", comment.id);
+		item.setAttribute("data-post-id", postId);
+
+		// Avatar
+		const avatarEl = clone.querySelector(".comment-avatar");
+		avatarEl.style.backgroundImage =
+			"url('" +
+			(comment.author && comment.author.avatar_url
+				? comment.author.avatar_url
+				: defaultAvatar) +
+			"')";
+
+		// Username & time
+		clone.querySelector(".comment-username").textContent =
+			(comment.author && comment.author.username) || "Unknown Seeker";
+		clone.querySelector(".comment-time").textContent = timeAgo(comment.created_at);
+
+		// Content
+		const contentP = clone.querySelector(".comment-content");
+		const deletedP = clone.querySelector(".comment-deleted");
+		if (comment.is_deleted) {
+			contentP.classList.add("hidden");
+			deletedP.classList.remove("hidden");
+			deletedP.textContent = comment.content || "[comment deleted by user]";
+		} else {
+			contentP.textContent = comment.content;
+		}
+
+		// Thread line: show if depth > 0 (nested reply) or has replies
+		const threadLine = clone.querySelector(".comment-thread-line");
+		if (depth > 0 || (comment.replies && comment.replies.length > 0)) {
+			threadLine.classList.remove("hidden");
+		}
+
+		// Collapse/expand thread: click on thread column to toggle replies
+		const threadCol = clone.querySelector(".comment-thread-col");
+		const repliesContainer = clone.querySelector(".comment-replies");
+		threadCol.style.cursor = "pointer";
+		threadCol.addEventListener("click", function (e) {
+			e.stopPropagation();
+			if (repliesContainer.children.length > 0) {
+				const isHidden = repliesContainer.classList.contains("hidden");
+				if (isHidden) {
+					repliesContainer.classList.remove("hidden");
+					threadLine.classList.remove("hidden");
+				} else {
+					repliesContainer.classList.add("hidden");
+					threadLine.classList.add("hidden");
+				}
+			}
+		});
+
+		// ── Owner actions (edit/delete dropdown) ──────────────────────────────
+		if (!comment.is_deleted && currentUserId && comment.author_id === currentUserId) {
+			const actionsContainer = clone.querySelector(".comment-actions");
+			actionsContainer.classList.remove("hidden");
+
+			const trigger = actionsContainer.querySelector(".comment-actions-trigger");
+			const dropdown = actionsContainer.querySelector(".comment-actions-dropdown");
+
+			trigger.addEventListener("click", function (e) {
+				e.stopPropagation();
+				closeAllDropdowns();
+				dropdown.classList.toggle("hidden");
+			});
+
+			// Edit
+			const editBtn = actionsContainer.querySelector(".comment-action-edit");
+			const editTextarea = clone.querySelector(".comment-edit-textarea");
+			const editActions = clone.querySelector(".comment-edit-actions");
+			const editSave = clone.querySelector(".comment-edit-save");
+			const editCancel = clone.querySelector(".comment-edit-cancel");
+			const deleteConfirm = clone.querySelector(".comment-delete-confirm");
+
+			editBtn.addEventListener("click", function () {
+				dropdown.classList.add("hidden");
+				contentP.classList.add("hidden");
+				editTextarea.value = comment.content;
+				editTextarea.classList.remove("hidden");
+				editActions.classList.remove("hidden");
+				editTextarea.focus();
+			});
+
+			editSave.addEventListener("click", async function () {
+				const newContent = editTextarea.value.trim();
+				if (!newContent || newContent === comment.content) {
+					editTextarea.classList.add("hidden");
+					editActions.classList.add("hidden");
+					contentP.classList.remove("hidden");
+					return;
+				}
+
+				const token = getAccessToken();
+				editSave.setAttribute("disabled", "true");
+				editSave.textContent = "Saving...";
+
+				try {
+					const res = await fetch(
+						"/api/posts/" + postId + "/comments?comment_id=" + comment.id,
+						{
+							method: "PUT",
+							headers: {
+								"Content-Type": "application/json",
+								Authorization: "Bearer " + token,
+							},
+							body: JSON.stringify({ content: newContent }),
+						},
+					);
+					const data = await res.json();
+					if (res.ok && data.success) {
+						comment.content = newContent;
+						contentP.textContent = newContent;
+						editTextarea.classList.add("hidden");
+						editActions.classList.add("hidden");
+						contentP.classList.remove("hidden");
+					} else {
+						showToast(data.error || "Failed to update comment");
+					}
+				} catch (err) {
+					console.error("Comment edit failed:", err);
+					showToast("Failed to update comment");
+				} finally {
+					editSave.removeAttribute("disabled");
+					editSave.textContent = "Save";
+				}
+			});
+
+			editCancel.addEventListener("click", function () {
+				editTextarea.classList.add("hidden");
+				editActions.classList.add("hidden");
+				contentP.classList.remove("hidden");
+			});
+
+			// Delete
+			const deleteBtn = actionsContainer.querySelector(".comment-action-delete");
+			const deleteConfirmBtn = clone.querySelector(".comment-delete-confirm-btn");
+			const deleteCancelBtn = clone.querySelector(".comment-delete-cancel");
+
+			deleteBtn.addEventListener("click", function () {
+				dropdown.classList.add("hidden");
+				deleteConfirm.classList.remove("hidden");
+			});
+
+			deleteCancelBtn.addEventListener("click", function () {
+				deleteConfirm.classList.add("hidden");
+			});
+
+			deleteConfirmBtn.addEventListener("click", async function () {
+				const token = getAccessToken();
+				deleteConfirmBtn.setAttribute("disabled", "true");
+				deleteConfirmBtn.textContent = "Deleting...";
+
+				try {
+					const res = await fetch(
+						"/api/posts/" + postId + "/comments?comment_id=" + comment.id,
+						{
+							method: "DELETE",
+							headers: {
+								Authorization: "Bearer " + token,
+							},
+						},
+					);
+					const data = await res.json();
+					if (res.ok && data.success) {
+						// Replace content with placeholder
+						comment.content = "[comment deleted by user]";
+						comment.is_deleted = true;
+						contentP.classList.add("hidden");
+						deletedP.classList.remove("hidden");
+						deletedP.textContent = "[comment deleted by user]";
+						deleteConfirm.classList.add("hidden");
+						actionsContainer.classList.add("hidden");
+					} else {
+						showToast(data.error || "Failed to delete comment");
+						deleteConfirmBtn.removeAttribute("disabled");
+						deleteConfirmBtn.textContent = "Delete";
+					}
+				} catch (err) {
+					console.error("Comment delete failed:", err);
+					showToast("Failed to delete comment");
+					deleteConfirmBtn.removeAttribute("disabled");
+					deleteConfirmBtn.textContent = "Delete";
+				}
+			});
+		}
+
+		// ── Reply button ──────────────────────────────────────────────────────
+		const replyBtn = clone.querySelector(".comment-reply-btn");
+		const inlineReply = clone.querySelector(".comment-inline-reply");
+		const replyTextarea = clone.querySelector(".comment-reply-textarea");
+		const replyActions = clone.querySelector(".comment-reply-actions");
+		const replySubmit = clone.querySelector(".comment-reply-submit");
+		const replyCancel = clone.querySelector(".comment-reply-cancel");
+		const replyAvatar = clone.querySelector(".comment-reply-avatar");
+
+		replyBtn.addEventListener("click", function () {
+			if (!isLoggedIn) {
+				window.location.href = "/signin";
+				return;
+			}
+			const isOpen = !inlineReply.classList.contains("hidden");
+			// Close all other inline replies first
+			document.querySelectorAll(".comment-inline-reply:not(.hidden)").forEach(function (el) {
+				const ta = el.querySelector(".comment-reply-textarea");
+				const act = el.querySelector(".comment-reply-actions");
+				if (ta) ta.value = "";
+				if (act) act.classList.add("hidden");
+				el.classList.add("hidden");
+			});
+			if (!isOpen) {
+				inlineReply.classList.remove("hidden");
+				replyTextarea.focus();
+			}
+		});
+
+		replyTextarea.addEventListener("input", function () {
+			if (replyTextarea.value.trim()) {
+				replyActions.classList.remove("hidden");
+			} else {
+				replyActions.classList.add("hidden");
+			}
+		});
+
+		replyCancel.addEventListener("click", function () {
+			inlineReply.classList.add("hidden");
+			replyTextarea.value = "";
+			replyActions.classList.add("hidden");
+		});
+
+		replySubmit.addEventListener("click", async function () {
+			const content = replyTextarea.value.trim();
+			if (!content) return;
+
+			const token = getAccessToken();
+			replySubmit.setAttribute("disabled", "true");
+			replySubmit.textContent = "Replying...";
+
+			try {
+				const res = await fetch("/api/posts/" + postId + "/comments", {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: "Bearer " + token,
+					},
+					body: JSON.stringify({
+						content: content,
+						parent_id: comment.id,
+					}),
+				});
+				const data = await res.json();
+				if (res.ok && data.success) {
+					// Add reply to comment.replies
+					if (!comment.replies) comment.replies = [];
+					comment.replies.push(data.comment);
+
+					// Re-render replies
+					repliesContainer.innerHTML = "";
+					(comment.replies || []).forEach(function (reply) {
+						repliesContainer.appendChild(buildCommentElement(reply, depth + 1, postId));
+					});
+
+					// Show thread line
+					threadLine.classList.remove("hidden");
+
+					// Reset inline reply
+					inlineReply.classList.add("hidden");
+					replyTextarea.value = "";
+					replyActions.classList.add("hidden");
+
+					// Update comment count
+					const postCard = item.closest(".post-card");
+					if (postCard) {
+						const countEl = postCard.querySelector(".comment-count");
+						if (countEl) {
+							countEl.textContent = String(parseInt(countEl.textContent || "0") + 1);
+						}
+					}
+				} else {
+					showToast(data.error || "Failed to post reply");
+				}
+			} catch (err) {
+				console.error("Reply failed:", err);
+				showToast("Failed to post reply");
+			} finally {
+				replySubmit.removeAttribute("disabled");
+				replySubmit.textContent = "Reply";
+			}
+		});
+
+		// ── Render nested replies ─────────────────────────────────────────────
+		if (comment.replies && comment.replies.length > 0) {
+			comment.replies.forEach(function (reply) {
+				repliesContainer.appendChild(buildCommentElement(reply, depth + 1, postId));
+			});
+		}
+
+		return item;
+	}
+
+	// ── Render post comments ──────────────────────────────────────────────────
+	async function loadAndRenderComments(postCard, postId) {
+		const commentsThread = postCard.querySelector(".post-comments-thread");
+		const commentsSection = postCard.querySelector(".post-comments-section");
+
+		// Already loaded?
+		if (commentsSection.hasAttribute("data-comments-loaded")) return;
+
+		commentsThread.innerHTML =
+			'<div class="flex items-center justify-center py-4"><span class="material-symbols-outlined text-sm text-slate-500 animate-spin">hourglass</span></div>';
+
+		try {
+			const res = await fetch("/api/posts/" + postId + "/comments");
+			const data = await res.json();
+			const threadedComments = (data.comments || []);
+
+			commentsThread.innerHTML = "";
+
+			if (threadedComments.length === 0) {
+				commentsThread.innerHTML =
+					'<p class="text-xs text-slate-600 italic py-2">No whispers yet. Be the first to share one.</p>';
+			} else {
+				threadedComments.forEach(function (comment) {
+					commentsThread.appendChild(buildCommentElement(comment, 0, postId));
+				});
+			}
+
+			commentsSection.setAttribute("data-comments-loaded", "true");
+		} catch (err) {
+			console.error("Failed to load comments:", err);
+			commentsThread.innerHTML =
+				'<p class="text-xs text-red-400 py-2">Failed to load whispers.</p>';
+		}
+	}
 
 	// ── Render posts ────────────────────────────────────────────────────────
 	function renderPosts() {
@@ -581,6 +1137,14 @@ const currentUserIdJson = JSON.stringify(currentUserId);
 					? post.author.avatar_url
 					: defaultAvatar) +
 				"')";
+
+			// Self avatar for comment input
+			const commentSelfAvatar = clone.querySelector(".comment-self-avatar");
+			if (commentSelfAvatar) {
+				// Try to get current user avatar from the first post's author if it's us,
+				// or use default. We don't have myProfile in JS, so use a generic approach.
+				commentSelfAvatar.style.backgroundImage = "url('" + defaultAvatar + "')";
+			}
 
 			// Username + time
 			clone.querySelector(".post-username").textContent =
@@ -659,11 +1223,11 @@ const currentUserIdJson = JSON.stringify(currentUserId);
 							editActions.classList.add("hidden");
 							contentP.classList.remove("hidden");
 						} else {
-							alert(data.error || "Failed to update post");
+							showToast(data.error || "Failed to update post");
 						}
 					} catch (err) {
 						console.error("Edit failed:", err);
-						alert("Failed to update post");
+						showToast("Failed to update post");
 					} finally {
 						editSave.removeAttribute("disabled");
 						editSave.textContent = "Save";
@@ -717,13 +1281,13 @@ const currentUserIdJson = JSON.stringify(currentUserId);
 								}
 							}, 300);
 						} else {
-							alert(data.error || "Failed to delete post");
+							showToast(data.error || "Failed to delete post");
 							deleteConfirmBtn.removeAttribute("disabled");
 							deleteConfirmBtn.textContent = "Delete";
 						}
 					} catch (err) {
 						console.error("Delete failed:", err);
-						alert("Failed to delete post");
+						showToast("Failed to delete post");
 						deleteConfirmBtn.removeAttribute("disabled");
 						deleteConfirmBtn.textContent = "Delete";
 					}
@@ -769,9 +1333,8 @@ const currentUserIdJson = JSON.stringify(currentUserId);
 				).textContent = "favorite";
 			}
 
-			clone.querySelector(".comment-count").textContent = String(
-				post.comment_count || 0,
-			);
+			const commentCountEl = clone.querySelector(".comment-count");
+			commentCountEl.textContent = String(post.comment_count || 0);
 
 			const repostBtn = clone.querySelector(".btn-repost");
 			const repostCount = repostBtn.querySelector(".repost-count");
@@ -779,6 +1342,96 @@ const currentUserIdJson = JSON.stringify(currentUserId);
 			if (post.reposted_by_me) {
 				repostBtn.classList.add("text-accent-gold");
 			}
+
+			// ── Comment section toggle ─────────────────────────────────────────
+			const commentBtn = clone.querySelector(".btn-comment");
+			const commentsSection = clone.querySelector(".post-comments-section");
+			const commentTextarea = clone.querySelector(".post-comment-textarea");
+			const commentActions = clone.querySelector(".post-comment-actions");
+			const commentSubmit = clone.querySelector(".post-comment-submit");
+			const commentCancel = clone.querySelector(".post-comment-cancel");
+
+			commentBtn.addEventListener("click", function () {
+				if (!isLoggedIn) {
+					window.location.href = "/signin";
+					return;
+				}
+				const isHidden = commentsSection.classList.contains("hidden");
+				if (isHidden) {
+					commentsSection.classList.remove("hidden");
+					loadAndRenderComments(card, post.id);
+				} else {
+					commentsSection.classList.add("hidden");
+				}
+			});
+
+			// ── New comment textarea behavior ──────────────────────────────────
+			commentTextarea.addEventListener("input", function () {
+				if (commentTextarea.value.trim()) {
+					commentActions.classList.remove("hidden");
+				} else {
+					commentActions.classList.add("hidden");
+				}
+				// Auto-resize
+				commentTextarea.style.height = "auto";
+				commentTextarea.style.height = Math.min(commentTextarea.scrollHeight, 120) + "px";
+			});
+
+			commentCancel.addEventListener("click", function () {
+				commentTextarea.value = "";
+				commentActions.classList.add("hidden");
+				commentTextarea.style.height = "auto";
+			});
+
+			commentSubmit.addEventListener("click", async function () {
+				const content = commentTextarea.value.trim();
+				if (!content) return;
+
+				const token = getAccessToken();
+				commentSubmit.setAttribute("disabled", "true");
+				commentSubmit.textContent = "Whispering...";
+
+				try {
+					const res = await fetch("/api/posts/" + post.id + "/comments", {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+							Authorization: "Bearer " + token,
+						},
+						body: JSON.stringify({ content: content }),
+					});
+					const data = await res.json();
+					if (res.ok && data.success) {
+						const commentsThread = card.querySelector(".post-comments-thread");
+
+						// Add new comment to thread
+						const newCommentEl = buildCommentElement(data.comment, 0, post.id);
+						commentsThread.appendChild(newCommentEl);
+
+						// Clear the empty state message if present
+						const emptyMsg = commentsThread.querySelector("p");
+						if (emptyMsg && emptyMsg.textContent.includes("No whispers yet")) {
+							emptyMsg.remove();
+						}
+
+						// Update count
+						commentCountEl.textContent = String(parseInt(commentCountEl.textContent || "0") + 1);
+
+						// Reset input
+						commentTextarea.value = "";
+						commentActions.classList.add("hidden");
+						commentTextarea.style.height = "auto";
+					} else {
+						showToast(data.error || "Failed to post comment");
+					}
+				} catch (err) {
+					console.error("Comment post failed:", err);
+					showToast("Failed to post comment");
+				} finally {
+					commentSubmit.removeAttribute("disabled");
+					commentSubmit.textContent = "Reply";
+				}
+			});
 
 			// Wire up interaction buttons
 			likeBtn.addEventListener("click", function () {
@@ -910,11 +1563,11 @@ const currentUserIdJson = JSON.stringify(currentUserId);
 					renderPosts();
 					textarea.value = "";
 				} else {
-					alert(data.error || "Failed to create post");
+					showToast(data.error || "Failed to create post");
 				}
 			} catch (err) {
 				console.error("Create post failed:", err);
-				alert("Failed to create post");
+				showToast("Failed to create post");
 			} finally {
 				submitBtn.removeAttribute("disabled");
 				submitBtn.textContent = "Echo";

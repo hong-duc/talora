@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict xeCKXA4wDhJkaV1z52jbbwoJWUqCvqyrBArYG0UNbN4XaBzdIOJ3Ho35JjgXezF
+\restrict OmF9l4pVAjr49R9745Nd31Dji1UFKuny6p2Mb8pRRE8RKYsZHoQXVatNh73FgKF
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 18.3 (Homebrew)
@@ -1216,6 +1216,13 @@ CREATE POLICY "Allow delete own repost" ON public.post_reposts FOR DELETE TO aut
 
 
 --
+-- Name: post_comments Allow update for author only; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Allow update for author only" ON public.post_comments FOR UPDATE TO authenticated USING ((( SELECT auth.uid() AS uid) = author_id)) WITH CHECK ((( SELECT auth.uid() AS uid) = author_id));
+
+
+--
 -- Name: posts Allow update for author only; Type: POLICY; Schema: public; Owner: postgres
 --
 
@@ -2010,5 +2017,5 @@ ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON T
 -- PostgreSQL database dump complete
 --
 
-\unrestrict xeCKXA4wDhJkaV1z52jbbwoJWUqCvqyrBArYG0UNbN4XaBzdIOJ3Ho35JjgXezF
+\unrestrict OmF9l4pVAjr49R9745Nd31Dji1UFKuny6p2Mb8pRRE8RKYsZHoQXVatNh73FgKF
 
