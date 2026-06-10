@@ -8,6 +8,7 @@
 import type { APIRoute } from 'astro';
 import { requireAuth, jsonResponse } from '../../../../lib/api-auth';
 import { createAuthedClient } from '../../../../lib/supabase';
+import { eventHub } from '../../../../lib/event-hub';
 
 export const prerender = false;
 
@@ -66,11 +67,21 @@ export const POST: APIRoute = async ({ params, request }) => {
     // Increment like_count
     const { data: post } = await db
         .from('posts')
-        .select('like_count')
+        .select('like_count, author_id')
         .eq('id', postId)
         .single();
     const newCount = (post?.like_count || 0) + 1;
     await db.from('posts').update({ like_count: newCount }).eq('id', postId);
+
+    // Fire notification event
+    if (post?.author_id) {
+        eventHub.emit({
+            type: 'post_like',
+            actorId: auth.userId,
+            recipientId: post.author_id,
+            entityId: postId,
+        });
+    }
 
     return jsonResponse({ liked: true, like_count: newCount });
 };

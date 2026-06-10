@@ -1,0 +1,232 @@
+---
+import "../styles/global.css";
+import SiteFooter from "../components/SiteFooter.astro";
+
+const notificationTypes = [
+  { type: "post_like", label: "Post Likes", icon: "favorite" },
+  { type: "post_comment", label: "Post Comments", icon: "chat" },
+  { type: "comment_like", label: "Comment Likes", icon: "thumb_up" },
+  { type: "comment_reply", label: "Comment Replies", icon: "reply" },
+  { type: "post_repost", label: "Reposts", icon: "sync" },
+  { type: "new_follower", label: "New Followers", icon: "person_add" },
+  { type: "story_comment", label: "Story Comments", icon: "auto_stories" },
+  { type: "story_rating", label: "Story Ratings", icon: "star" },
+];
+---
+
+<html class="dark" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <title>The Whispering Library - Notifications</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,200..800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      .double-outline {
+        position: relative;
+        border: 1px solid rgba(149, 143, 152, 0.4);
+      }
+      .double-outline::before {
+        content: '';
+        position: absolute;
+        top: 0.175rem;
+        left: 0.175rem;
+        right: 0.175rem;
+        bottom: 0.175rem;
+        border: 1px solid #e9c349;
+        pointer-events: none;
+        border-radius: inherit;
+      }
+      .ambient-glow {
+        box-shadow: 0 40px 60px -5px rgba(233, 195, 73, 0.05);
+      }
+      .text-glow {
+        text-shadow: 0 0 10px rgba(233, 195, 73, 0.3);
+      }
+      .parchment-texture {
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        opacity: 0.03;
+        pointer-events: none;
+      }
+      .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(233, 195, 73, 0.2);
+        border-radius: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(233, 195, 73, 0.6);
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body class="bg-[#190e24] text-[#efdcfb] font-[Newsreader,serif] overflow-hidden h-screen flex">
+    <!-- SideNavBar -->
+    <nav class="hidden md:flex bg-[#22172d] h-full w-72 flex-col p-8 space-y-6 flex-shrink-0 z-20 border-r border-[#22172d] overflow-y-auto custom-scrollbar">
+      <!-- User Avatar & Profile -->
+      <a href="/user" data-profile-link class="flex items-center space-x-4 mb-4 group">
+        <div class="w-12 h-12 rounded-full overflow-hidden double-outline flex-shrink-0">
+          <img
+            alt="User Profile"
+            class="w-full h-full object-cover"
+            src="/default_user_profile.png"
+            data-profile-avatar
+          />
+        </div>
+        <div>
+          <h2 class="font-[Newsreader,serif] text-xl text-[#e9c349] font-bold tracking-tight" data-profile-name>The Archivist</h2>
+          <p class="font-[Inter,sans-serif] text-xs text-[#cbc4ce] uppercase tracking-widest mt-1">Seeker of Hidden Truths</p>
+        </div>
+      </a>
+
+      <!-- Notification Filters -->
+      <div class="flex-grow flex flex-col space-y-1 mt-4">
+        <a class="flex items-center space-x-4 px-4 py-3 rounded-lg text-[#e9c349] font-bold bg-[#3c3048]/30 double-outline transition-all scale-102 duration-200" href="/notifications">
+          <span class="material-symbols-outlined text-xl">notifications</span>
+          <span class="font-[Newsreader,serif] text-lg">All Notifications</span>
+          <span class="ml-auto bg-[#e9c349] text-[#241a00] text-xs font-[Inter,sans-serif] px-2 py-0.5 rounded-full">3</span>
+        </a>
+        {notificationTypes.map((nt) => (
+          <a class="flex items-center space-x-4 px-4 py-3 rounded-lg text-[#cbc4ce] hover:bg-[#31253c] hover:text-[#efdcfb] transition-all scale-102 duration-200" href={`/notifications?type=${nt.type}`}>
+            <span class="material-symbols-outlined text-xl">{nt.icon}</span>
+            <span class="font-[Newsreader,serif] text-lg">{nt.label}</span>
+          </a>
+        ))}
+      </div>
+
+      <!-- Bottom actions -->
+      <div class="pt-8 border-t border-[#31253c] mt-auto flex flex-col space-y-2">
+        <a class="flex items-center space-x-4 px-4 py-2 text-[#cbc4ce] hover:text-[#efdcfb] transition-colors" href="#">
+          <span class="material-symbols-outlined text-lg">settings</span>
+          <span class="font-[Inter,sans-serif] text-sm uppercase tracking-widest">Notification Settings</span>
+        </a>
+      </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow flex flex-col relative h-full overflow-hidden bg-[#190e24]">
+      <div class="absolute inset-0 parchment-texture z-0"></div>
+
+      <!-- TopAppBar -->
+      <header class="bg-[#190e24]/70 backdrop-blur-xl docked full-width top-0 z-10 flex justify-between items-center px-12 py-6 w-full shadow-[0_40px_60px_-5px_rgba(233,195,73,0.05)]">
+        <div class="flex items-center space-x-4 md:hidden">
+          <button class="text-[#efdcfb] hover:text-[#e9c349] transition-colors">
+            <span class="material-symbols-outlined text-3xl">menu</span>
+          </button>
+        </div>
+        <div class="font-[Newsreader,serif] text-2xl font-bold text-[#e9c349] tracking-[-0.02em] md:hidden">
+          The Whispering Library
+        </div>
+        <a href="/archive" class="hidden md:flex font-[Newsreader,serif] text-2xl font-bold text-[#e9c349] tracking-[-0.02em] hover:opacity-80 transition-opacity">
+          The Whispering Library
+        </a>
+        <!-- Empty right side - no action buttons -->
+        <div></div>
+      </header>
+
+      <!-- Canvas Area -->
+      <div class="flex-grow relative z-10 overflow-y-auto custom-scrollbar p-6 md:p-12 flex flex-col items-center">
+        <!-- Header Section -->
+        <div class="max-w-4xl w-full flex flex-col md:flex-row justify-between items-start md:items-end mb-16 space-y-6 md:space-y-0">
+          <div>
+            <h1 class="font-[Newsreader,serif] text-display-md text-[#e9c349] tracking-[-0.02em] mb-4 text-glow">Notification Page</h1>
+          </div>
+          <button class="px-6 py-3 rounded bg-transparent border border-[#e9c349]/20 text-[#e9c349] font-[Inter,sans-serif] text-sm uppercase tracking-widest hover:bg-[#e9c349]/5 transition-colors double-outline group relative overflow-hidden">
+            <span class="relative z-10 flex items-center space-x-2">
+              <span class="material-symbols-outlined text-lg group-hover:rotate-12 transition-transform">volume_off</span>
+              <span>Silence the Whispers</span>
+            </span>
+            <div class="absolute inset-0 bg-[#e9c349]/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
+          </button>
+        </div>
+
+        <!-- Bento/Grid Layout for Notifications -->
+        <div class="max-w-4xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 pb-32">
+          <!-- Primary Urgent Notification - Spans full width -->
+          <article class="col-span-1 md:col-span-12 bg-[#31253c] rounded-xl p-8 double-outline ambient-glow relative overflow-hidden group cursor-pointer">
+            <div class="absolute inset-0 bg-gradient-to-br from-[#e9c349]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div class="absolute top-0 right-0 p-6 opacity-20 group-hover:opacity-40 transition-opacity duration-500">
+              <span class="material-symbols-outlined text-6xl text-[#e9c349]">visibility</span>
+            </div>
+            <div class="relative z-10 flex flex-col md:flex-row items-start space-y-4 md:space-y-0 md:space-x-6">
+              <div class="w-16 h-16 rounded-full bg-[#190e24] flex items-center justify-center border border-[#e9c349]/30 flex-shrink-0 shadow-[0_0_15px_rgba(233,195,73,0.2)]">
+                <span class="material-symbols-outlined text-3xl text-[#e9c349]" style="font-variation-settings: 'FILL' 1;">visibility</span>
+              </div>
+              <div class="flex-grow">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="bg-[#3c3048] px-3 py-1 rounded-full font-[Inter,sans-serif] text-xs uppercase tracking-widest text-[#d6baff] border border-[#d6baff]/20 shadow-[0_0_10px_rgba(214,186,255,0.1)]">Observation Manifested</span>
+                  <span class="font-[Inter,sans-serif] text-xs text-[#e9c349]/70 tracking-widest uppercase">3 Cycles Ago</span>
+                </div>
+                <h3 class="font-[Newsreader,serif] text-2xl text-[#efdcfb] mb-3">A New Manifestation in the Archive</h3>
+                <p class="font-[Newsreader,serif] text-lg text-[#cbc4ce] leading-relaxed mb-6">
+                  The structural integrity of the 'Void Walker' manuscript has shifted. Anonymous scholarly entities are currently studying the marginalia you inscribed during the last moon phase.
+                </p>
+                <button class="text-[#e9c349] font-[Inter,sans-serif] text-sm uppercase tracking-widest hover:text-[#d6baff] transition-colors flex items-center space-x-2">
+                  <span>Investigate Anomaly</span>
+                  <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Secondary Notification - Half width -->
+          <article class="col-span-1 md:col-span-6 bg-[#261b31] rounded-xl p-6 relative border border-[#958f98]/20 hover:border-[#e9c349]/40 transition-colors group cursor-pointer flex flex-col h-full">
+            <div class="flex items-start space-x-4 mb-4">
+              <div class="w-12 h-12 rounded-full bg-[#22172d] flex items-center justify-center border border-[#958f98]/20 flex-shrink-0">
+                <span class="material-symbols-outlined text-2xl text-[#d6baff]">history_edu</span>
+              </div>
+              <div>
+                <h3 class="font-[Newsreader,serif] text-xl text-[#efdcfb] mb-1">Ritual Completed</h3>
+                <span class="font-[Inter,sans-serif] text-xs text-[#cbc4ce]/70 tracking-widest uppercase">12 Cycles Ago</span>
+              </div>
+            </div>
+            <p class="font-[Newsreader,serif] text-base text-[#cbc4ce] leading-relaxed flex-grow">
+              The drafting of Chapter VII: 'The Obsidian Spire' has coalesced successfully. The ink has dried, and the narrative threads are secured in the vault.
+            </p>
+          </article>
+
+          <!-- Secondary Notification - Half width -->
+          <article class="col-span-1 md:col-span-6 bg-[#261b31] rounded-xl p-6 relative border border-[#958f98]/20 hover:border-[#e9c349]/40 transition-colors group cursor-pointer flex flex-col h-full">
+            <div class="flex items-start space-x-4 mb-4">
+              <div class="w-12 h-12 rounded-full bg-[#22172d] flex items-center justify-center border border-[#958f98]/20 flex-shrink-0">
+                <span class="material-symbols-outlined text-2xl text-[#e9c400]">auto_stories</span>
+              </div>
+              <div>
+                <h3 class="font-[Newsreader,serif] text-xl text-[#efdcfb] mb-1">Scroll Unsealed</h3>
+                <span class="font-[Inter,sans-serif] text-xs text-[#cbc4ce]/70 tracking-widest uppercase">1 Epoch Ago</span>
+              </div>
+            </div>
+            <p class="font-[Newsreader,serif] text-base text-[#cbc4ce] leading-relaxed flex-grow">
+              High Mage Thaddeus has granted you access to the forbidden texts of the Lower Sanctum. Proceed with caution; the wards are fragile.
+            </p>
+          </article>
+        </div>
+
+        <!-- SiteFooter -->
+        <SiteFooter />
+      </div>
+    </main>
+  </body>
+</html>
+
+<script>
+  import "../scripts/profile-sync";
+</script>

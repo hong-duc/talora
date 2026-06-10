@@ -15,6 +15,7 @@
 import type { APIRoute } from 'astro';
 import { requireAuth, jsonResponse } from '../../../../lib/api-auth';
 import { createAuthedClient } from '../../../../lib/supabase';
+import { eventHub } from '../../../../lib/event-hub';
 
 export const prerender = false;
 
@@ -46,6 +47,14 @@ export const POST: APIRoute = async ({ params, request }) => {
         console.error('follow insert error:', error);
         return jsonResponse({ error: error.message }, 500);
     }
+
+    // Fire notification event
+    eventHub.emit({
+        type: 'new_follower',
+        actorId: auth.userId,
+        recipientId: targetUserId,
+        entityId: targetUserId,
+    });
 
     return jsonResponse({ success: true });
 };

@@ -13,6 +13,7 @@
 import type { APIRoute } from 'astro';
 import { supabase, createAuthedClient } from '../../../../lib/supabase';
 import { requireAuth, jsonResponse } from '../../../../lib/api-auth';
+import { eventHub } from '../../../../lib/event-hub';
 
 export const prerender = false;
 
@@ -117,6 +118,26 @@ export const POST: APIRoute = async ({ params, request }) => {
         .single();
 
     if (insertError) return jsonResponse({ error: insertError.message }, 500);
+
+    // Fetch the story author to fire notification
+    const { data: story } = await supabase
+        .from('stories')
+        .select('author_id')
+        .eq('id', storyId)
+        .maybeSingle();
+
+    if (story?.author_id) {
+        eventHub.emit({
+            type: 'story_comment',
+            actorId: auth.userId,
+            recipientId: story.author_id,
+            entityId: storyId,
+            meta: {
+                commentId: inserted.id,
+                contentSnippet: content.trim(),
+            },
+        });
+    }
 
     // Fetch the author's profile to include in the response (avoids a client refetch)
     const { data: profile } = await supabase

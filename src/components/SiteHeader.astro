@@ -134,11 +134,12 @@ const headerBgClass =
 				>
 					<span class="material-symbols-outlined">notifications</span>
 					<span
-						class="absolute right-2 top-2 size-2 rounded-full border-2 border-[#191022] bg-primary"
+						class="absolute right-2 top-2 hidden rounded-full border-2 border-[#191022] bg-primary px-0.5 text-[8px] font-bold leading-none text-white"
+						data-notif-badge
 					></span>
 				</button>
 				<div
-					class="pointer-events-none absolute right-0 top-full z-50 mt-4 w-72 origin-top-right scale-95 overflow-hidden rounded-lg border-2 border-[#d4c5a1] bg-[#f4ecd8] text-slate-900 opacity-0 shadow-2xl transition duration-200"
+					class="pointer-events-none absolute right-0 top-full z-50 mt-4 w-80 origin-top-right scale-95 overflow-hidden rounded-lg border-2 border-[#d4c5a1] bg-[#f4ecd8] text-slate-900 opacity-0 shadow-2xl transition duration-200"
 					data-notification-panel
 					id="header-notification-panel"
 				>
@@ -148,61 +149,40 @@ const headerBgClass =
 						<h3
 							class="font-display text-lg font-bold italic text-primary"
 						>
-							Echoes &amp; Whispers
+							Echoes & Whispers
 						</h3>
 						<span
 							class="material-symbols-outlined text-sm opacity-50"
 							>history_edu</span
 						>
 					</div>
-					<div class="max-h-80 overflow-y-auto">
-						<button
-							class="w-full cursor-pointer border-b border-[#d4c5a1]/50 p-4 text-left transition-colors hover:bg-[#ece2c6]"
-							type="button"
-						>
-							<p class="font-display text-sm leading-snug">
-								New echo heard in the Hall
-							</p>
-							<p
-								class="mt-1 text-[10px] uppercase tracking-widest text-primary/60"
-							>
-								Just now
-							</p>
-						</button>
-						<button
-							class="w-full cursor-pointer border-b border-[#d4c5a1]/50 p-4 text-left transition-colors hover:bg-[#ece2c6]"
-							type="button"
-						>
-							<p class="font-display text-sm leading-snug">
-								A story milestone reached: The Shadowed Tome
-							</p>
-							<p
-								class="mt-1 text-[10px] uppercase tracking-widest text-primary/60"
-							>
-								2 hours ago
-							</p>
-						</button>
-						<button
-							class="w-full cursor-pointer p-4 text-left transition-colors hover:bg-[#ece2c6]"
-							type="button"
-						>
-							<p class="font-display text-sm leading-snug">
-								Circle application accepted: The Seekers of
-								Silence
-							</p>
-							<p
-								class="mt-1 text-[10px] uppercase tracking-widest text-primary/60"
-							>
-								Yesterday
-							</p>
-						</button>
+					<div class="max-h-80 overflow-y-auto" data-notif-list>
+						<!-- Loading state -->
+						<div data-notif-loading class="flex items-center justify-center p-8">
+							<div class="animate-pulse flex flex-col items-center gap-3">
+								<div class="size-6 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+								<p class="text-xs text-primary/60 italic">Listening to the whispers...</p>
+							</div>
+						</div>
+						<!-- Empty state (hidden by default) -->
+						<div data-notif-empty class="hidden p-8 text-center">
+							<span class="material-symbols-outlined text-3xl text-primary/30">inventory_2</span>
+							<p class="mt-2 text-sm text-primary/50 italic">No whispers drift on the wind...</p>
+						</div>
+						<!-- Error state (hidden by default) -->
+						<div data-notif-error class="hidden p-8 text-center">
+							<span class="material-symbols-outlined text-3xl text-red-400/50">error</span>
+							<p class="mt-2 text-sm text-red-400/70 italic">The whispers are silent...</p>
+							<button data-notif-retry class="mt-3 text-xs text-primary hover:underline">Try again</button>
+						</div>
+						<!-- Notification items are rendered here via JS -->
 					</div>
 					<div
 						class="border-t border-[#d4c5a1] bg-[#ece2c6] p-3 text-center"
 					>
-						<button
+						<a
 							class="text-xs font-bold uppercase tracking-tighter text-primary hover:underline"
-							type="button">View all scrolls</button
+							href="/notifications">View all scrolls</a
 						>
 					</div>
 				</div>
@@ -321,10 +301,156 @@ const headerBgClass =
 
 <script is:inline>
 	(() => {
-		// Notification panel
-		const notifRoots = document.querySelectorAll(
-			"[data-notification-root]",
-		);
+		// ─── Notification action helpers ──────────────────────────────────────
+		const ACTION_LABELS = {
+			post_like: 'liked your post',
+			post_comment: 'commented on your post',
+			comment_like: 'liked your comment',
+			comment_reply: 'replied to your comment',
+			post_repost: 'reposted your post',
+			new_follower: 'started following you',
+			story_comment: 'commented on your story',
+			story_rating: 'rated your story',
+		};
+
+		function timeAgo(dateStr) {
+			const now = Date.now();
+			const then = new Date(dateStr).getTime();
+			const diff = now - then;
+			const seconds = Math.floor(diff / 1000);
+			if (seconds < 60) return 'just now';
+			const minutes = Math.floor(seconds / 60);
+			if (minutes < 60) return `${minutes}m ago`;
+			const hours = Math.floor(minutes / 60);
+			if (hours < 24) return `${hours}h ago`;
+			const days = Math.floor(hours / 24);
+			if (days < 7) return `${days}d ago`;
+			const weeks = Math.floor(days / 7);
+			if (weeks < 4) return `${weeks}w ago`;
+			return new Date(dateStr).toLocaleDateString();
+		}
+
+		function getNotifUrl(notif) {
+			const postTypes = ['post_like', 'post_comment', 'comment_like', 'comment_reply', 'post_repost'];
+			const storyTypes = ['story_comment', 'story_rating'];
+
+			if (postTypes.includes(notif.type) && notif.post_id) {
+				return `/social#post-${notif.post_id}`;
+			}
+			if (storyTypes.includes(notif.type) && notif.story_id) {
+				return `/review/${notif.story_id}`;
+			}
+			if (notif.type === 'new_follower' && notif.actor_id) {
+				return `/user/${notif.actor_id}`;
+			}
+			return '/notifications';
+		}
+
+		// ─── Render notifications into a panel ───────────────────────────────
+		function renderNotifications(notifListEl, notifications, badgEl) {
+			// Remove old notification items (keep loading/empty/error placeholders)
+			notifListEl.querySelectorAll('[data-notif-item]').forEach(el => el.remove());
+
+			const loadingEl = notifListEl.querySelector('[data-notif-loading]');
+			const emptyEl = notifListEl.querySelector('[data-notif-empty]');
+			const errorEl = notifListEl.querySelector('[data-notif-error]');
+
+			if (loadingEl) loadingEl.classList.add('hidden');
+			if (errorEl) errorEl.classList.add('hidden');
+
+			if (!notifications || notifications.length === 0) {
+				if (emptyEl) emptyEl.classList.remove('hidden');
+				if (badgEl) badgEl.classList.add('hidden');
+				return;
+			}
+
+			if (emptyEl) emptyEl.classList.add('hidden');
+
+			notifications.forEach(function(notif) {
+				const btn = document.createElement('button');
+				btn.className = 'w-full cursor-pointer border-b border-[#d4c5a1]/50 p-4 text-left transition-colors hover:bg-[#ece2c6]';
+				btn.type = 'button';
+				btn.setAttribute('data-notif-item', '');
+				btn.setAttribute('data-notif-id', notif.id);
+
+				const actorName = notif.actor ? (notif.actor.username || 'Someone') : 'Someone';
+				const actionLabel = ACTION_LABELS[notif.type] || notif.type;
+				const body = notif.body || '';
+
+				const contentP = document.createElement('p');
+				contentP.className = 'font-display text-sm leading-snug';
+				const strongEl = document.createElement('strong');
+				strongEl.className = 'text-primary font-bold';
+				strongEl.textContent = actorName;
+				contentP.appendChild(strongEl);
+				contentP.appendChild(document.createTextNode(' ' + actionLabel));
+				if (body) {
+					contentP.appendChild(document.createTextNode(': ' + body));
+				}
+
+				const timeP = document.createElement('p');
+				timeP.className = 'mt-1 text-[10px] uppercase tracking-widest text-primary/60';
+				timeP.textContent = timeAgo(notif.created_at);
+
+				btn.appendChild(contentP);
+				btn.appendChild(timeP);
+
+				// Click handler: mark as read + navigate
+				btn.addEventListener('click', function(e) {
+					e.stopPropagation();
+					// Mark as read
+					fetch('/api/notifications', {
+						method: 'PATCH',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ id: notif.id }),
+					}).catch(function() {});
+					// Navigate
+					const url = getNotifUrl(notif);
+					window.location.href = url;
+				});
+
+				notifListEl.appendChild(btn);
+			});
+
+			// Update badge
+			if (badgEl) {
+				const unread = notifications.filter(function(n) { return !n.is_read; }).length;
+				if (unread > 0) {
+					badgEl.classList.remove('hidden');
+					badgEl.textContent = unread > 99 ? '99+' : String(unread);
+				} else {
+					badgEl.classList.add('hidden');
+				}
+			}
+		}
+
+		// ─── Fetch notifications ─────────────────────────────────────────────
+		async function loadNotifications(notifListEl, badgEl) {
+			const loadingEl = notifListEl.querySelector('[data-notif-loading]');
+			const errorEl = notifListEl.querySelector('[data-notif-error]');
+			const retryBtn = notifListEl.querySelector('[data-notif-retry]');
+
+			if (loadingEl) loadingEl.classList.remove('hidden');
+			if (errorEl) errorEl.classList.add('hidden');
+
+			try {
+				const resp = await fetch('/api/notifications?limit=5');
+				if (!resp.ok) throw new Error('Failed to fetch');
+				const data = await resp.json();
+				renderNotifications(notifListEl, data.notifications || [], badgEl);
+			} catch (err) {
+				if (loadingEl) loadingEl.classList.add('hidden');
+				if (errorEl) errorEl.classList.remove('hidden');
+				if (retryBtn) {
+					retryBtn.onclick = function() {
+						loadNotifications(notifListEl, badgEl);
+					};
+				}
+			}
+		}
+
+		// ─── Notification panel toggle setup ─────────────────────────────────
+		const notifRoots = document.querySelectorAll("[data-notification-root]");
 		notifRoots.forEach((root) => {
 			if (
 				!(root instanceof HTMLElement) ||
@@ -335,6 +461,8 @@ const headerBgClass =
 
 			const toggle = root.querySelector("[data-notification-toggle]");
 			const panel = root.querySelector("[data-notification-panel]");
+			const badgEl = root.querySelector("[data-notif-badge]");
+			const notifListEl = root.querySelector("[data-notif-list]");
 
 			if (
 				!(toggle instanceof HTMLButtonElement) ||
@@ -343,6 +471,7 @@ const headerBgClass =
 				return;
 
 			let open = false;
+			let loaded = false;
 
 			const setOpen = (nextOpen) => {
 				open = nextOpen;
@@ -352,6 +481,12 @@ const headerBgClass =
 				panel.classList.toggle("scale-95", !open);
 				panel.classList.toggle("opacity-100", open);
 				panel.classList.toggle("scale-100", open);
+
+				// Fetch notifications when opening for the first time
+				if (open && !loaded && notifListEl) {
+					loaded = true;
+					loadNotifications(notifListEl, badgEl instanceof HTMLElement ? badgEl : null);
+				}
 			};
 
 			const onDocumentClick = (event) => {
@@ -369,6 +504,12 @@ const headerBgClass =
 			document.addEventListener("click", onDocumentClick);
 			document.addEventListener("keydown", onDocumentKeydown);
 			setOpen(false);
+
+			// Preload notifications on page load
+			if (notifListEl) {
+				loaded = true;
+				loadNotifications(notifListEl, badgEl instanceof HTMLElement ? badgEl : null);
+			}
 		});
 
 		// My Space dropdown

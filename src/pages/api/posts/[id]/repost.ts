@@ -8,6 +8,7 @@
 import type { APIRoute } from 'astro';
 import { requireAuth, jsonResponse } from '../../../../lib/api-auth';
 import { createAuthedClient } from '../../../../lib/supabase';
+import { eventHub } from '../../../../lib/event-hub';
 import type { RepostRequest } from '../../../../lib/api-types';
 
 export const prerender = false;
@@ -60,11 +61,21 @@ export const POST: APIRoute = async ({ params, request }) => {
     // Increment repost_count
     const { data: post } = await db
         .from('posts')
-        .select('repost_count')
+        .select('repost_count, author_id')
         .eq('id', postId)
         .single();
     const newCount = (post?.repost_count || 0) + 1;
     await db.from('posts').update({ repost_count: newCount }).eq('id', postId);
+
+    // Fire notification event
+    if (post?.author_id) {
+        eventHub.emit({
+            type: 'post_repost',
+            actorId: auth.userId,
+            recipientId: post.author_id,
+            entityId: postId,
+        });
+    }
 
     return jsonResponse({ success: true, repost }, 201);
 };

@@ -10,6 +10,7 @@
 import type { APIRoute } from 'astro';
 import { requireAuth, jsonResponse } from '../../../../lib/api-auth';
 import { createAuthedClient, supabase } from '../../../../lib/supabase';
+import { eventHub } from '../../../../lib/event-hub';
 import type { CreatePostCommentRequest } from '../../../../lib/api-types';
 
 export const prerender = false;
@@ -93,10 +94,11 @@ export const POST: APIRoute = async ({ params, request }) => {
     const db = createAuthedClient(auth.token);
 
     // If it's a reply, verify the parent comment exists and belongs to the same post
+    let parentAuthorId: string | null = null;
     if (body.parent_id) {
         const { data: parent } = await db
             .from('post_comments')
-            .select('id, post_id')
+            .select('id, post_id, author_id')
             .eq('id', body.parent_id)
             .eq('post_id', postId)
             .maybeSingle();
@@ -104,6 +106,7 @@ export const POST: APIRoute = async ({ params, request }) => {
         if (!parent) {
             return jsonResponse({ error: 'Parent comment not found or does not belong to this post.' }, 400);
         }
+        parentAuthorId = parent.author_id;
     }
 
     const { data: comment, error } = await db
@@ -135,11 +138,38 @@ export const POST: APIRoute = async ({ params, request }) => {
     // Increment comment_count on the post
     const { data: post } = await db
         .from('posts')
-        .select('comment_count')
+        .select('comment_count, author_id')
         .eq('id', postId)
         .single();
     const newCount = (post?.comment_count || 0) + 1;
     await db.from('posts').update({ comment_count: newCount }).eq('id', postId);
+
+    // Fire notification event
+    if (parentAuthorId) {
+        // Reply — notify the parent comment author
+        eventHub.emit({
+            type: 'comment_reply',
+            actorId: auth.userId,
+            recipientId: parentAuthorId,
+            entityId: postId,
+            meta: {
+                commentId: (comment as any).id,
+                contentSnippet: body.content.trim(),
+            },
+        });
+    } else if (post?.author_id) {
+        // Top-level comment — notify the post author
+        eventHub.emit({
+            type: 'post_comment',
+            actorId: auth.userId,
+            recipientId: post.author_id,
+            entityId: postId,
+            meta: {
+                commentId: (comment as any).id,
+                contentSnippet: body.content.trim(),
+            },
+        });
+    }
 
     return jsonResponse({ success: true, comment }, 201);
 };

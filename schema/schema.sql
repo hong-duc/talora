@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict OmF9l4pVAjr49R9745Nd31Dji1UFKuny6p2Mb8pRRE8RKYsZHoQXVatNh73FgKF
+\restrict IoaeXRWLyWvj9ZdwSbNDMhdKVnCJz268ox2LRocTGfESa59NFNdhLXFPnqeETWV
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 18.3 (Homebrew)
@@ -34,6 +34,24 @@ ALTER SCHEMA public OWNER TO pg_database_owner;
 
 COMMENT ON SCHEMA public IS 'standard public schema';
 
+
+--
+-- Name: notification_type; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public.notification_type AS ENUM (
+    'post_like',
+    'post_comment',
+    'comment_like',
+    'comment_reply',
+    'post_repost',
+    'new_follower',
+    'story_comment',
+    'story_rating'
+);
+
+
+ALTER TYPE public.notification_type OWNER TO postgres;
 
 --
 -- Name: story_status; Type: TYPE; Schema: public; Owner: postgres
@@ -310,6 +328,27 @@ CREATE TABLE public.messages (
 
 
 ALTER TABLE public.messages OWNER TO postgres;
+
+--
+-- Name: notifications; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.notifications (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    recipient_id uuid NOT NULL,
+    actor_id uuid,
+    type public.notification_type NOT NULL,
+    post_id uuid,
+    comment_id uuid,
+    story_id uuid,
+    story_comment_id uuid,
+    body text,
+    is_read boolean DEFAULT false,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.notifications OWNER TO postgres;
 
 --
 -- Name: post_comments; Type: TABLE; Schema: public; Owner: postgres
@@ -618,6 +657,14 @@ ALTER TABLE ONLY public.messages
 
 
 --
+-- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: post_comments post_comments_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -781,6 +828,20 @@ CREATE INDEX idx_comments_story ON public.comments USING btree (story_id);
 --
 
 CREATE INDEX idx_messages_session ON public.messages USING btree (session_id);
+
+
+--
+-- Name: idx_notifications_recipient; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_notifications_recipient ON public.notifications USING btree (recipient_id, created_at DESC);
+
+
+--
+-- Name: idx_notifications_unread; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_notifications_unread ON public.notifications USING btree (recipient_id) WHERE (is_read = false);
 
 
 --
@@ -962,6 +1023,54 @@ ALTER TABLE ONLY public.comments
 
 ALTER TABLE ONLY public.messages
     ADD CONSTRAINT messages_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.story_sessions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: notifications notifications_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
+-- Name: notifications notifications_comment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_comment_id_fkey FOREIGN KEY (comment_id) REFERENCES public.post_comments(id) ON DELETE CASCADE;
+
+
+--
+-- Name: notifications notifications_post_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.posts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: notifications notifications_recipient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_recipient_id_fkey FOREIGN KEY (recipient_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: notifications notifications_story_comment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_story_comment_id_fkey FOREIGN KEY (story_comment_id) REFERENCES public.comments(id) ON DELETE CASCADE;
+
+
+--
+-- Name: notifications notifications_story_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_story_id_fkey FOREIGN KEY (story_id) REFERENCES public.stories(id) ON DELETE CASCADE;
 
 
 --
@@ -1531,10 +1640,38 @@ CREATE POLICY "Enable upfate for authenticated users only" ON public.story_ratin
 
 
 --
+-- Name: notifications System can insert notifications; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "System can insert notifications" ON public.notifications FOR INSERT WITH CHECK (true);
+
+
+--
+-- Name: notifications Users can delete own notifications; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Users can delete own notifications" ON public.notifications FOR DELETE TO authenticated USING ((( SELECT auth.uid() AS uid) = recipient_id));
+
+
+--
 -- Name: user_followers Users can follow others; Type: POLICY; Schema: public; Owner: postgres
 --
 
 CREATE POLICY "Users can follow others" ON public.user_followers FOR INSERT WITH CHECK ((auth.uid() = follower_id));
+
+
+--
+-- Name: notifications Users can mark own notifications read; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Users can mark own notifications read" ON public.notifications FOR UPDATE TO authenticated USING ((( SELECT auth.uid() AS uid) = recipient_id));
+
+
+--
+-- Name: notifications Users can read own notifications; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Users can read own notifications" ON public.notifications FOR SELECT TO authenticated USING ((( SELECT auth.uid() AS uid) = recipient_id));
 
 
 --
@@ -1609,6 +1746,12 @@ ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: notifications; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: post_comments; Type: ROW SECURITY; Schema: public; Owner: postgres
@@ -1819,6 +1962,15 @@ GRANT ALL ON TABLE public.messages TO service_role;
 
 
 --
+-- Name: TABLE notifications; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.notifications TO anon;
+GRANT ALL ON TABLE public.notifications TO authenticated;
+GRANT ALL ON TABLE public.notifications TO service_role;
+
+
+--
 -- Name: TABLE post_comments; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -2017,5 +2169,5 @@ ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON T
 -- PostgreSQL database dump complete
 --
 
-\unrestrict OmF9l4pVAjr49R9745Nd31Dji1UFKuny6p2Mb8pRRE8RKYsZHoQXVatNh73FgKF
+\unrestrict IoaeXRWLyWvj9ZdwSbNDMhdKVnCJz268ox2LRocTGfESa59NFNdhLXFPnqeETWV
 

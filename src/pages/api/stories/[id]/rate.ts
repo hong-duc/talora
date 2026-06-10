@@ -9,6 +9,7 @@
 import type { APIRoute } from 'astro';
 import { supabase, createAuthedClient } from '../../../../lib/supabase';
 import { jsonResponse } from '../../../../lib/api-auth';
+import { eventHub } from '../../../../lib/event-hub';
 
 export const prerender = false;
 
@@ -103,6 +104,23 @@ export const POST: APIRoute = async ({ params, request }) => {
         );
 
     if (upsertError) return jsonResponse({ error: upsertError.message }, 500);
+
+    // Fetch story author to fire notification
+    const { data: story } = await db
+        .from('stories')
+        .select('author_id')
+        .eq('id', storyId)
+        .maybeSingle();
+
+    if (story?.author_id) {
+        eventHub.emit({
+            type: 'story_rating',
+            actorId: userId,
+            recipientId: story.author_id,
+            entityId: storyId,
+            meta: { contentSnippet: `rated ${rating}/5` },
+        });
+    }
 
     // Recalculate the aggregate so the UI can update immediately
     const { data: ratings, error: fetchError } = await db
